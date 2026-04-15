@@ -1519,6 +1519,7 @@ export function BananaToolbar({
             {showStationCargo && (
                 <StationCargoPanel
                     economyManager={app.economyManager}
+                    stationManager={app.stationManager}
                     onClose={() => setPanel('stationCargo', false)}
                 />
             )}
