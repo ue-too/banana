@@ -1,6 +1,6 @@
 # Banana
 
-A 2D top-down railway simulator built with React and PixiJS.
+A 2D top-down railway simulator built with React and PixiJS on the [@ue-too](https://github.com/ue-too/ue-too) toolkit.
 
 > Banana is just a placeholder name for the project. It is not going to be the final name. The origin of the name is from one of the Taipei Metro lines. It's called the <ruby>板<rt>Ban</rt></ruby> <ruby>南<rt>Nan</rt></ruby> 線. (AKA the blue line) My wife and I refer to it as the banana line as a joke.
 
