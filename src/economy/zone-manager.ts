@@ -1,7 +1,14 @@
 import type { Point } from '@ue-too/math';
 
 import type { EconomyState, ZoneEntity } from './simulation-state';
-import type { ZoneType } from './types';
+import { ZoneType } from './types';
+
+/** Residential zones start with a small population to bootstrap the economy. */
+const INITIAL_POPULATION: Record<ZoneType, number> = {
+    [ZoneType.RESIDENTIAL]: 5,
+    [ZoneType.COMMERCIAL]: 0,
+    [ZoneType.INDUSTRIAL]: 0,
+};
 
 type Callback<T extends unknown[]> = (...args: T) => void;
 
@@ -20,7 +27,7 @@ export class ZoneManager {
             id,
             type,
             boundary,
-            population: 0,
+            population: INITIAL_POPULATION[type],
             satisfaction: 0.5,
             satisfactionHistory: [],
             demandPerMinute: new Map(),
