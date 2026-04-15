@@ -69,13 +69,20 @@ export function runTransfer(
     }
 
     // Phase 3: Distribute workers evenly from stations to industries
-    // First, reset all worker counts (workers are a per-tick flow, not accumulated)
+    // Workers accumulate over time. Each tick, new workers from zones are
+    // added to the station stockpile, then distributed evenly as a top-up.
+    // Workers decay slightly each tick to model attrition and rebalancing.
+
+    // Decay existing workers slightly (5% per game-minute) to allow rebalancing
     for (const industry of state.industries.values()) {
-        industry.workerCount = 0;
+        industry.workerCount *= Math.max(0, 1 - 0.05 * deltaMinutes);
     }
 
     // Group industries by station
-    const industriesByStation = new Map<number, typeof state.industries extends Map<number, infer V> ? V[] : never>();
+    const industriesByStation = new Map<
+        number,
+        (typeof state.industries extends Map<number, infer V> ? V : never)[]
+    >();
     for (const industry of state.industries.values()) {
         if (industry.assignedStationId === null) continue;
         let list = industriesByStation.get(industry.assignedStationId);
@@ -86,7 +93,7 @@ export function runTransfer(
         list.push(industry);
     }
 
-    // Distribute workers evenly among industries at each station
+    // Distribute new workers evenly among industries at each station
     for (const [stationId, industries] of industriesByStation) {
         const stationData = state.stationEconomy.get(stationId);
         if (!stationData) continue;
@@ -99,7 +106,7 @@ export function runTransfer(
 
         const perIndustry = available / industries.length;
         for (const industry of industries) {
-            industry.workerCount = perIndustry;
+            industry.workerCount += perIndustry;
         }
     }
 }
