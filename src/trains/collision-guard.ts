@@ -190,12 +190,18 @@ export class CollisionGuard {
 
         const arcA = seg.curve.lengthAtT(posA.tValue);
         const arcB = seg.curve.lengthAtT(posB.tValue);
-        const distance = Math.abs(arcA - arcB);
 
-        // Check if the two trains are approaching each other.
-        if (!this._areApproaching(posA, posB, arcA, arcB)) return;
+        // Compute closing speed (positive = gap is shrinking). Returns 0 if not closing.
+        const closingSpeed = this._closingSpeed(posA, posB, arcA, arcB, trainA.speed, trainB.speed);
+        if (closingSpeed <= 0) return;
 
-        const closingSpeed = trainA.speed + trainB.speed;
+        // For head-on collisions, head-to-head distance is correct (heads approach each other).
+        // For following collisions, the relevant gap is from the rear train's head to the
+        // front train's tail (last bogie on this segment). Using head-to-head would miss
+        // collisions because the front train's body extends far behind its head.
+        const distance = this._effectiveDistance(
+            posA, posB, trainA, trainB, arcA, arcB, seg,
+        );
 
         if (distance <= CRITICAL_DISTANCE) {
             // Tier 2: hard stop
@@ -218,35 +224,149 @@ export class CollisionGuard {
     }
 
     /**
-     * Determine if two trains on the same segment are moving toward each other.
+     * Compute the effective collision-relevant distance between two trains.
+     *
+     * - **Head-on**: both heads approach each other → head-to-head distance.
+     * - **Following**: the rear train's head approaches the front train's tail →
+     *   distance from rear head to front train's last bogie on this segment.
+     *   Returns 0 if already overlapping.
+     */
+    private _effectiveDistance(
+        posA: TrainPosition,
+        posB: TrainPosition,
+        trainA: PlacedTrainEntry['train'],
+        trainB: PlacedTrainEntry['train'],
+        arcA: number,
+        arcB: number,
+        seg: { curve: { lengthAtT(t: number): number } },
+    ): number {
+        // Head-on: opposite directions → use head-to-head distance.
+        if (posA.direction !== posB.direction) {
+            return Math.abs(arcA - arcB);
+        }
+
+        // Following: same direction. Identify the front and rear trains.
+        let rearArc: number;
+        let frontTrain: PlacedTrainEntry['train'];
+        let frontArc: number;
+
+        if (posA.direction === 'tangent') {
+            // Both moving toward higher arc. Lower arc = rear, higher arc = front.
+            if (arcA <= arcB) {
+                rearArc = arcA;
+                frontTrain = trainB;
+                frontArc = arcB;
+            } else {
+                rearArc = arcB;
+                frontTrain = trainA;
+                frontArc = arcA;
+            }
+        } else {
+            // Both moving toward lower arc. Higher arc = rear, lower arc = front.
+            if (arcA >= arcB) {
+                rearArc = arcA;
+                frontTrain = trainB;
+                frontArc = arcB;
+            } else {
+                rearArc = arcB;
+                frontTrain = trainA;
+                frontArc = arcA;
+            }
+        }
+
+        // Find the front train's tail: the last bogie on this segment.
+        const frontTailArc = this._tailArcOnSegment(frontTrain, posA.trackSegment, seg);
+        if (frontTailArc === null) {
+            // Couldn't determine tail → fall back to head-to-head.
+            return Math.abs(arcA - arcB);
+        }
+
+        // Gap between the rear train's head and the front train's tail.
+        const gap = Math.abs(rearArc - frontTailArc);
+        return gap;
+    }
+
+    /**
+     * Find the arc-length of a train's rearmost bogie that is on the given segment.
+     * Returns null if bogie positions are unavailable.
+     */
+    private _tailArcOnSegment(
+        train: PlacedTrainEntry['train'],
+        segmentNumber: number,
+        seg: { curve: { lengthAtT(t: number): number } },
+    ): number | null {
+        const bogies = train.getBogiePositions();
+        if (!bogies || bogies.length === 0) return null;
+
+        // Walk from last bogie backwards to find one on this segment.
+        for (let i = bogies.length - 1; i >= 0; i--) {
+            if (bogies[i].trackSegment === segmentNumber) {
+                return seg.curve.lengthAtT(bogies[i].tValue);
+            }
+        }
+
+        return null;
+    }
+
+    /**
+     * Compute the rate at which the gap between two trains on the same segment
+     * is closing. Returns a positive value if they are getting closer, or 0 if
+     * the gap is steady or growing.
+     *
+     * Handles two scenarios:
+     * - **Head-on**: trains face opposite directions → closing speed = sum of speeds.
+     * - **Following**: trains face the same direction → closing speed = rear speed − front speed
+     *   (positive only when the rear train is faster).
      *
      * Convention:
-     * - `'tangent'` → moving in the direction of increasing t-value (higher arc-length).
-     * - `'reverseTangent'` → moving in the direction of decreasing t-value (lower arc-length).
-     *
-     * Two trains approach when:
-     * - the train with **lower** arc-length is moving **toward** higher t (tangent), AND
-     * - the train with **higher** arc-length is moving **toward** lower t (reverseTangent).
+     * - `'tangent'` → moving toward higher t-value / arc-length.
+     * - `'reverseTangent'` → moving toward lower t-value / arc-length.
      */
-    private _areApproaching(
+    private _closingSpeed(
         posA: TrainPosition,
         posB: TrainPosition,
         arcA: number,
         arcB: number,
-    ): boolean {
+        speedA: number,
+        speedB: number,
+    ): number {
+        // Identify which train is lower / higher along the arc.
         let lowerDir: 'tangent' | 'reverseTangent';
         let higherDir: 'tangent' | 'reverseTangent';
+        let lowerSpeed: number;
+        let higherSpeed: number;
 
         if (arcA <= arcB) {
             lowerDir = posA.direction;
             higherDir = posB.direction;
+            lowerSpeed = speedA;
+            higherSpeed = speedB;
         } else {
             lowerDir = posB.direction;
             higherDir = posA.direction;
+            lowerSpeed = speedB;
+            higherSpeed = speedA;
         }
 
-        // Approaching: lower is moving up (tangent) AND higher is moving down (reverseTangent).
-        return lowerDir === 'tangent' && higherDir === 'reverseTangent';
+        // Head-on: lower moving up, higher moving down.
+        if (lowerDir === 'tangent' && higherDir === 'reverseTangent') {
+            return lowerSpeed + higherSpeed;
+        }
+
+        // Following in tangent direction: both moving toward higher arc-length.
+        // The lower train is behind; closing when it's faster.
+        if (lowerDir === 'tangent' && higherDir === 'tangent') {
+            return Math.max(0, lowerSpeed - higherSpeed);
+        }
+
+        // Following in reverseTangent direction: both moving toward lower arc-length.
+        // The higher train is behind; closing when it's faster.
+        if (lowerDir === 'reverseTangent' && higherDir === 'reverseTangent') {
+            return Math.max(0, higherSpeed - lowerSpeed);
+        }
+
+        // Diverging: lower moving down, higher moving up.
+        return 0;
     }
 
     // -----------------------------------------------------------------------
