@@ -24,7 +24,7 @@ const ZONE_PREVIEW_COLORS: Record<ZoneType, number> = {
 };
 
 const DOT_RADIUS = 4;
-const SNAP_RADIUS = 15;
+const SNAP_RADIUS_PX = 20; // screen pixels
 const SNAP_RING_RADIUS = 10;
 
 function dist(a: Point, b: Point): number {
@@ -101,7 +101,7 @@ export class ZonePlacementEngine
         // If 3+ points and clicking near the start, close the polygon
         if (this._boundaryPoints.length >= 3) {
             const start = this._boundaryPoints[0];
-            if (dist(position, start) <= SNAP_RADIUS) {
+            if (dist(position, start) <= this._snapRadiusWorld()) {
                 this.finishZone();
                 return;
             }
@@ -186,9 +186,14 @@ export class ZonePlacementEngine
         }
     }
 
+    /** Snap radius in world units, adjusted for current zoom level. */
+    private _snapRadiusWorld(): number {
+        return SNAP_RADIUS_PX / this._camera.zoomLevel;
+    }
+
     private _isNearStart(pos: Point): boolean {
         if (this._boundaryPoints.length < 3) return false;
-        return dist(pos, this._boundaryPoints[0]) <= SNAP_RADIUS;
+        return dist(pos, this._boundaryPoints[0]) <= this._snapRadiusWorld();
     }
 
     private _drawPreview(cursorPos?: Point): void {
@@ -246,9 +251,10 @@ export class ZonePlacementEngine
         // Snap indicator: highlight ring around start point when cursor is close
         if (nearStart) {
             const start = points[0];
-            g.circle(start.x, start.y, SNAP_RING_RADIUS);
+            const ringRadius = this._snapRadiusWorld() * 0.6;
+            g.circle(start.x, start.y, ringRadius);
             g.stroke({ color: 0xffffff, width: 2, alpha: 0.9 });
-            g.circle(start.x, start.y, SNAP_RING_RADIUS);
+            g.circle(start.x, start.y, ringRadius);
             g.fill({ color, alpha: 0.3 });
         }
     }
