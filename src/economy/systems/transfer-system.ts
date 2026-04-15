@@ -68,22 +68,38 @@ export function runTransfer(
         stationData.stockpile.add(ResourceType.WORKERS, workersProduced);
     }
 
-    // Phase 3: Distribute workers from stations to industries
+    // Phase 3: Distribute workers evenly from stations to industries
+    // First, reset all worker counts (workers are a per-tick flow, not accumulated)
+    for (const industry of state.industries.values()) {
+        industry.workerCount = 0;
+    }
+
+    // Group industries by station
+    const industriesByStation = new Map<number, typeof state.industries extends Map<number, infer V> ? V[] : never>();
     for (const industry of state.industries.values()) {
         if (industry.assignedStationId === null) continue;
+        let list = industriesByStation.get(industry.assignedStationId);
+        if (!list) {
+            list = [];
+            industriesByStation.set(industry.assignedStationId, list);
+        }
+        list.push(industry);
+    }
 
-        const stationData = state.stationEconomy.get(
-            industry.assignedStationId
-        );
+    // Distribute workers evenly among industries at each station
+    for (const [stationId, industries] of industriesByStation) {
+        const stationData = state.stationEconomy.get(stationId);
         if (!stationData) continue;
 
-        const available = stationData.stockpile.get(ResourceType.WORKERS);
+        const available = stationData.stockpile.remove(
+            ResourceType.WORKERS,
+            stationData.stockpile.get(ResourceType.WORKERS)
+        );
         if (available <= 0) continue;
 
-        const taken = stationData.stockpile.remove(
-            ResourceType.WORKERS,
-            available
-        );
-        industry.workerCount += taken;
+        const perIndustry = available / industries.length;
+        for (const industry of industries) {
+            industry.workerCount = perIndustry;
+        }
     }
 }
