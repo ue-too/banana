@@ -34,6 +34,16 @@ export class EconomyManager {
         this.resources = new ResourceManager(this._state);
     }
 
+    /**
+     * Ensure all current stations are registered in the economy.
+     * Call this before the tick so new stations participate immediately.
+     */
+    syncStations(stationIds: number[]): void {
+        for (const id of stationIds) {
+            this.registerStation(id);
+        }
+    }
+
     update(deltaMinutes: number): GrowthEvent[] {
         const events = simulationTick(
             this._state,

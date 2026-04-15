@@ -974,6 +974,10 @@ export const initApp = async (
             signalRenderSystem.update();
             debugOverlayRenderSystem.updateFormationLabels();
             debugOverlayRenderSystem.updateProximityLines();
+            // Sync stations into economy before ticking
+            economyManager.syncStations(
+                stationManager.getStations().map(s => s.id)
+            );
             economyManager.update(deltaTime / 60000); // deltaTime is in ms, convert to game-minutes
         }
     );
