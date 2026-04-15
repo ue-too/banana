@@ -1,4 +1,4 @@
-import { Graphics, Text, TextStyle } from 'pixi.js';
+import { Container, Graphics, Text, TextStyle } from 'pixi.js';
 
 import { ELEVATION, ELEVATION_VALUES } from '@/trains/tracks/types';
 import { WorldRenderSystem } from '@/world-render-system';
@@ -82,17 +82,20 @@ export class IndustryRenderSystem {
         const label = INDUSTRY_LABELS[entity.type];
         const half = INDUSTRY_SIZE / 2;
 
+        const container = new Container();
+        container.position.set(entity.position.x, entity.position.y);
+        container.eventMode = 'static';
+        container.cursor = 'pointer';
+        container.on('pointertap', () => {
+            this._onSelect?.(id);
+        });
+
         const graphics = new Graphics();
         graphics.rect(-half, -half, INDUSTRY_SIZE, INDUSTRY_SIZE);
         graphics.fill({ color });
         graphics.rect(-half, -half, INDUSTRY_SIZE, INDUSTRY_SIZE);
         graphics.stroke({ color: 0x000000, pixelLine: true });
-        graphics.position.set(entity.position.x, entity.position.y);
-        graphics.eventMode = 'static';
-        graphics.cursor = 'pointer';
-        graphics.on('pointertap', () => {
-            this._onSelect?.(id);
-        });
+        container.addChild(graphics);
 
         const style = new TextStyle({
             fontSize: 10,
@@ -100,13 +103,13 @@ export class IndustryRenderSystem {
         });
         const text = new Text({ text: label, style });
         text.anchor.set(0.5, 0.5);
-        graphics.addChild(text);
+        container.addChild(text);
 
         this._records.set(id, { graphics, label: text });
 
         this._worldRenderSystem.addToBand(
             key,
-            graphics,
+            container,
             GROUND_BAND_INDEX,
             'drawable'
         );
