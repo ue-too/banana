@@ -425,6 +425,12 @@ const zhTW = {
         economyZoneCommercial: '商業',
         economyZoneIndustrial: '工業',
 
+        // Economy - Placement Buttons & Type Selectors
+        economyZonePlacementBtn: '放置區域',
+        economyIndustryPlacementBtn: '放置產業',
+        economyPlaceIndustry: '放置產業',
+        economySelectZoneType: '選擇區域類型',
+
         // Economy - Industry Types
         economyIndustryFarm: '農場',
         economyIndustryLumberMill: '伐木場',

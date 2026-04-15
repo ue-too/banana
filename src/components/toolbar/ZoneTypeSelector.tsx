@@ -1,3 +1,5 @@
+import { useTranslation } from 'react-i18next';
+
 import { Button } from '@/components/ui/button';
 import { DraggablePanel } from '@/components/ui/draggable-panel';
 import { ZoneType } from '@/economy/types';
@@ -8,20 +10,34 @@ type Props = {
 };
 
 const TYPES = [
-    { type: ZoneType.RESIDENTIAL, label: 'Residential', color: '#4caf50' },
-    { type: ZoneType.COMMERCIAL, label: 'Commercial', color: '#2196f3' },
-    { type: ZoneType.INDUSTRIAL, label: 'Industrial', color: '#ff9800' },
+    {
+        type: ZoneType.RESIDENTIAL,
+        key: 'economyZoneResidential',
+        color: '#4caf50',
+    },
+    {
+        type: ZoneType.COMMERCIAL,
+        key: 'economyZoneCommercial',
+        color: '#2196f3',
+    },
+    {
+        type: ZoneType.INDUSTRIAL,
+        key: 'economyZoneIndustrial',
+        color: '#ff9800',
+    },
 ];
 
 export function ZoneTypeSelector({ onSelect, onCancel }: Props) {
+    const { t } = useTranslation();
+
     return (
         <DraggablePanel
-            title="Select Zone Type"
+            title={t('economySelectZoneType')}
             onClose={onCancel}
             className="w-48"
         >
             <div className="flex flex-col gap-1">
-                {TYPES.map(({ type, label, color }) => (
+                {TYPES.map(({ type, key, color }) => (
                     <Button
                         key={type}
                         variant="ghost"
@@ -33,7 +49,7 @@ export function ZoneTypeSelector({ onSelect, onCancel }: Props) {
                             className="inline-block size-3 rounded"
                             style={{ backgroundColor: color }}
                         />
-                        {label}
+                        {t(key)}
                     </Button>
                 ))}
             </div>

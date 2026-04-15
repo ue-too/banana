@@ -369,6 +369,12 @@ const ja = {
         economyZoneCommercial: 'Commercial',
         economyZoneIndustrial: 'Industrial',
 
+        // Economy - Placement Buttons & Type Selectors
+        economyZonePlacementBtn: 'Place Zone',
+        economyIndustryPlacementBtn: 'Place Industry',
+        economyPlaceIndustry: 'Place Industry',
+        economySelectZoneType: 'Select Zone Type',
+
         // Economy - Industry Types
         economyIndustryFarm: 'Farm',
         economyIndustryLumberMill: 'Lumber Mill',
