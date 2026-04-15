@@ -40,6 +40,7 @@ export class EconomyManager {
             deltaMinutes,
             this._getZoneStation
         );
+        this.cityGrowth.recomputeClusters(this._getZoneStation);
         this.cityGrowth.updateReputations();
         return events;
     }
