@@ -1,3 +1,5 @@
+import { useTranslation } from 'react-i18next';
+
 import { DraggablePanel } from '@/components/ui/draggable-panel';
 import { Separator } from '@/components/ui/separator';
 import type { IndustryManager } from '@/economy/industry-manager';
@@ -10,10 +12,10 @@ type IndustryInfoPanelProps = {
     onClose: () => void;
 };
 
-const INDUSTRY_TYPE_LABELS: Record<IndustryType, string> = {
-    [IndustryType.FARM]: 'Farm',
-    [IndustryType.LUMBER_MILL]: 'Lumber Mill',
-    [IndustryType.WORKSHOP]: 'Workshop',
+const INDUSTRY_TYPE_KEYS: Record<IndustryType, string> = {
+    [IndustryType.FARM]: 'economyIndustryFarm',
+    [IndustryType.LUMBER_MILL]: 'economyIndustryLumberMill',
+    [IndustryType.WORKSHOP]: 'economyIndustryWorkshop',
 };
 
 const INDUSTRY_TYPE_COLORS: Record<IndustryType, string> = {
@@ -22,29 +24,30 @@ const INDUSTRY_TYPE_COLORS: Record<IndustryType, string> = {
     [IndustryType.WORKSHOP]: '#607d8b',
 };
 
-const RESOURCE_LABELS: Record<ResourceType, string> = {
-    [ResourceType.FOOD]: 'Food',
-    [ResourceType.GOODS]: 'Goods',
-    [ResourceType.WORKERS]: 'Workers',
-    [ResourceType.BUILDING_MATERIALS]: 'Materials',
+const RESOURCE_KEYS: Record<ResourceType, string> = {
+    [ResourceType.FOOD]: 'economyResourceFood',
+    [ResourceType.GOODS]: 'economyResourceGoods',
+    [ResourceType.WORKERS]: 'economyResourceWorkers',
+    [ResourceType.BUILDING_MATERIALS]: 'economyResourceMaterials',
 };
 
 export function IndustryInfoPanel({
     industryManager,
     onClose,
 }: IndustryInfoPanelProps) {
+    const { t } = useTranslation();
     const selectedIndustryId = useEconomyUIStore(s => s.selectedIndustryId);
 
     if (selectedIndustryId === null) {
         return (
             <DraggablePanel
-                title="Industry Info"
+                title={t('economyIndustryInfo')}
                 onClose={onClose}
                 className="w-64"
             >
                 <Separator className="mb-2" />
                 <span className="text-muted-foreground block py-4 text-center text-xs">
-                    Select an industry to inspect
+                    {t('economySelectIndustry')}
                 </span>
             </DraggablePanel>
         );
@@ -54,13 +57,13 @@ export function IndustryInfoPanel({
     if (!industry) {
         return (
             <DraggablePanel
-                title="Industry Info"
+                title={t('economyIndustryInfo')}
                 onClose={onClose}
                 className="w-64"
             >
                 <Separator className="mb-2" />
                 <span className="text-muted-foreground block py-4 text-center text-xs">
-                    Industry not found
+                    {t('economyIndustryNotFound')}
                 </span>
             </DraggablePanel>
         );
@@ -71,7 +74,7 @@ export function IndustryInfoPanel({
 
     return (
         <DraggablePanel
-            title="Industry Info"
+            title={t('economyIndustryInfo')}
             onClose={onClose}
             className="w-64"
         >
@@ -84,41 +87,43 @@ export function IndustryInfoPanel({
                 }}
             >
                 <div className="text-sm font-medium">
-                    {INDUSTRY_TYPE_LABELS[industry.type]} #{industry.id}
+                    {t(INDUSTRY_TYPE_KEYS[industry.type])} #{industry.id}
                 </div>
                 <div className="text-muted-foreground text-xs">
-                    Workers: {industry.workerCount} / {recipe.workersRequired}{' '}
-                    required
+                    {t('economyWorkers')}: {industry.workerCount} /{' '}
+                    {recipe.workersRequired} {t('economyRequired')}
                 </div>
             </div>
 
             <div className="mb-2">
-                <div className="mb-1 text-xs font-medium">Recipe</div>
+                <div className="mb-1 text-xs font-medium">
+                    {t('economyRecipe')}
+                </div>
                 <div className="text-muted-foreground text-xs">
                     {recipe.inputs.size === 0 ? (
                         <div>
-                            Inputs:{' '}
+                            {t('economyInputs')}:{' '}
                             <span className="text-muted-foreground/50">
-                                none
+                                {t('economyInputsNone')}
                             </span>
                         </div>
                     ) : (
                         <div>
-                            Inputs:{' '}
+                            {t('economyInputs')}:{' '}
                             {Array.from(recipe.inputs.entries())
                                 .map(
                                     ([r, rate]) =>
-                                        `${RESOURCE_LABELS[r]} ${rate}/min`
+                                        `${t(RESOURCE_KEYS[r])} ${rate}/min`
                                 )
                                 .join(', ')}
                         </div>
                     )}
                     <div>
-                        Outputs:{' '}
+                        {t('economyOutputs')}:{' '}
                         {Array.from(recipe.outputs.entries())
                             .map(
                                 ([r, rate]) =>
-                                    `${RESOURCE_LABELS[r]} ${rate}/min`
+                                    `${t(RESOURCE_KEYS[r])} ${rate}/min`
                             )
                             .join(', ')}
                     </div>
@@ -127,8 +132,10 @@ export function IndustryInfoPanel({
 
             <div className="text-muted-foreground text-xs">
                 {industry.assignedStationId !== null
-                    ? `Assigned to station #${industry.assignedStationId}`
-                    : 'No station in range'}
+                    ? t('economyAssignedToStation', {
+                          id: industry.assignedStationId,
+                      })
+                    : t('economyNoStationInRange')}
             </div>
         </DraggablePanel>
     );

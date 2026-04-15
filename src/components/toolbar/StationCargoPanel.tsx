@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 
 import { DraggablePanel } from '@/components/ui/draggable-panel';
 import { Separator } from '@/components/ui/separator';
@@ -18,11 +19,11 @@ const ALL_RESOURCES = [
     ResourceType.BUILDING_MATERIALS,
 ] as const;
 
-const RESOURCE_LABELS: Record<ResourceType, string> = {
-    [ResourceType.FOOD]: 'Food',
-    [ResourceType.GOODS]: 'Goods',
-    [ResourceType.WORKERS]: 'Workers',
-    [ResourceType.BUILDING_MATERIALS]: 'Materials',
+const RESOURCE_KEYS: Record<ResourceType, string> = {
+    [ResourceType.FOOD]: 'economyResourceFood',
+    [ResourceType.GOODS]: 'economyResourceGoods',
+    [ResourceType.WORKERS]: 'economyResourceWorkers',
+    [ResourceType.BUILDING_MATERIALS]: 'economyResourceMaterials',
 };
 
 const RESOURCE_COLORS: Record<ResourceType, string> = {
@@ -36,19 +37,20 @@ export function StationCargoPanel({
     economyManager,
     onClose,
 }: StationCargoPanelProps) {
+    const { t } = useTranslation();
     const selectedStationId = useEconomyUIStore(s => s.selectedStationId);
     const [, setVersion] = useState(0);
 
     if (selectedStationId === null) {
         return (
             <DraggablePanel
-                title="Station Cargo"
+                title={t('economyStationCargo')}
                 onClose={onClose}
                 className="w-72"
             >
                 <Separator className="mb-2" />
                 <span className="text-muted-foreground block py-4 text-center text-xs">
-                    Select a station to configure cargo
+                    {t('economySelectStation')}
                 </span>
             </DraggablePanel>
         );
@@ -58,13 +60,13 @@ export function StationCargoPanel({
     if (!stationData) {
         return (
             <DraggablePanel
-                title="Station Cargo"
+                title={t('economyStationCargo')}
                 onClose={onClose}
                 className="w-72"
             >
                 <Separator className="mb-2" />
                 <span className="text-muted-foreground block py-4 text-center text-xs">
-                    Station not found
+                    {t('economyStationNotFound')}
                 </span>
             </DraggablePanel>
         );
@@ -108,16 +110,24 @@ export function StationCargoPanel({
                     onChange={handleAutoToggle}
                     className="rounded"
                 />
-                Auto mode
+                {t('economyAutoMode')}
             </label>
 
             <table className="w-full text-xs">
                 <thead>
                     <tr className="border-border text-muted-foreground border-b">
-                        <th className="py-1 text-left font-medium">Resource</th>
-                        <th className="py-1 text-center font-medium">Load</th>
-                        <th className="py-1 text-center font-medium">Unload</th>
-                        <th className="py-1 text-right font-medium">Stock</th>
+                        <th className="py-1 text-left font-medium">
+                            {t('economyResource')}
+                        </th>
+                        <th className="py-1 text-center font-medium">
+                            {t('economyLoad')}
+                        </th>
+                        <th className="py-1 text-center font-medium">
+                            {t('economyUnload')}
+                        </th>
+                        <th className="py-1 text-right font-medium">
+                            {t('economyStock')}
+                        </th>
                     </tr>
                 </thead>
                 <tbody>
@@ -134,7 +144,7 @@ export function StationCargoPanel({
                                             RESOURCE_COLORS[resource],
                                     }}
                                 />
-                                {RESOURCE_LABELS[resource]}
+                                {t(RESOURCE_KEYS[resource])}
                             </td>
                             <td className="py-1 text-center">
                                 <input

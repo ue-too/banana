@@ -370,6 +370,79 @@ const en = {
         notFoundMessage: "This track doesn't lead anywhere.",
         backToHome: 'Home',
 
+        // Economy - Category
+        toolbarCategoryEconomy: 'Economy',
+
+        // Economy - Panel Titles
+        economyZoneInfo: 'Zone Info',
+        economyIndustryInfo: 'Industry Info',
+        economyCities: 'Cities',
+        economyStationCargo: 'Station Cargo',
+        economyTransportDemand: 'Transport Demand',
+
+        // Economy - Toolbar Buttons
+        economyZoneInfoBtn: 'Zone Info',
+        economyIndustryBtn: 'Industry',
+        economyCitiesBtn: 'Cities',
+        economyCargoBtn: 'Cargo',
+        economyDemandBtn: 'Demand',
+
+        // Economy - Zone Info Panel
+        economySelectZone: 'Select a zone to inspect',
+        economyZoneNotFound: 'Zone not found',
+        economySatisfaction: 'Satisfaction',
+        economyDemandPerMin: 'Demand / min',
+        economyPopulation: 'Population',
+
+        // Economy - Industry Info Panel
+        economySelectIndustry: 'Select an industry to inspect',
+        economyIndustryNotFound: 'Industry not found',
+        economyWorkers: 'Workers',
+        economyRequired: 'required',
+        economyRecipe: 'Recipe',
+        economyInputs: 'Inputs',
+        economyOutputs: 'Outputs',
+        economyInputsNone: 'none',
+        economyAssignedToStation: 'Assigned to station #{{id}}',
+        economyNoStationInRange: 'No station in range',
+
+        // Economy - City Overview Panel
+        economyNoCities: 'No cities yet',
+        economyRep: 'Rep',
+        economyPop: 'Pop',
+        economyZones: 'zones',
+        economyStation: 'station',
+        economyStations: 'stations',
+
+        // Economy - Station Cargo Panel
+        economySelectStation: 'Select a station to configure cargo',
+        economyStationNotFound: 'Station not found',
+        economyAutoMode: 'Auto mode',
+        economyResource: 'Resource',
+        economyLoad: 'Load',
+        economyUnload: 'Unload',
+        economyStock: 'Stock',
+
+        // Economy - Transport Demand Panel
+        economySupply: 'supply',
+        economyDemandRate: '/min demand',
+
+        // Economy - Resource Names
+        economyResourceFood: 'Food',
+        economyResourceGoods: 'Goods',
+        economyResourceWorkers: 'Workers',
+        economyResourceMaterials: 'Materials',
+
+        // Economy - Zone Types
+        economyZoneResidential: 'Residential',
+        economyZoneCommercial: 'Commercial',
+        economyZoneIndustrial: 'Industrial',
+
+        // Economy - Industry Types
+        economyIndustryFarm: 'Farm',
+        economyIndustryLumberMill: 'Lumber Mill',
+        economyIndustryWorkshop: 'Workshop',
+
         // Icon handoff (/icon-handoff)
         iconHandoff: iconHandoffStringsEn,
     },

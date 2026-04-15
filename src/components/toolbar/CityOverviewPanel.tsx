@@ -1,3 +1,5 @@
+import { useTranslation } from 'react-i18next';
+
 import { DraggablePanel } from '@/components/ui/draggable-panel';
 import { Separator } from '@/components/ui/separator';
 import type { CityGrowthManager } from '@/economy/city-growth-manager';
@@ -30,14 +32,19 @@ export function CityOverviewPanel({
     zoneManager,
     onClose,
 }: CityOverviewPanelProps) {
+    const { t } = useTranslation();
     const cities = cityGrowthManager.getAllCities();
 
     return (
-        <DraggablePanel title="Cities" onClose={onClose} className="w-64">
+        <DraggablePanel
+            title={t('economyCities')}
+            onClose={onClose}
+            className="w-64"
+        >
             <Separator className="mb-2" />
             {cities.length === 0 ? (
                 <span className="text-muted-foreground block py-4 text-center text-xs">
-                    No cities yet
+                    {t('economyNoCities')}
                 </span>
             ) : (
                 <div className="flex max-h-80 flex-col gap-1.5 overflow-y-auto">
@@ -60,13 +67,17 @@ export function CityOverviewPanel({
                                             ),
                                         }}
                                     >
-                                        Rep: {city.reputation.toFixed(2)}
+                                        {t('economyRep')}:{' '}
+                                        {city.reputation.toFixed(2)}
                                     </span>
                                 </div>
                                 <div className="text-muted-foreground text-xs">
-                                    Pop: {pop} | {city.zoneIds.size} zones |{' '}
-                                    {city.stationIds.size} station
-                                    {city.stationIds.size !== 1 ? 's' : ''}
+                                    {t('economyPop')}: {pop} |{' '}
+                                    {city.zoneIds.size} {t('economyZones')} |{' '}
+                                    {city.stationIds.size}{' '}
+                                    {city.stationIds.size !== 1
+                                        ? t('economyStations')
+                                        : t('economyStation')}
                                 </div>
                             </div>
                         );

@@ -1,3 +1,5 @@
+import { useTranslation } from 'react-i18next';
+
 import { DraggablePanel } from '@/components/ui/draggable-panel';
 import { Separator } from '@/components/ui/separator';
 import type { ResourceManager } from '@/economy/resource-manager';
@@ -15,11 +17,11 @@ const ALL_RESOURCES = [
     ResourceType.BUILDING_MATERIALS,
 ] as const;
 
-const RESOURCE_LABELS: Record<ResourceType, string> = {
-    [ResourceType.FOOD]: 'Food',
-    [ResourceType.GOODS]: 'Goods',
-    [ResourceType.WORKERS]: 'Workers',
-    [ResourceType.BUILDING_MATERIALS]: 'Materials',
+const RESOURCE_KEYS: Record<ResourceType, string> = {
+    [ResourceType.FOOD]: 'economyResourceFood',
+    [ResourceType.GOODS]: 'economyResourceGoods',
+    [ResourceType.WORKERS]: 'economyResourceWorkers',
+    [ResourceType.BUILDING_MATERIALS]: 'economyResourceMaterials',
 };
 
 const RESOURCE_COLORS: Record<ResourceType, string> = {
@@ -33,11 +35,12 @@ export function TransportDemandPanel({
     resourceManager,
     onClose,
 }: TransportDemandPanelProps) {
+    const { t } = useTranslation();
     const summary = resourceManager.getGlobalSummary();
 
     return (
         <DraggablePanel
-            title="Transport Demand"
+            title={t('economyTransportDemand')}
             onClose={onClose}
             className="w-64"
         >
@@ -60,11 +63,12 @@ export function TransportDemandPanel({
                                 <span
                                     style={{ color: RESOURCE_COLORS[resource] }}
                                 >
-                                    {RESOURCE_LABELS[resource]}
+                                    {t(RESOURCE_KEYS[resource])}
                                 </span>
                                 <span className="text-muted-foreground">
-                                    {Math.round(supply)} supply |{' '}
-                                    {demand.toFixed(1)}/min demand
+                                    {Math.round(supply)} {t('economySupply')} |{' '}
+                                    {demand.toFixed(1)}
+                                    {t('economyDemandRate')}
                                 </span>
                             </div>
                             <div className="bg-muted h-1.5 rounded-full">

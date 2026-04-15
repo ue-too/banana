@@ -357,6 +357,79 @@ const zhTW = {
         notFoundMessage: '這條軌道不通往任何地方。',
         backToHome: '首頁',
 
+        // Economy - Category
+        toolbarCategoryEconomy: '經濟',
+
+        // Economy - Panel Titles
+        economyZoneInfo: '區域資訊',
+        economyIndustryInfo: '產業資訊',
+        economyCities: '城市',
+        economyStationCargo: '車站貨物',
+        economyTransportDemand: '運輸需求',
+
+        // Economy - Toolbar Buttons
+        economyZoneInfoBtn: '區域資訊',
+        economyIndustryBtn: '產業',
+        economyCitiesBtn: '城市',
+        economyCargoBtn: '貨物',
+        economyDemandBtn: '需求',
+
+        // Economy - Zone Info Panel
+        economySelectZone: '選擇一個區域以查看',
+        economyZoneNotFound: '找不到區域',
+        economySatisfaction: '滿意度',
+        economyDemandPerMin: '需求 / 分鐘',
+        economyPopulation: '人口',
+
+        // Economy - Industry Info Panel
+        economySelectIndustry: '選擇一個產業以查看',
+        economyIndustryNotFound: '找不到產業',
+        economyWorkers: '工人',
+        economyRequired: '需要',
+        economyRecipe: '配方',
+        economyInputs: '投入',
+        economyOutputs: '產出',
+        economyInputsNone: '無',
+        economyAssignedToStation: '指定至車站 #{{id}}',
+        economyNoStationInRange: '範圍內無車站',
+
+        // Economy - City Overview Panel
+        economyNoCities: '尚無城市',
+        economyRep: '聲望',
+        economyPop: '人口',
+        economyZones: '區域',
+        economyStation: '車站',
+        economyStations: '車站',
+
+        // Economy - Station Cargo Panel
+        economySelectStation: '選擇一個車站以設定貨物',
+        economyStationNotFound: '找不到車站',
+        economyAutoMode: '自動模式',
+        economyResource: '資源',
+        economyLoad: '裝載',
+        economyUnload: '卸載',
+        economyStock: '庫存',
+
+        // Economy - Transport Demand Panel
+        economySupply: '供給',
+        economyDemandRate: '/分鐘 需求',
+
+        // Economy - Resource Names
+        economyResourceFood: '食物',
+        economyResourceGoods: '商品',
+        economyResourceWorkers: '工人',
+        economyResourceMaterials: '建材',
+
+        // Economy - Zone Types
+        economyZoneResidential: '住宅',
+        economyZoneCommercial: '商業',
+        economyZoneIndustrial: '工業',
+
+        // Economy - Industry Types
+        economyIndustryFarm: '農場',
+        economyIndustryLumberMill: '伐木場',
+        economyIndustryWorkshop: '工坊',
+
         // Icon handoff (/icon-handoff)
         iconHandoff: iconHandoffStringsZhTW,
     },
