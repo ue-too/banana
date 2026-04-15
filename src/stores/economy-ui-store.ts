@@ -5,6 +5,7 @@ type EconomyUIState = {
     resourceOverlayVisible: boolean;
     selectedZoneId: number | null;
     selectedIndustryId: number | null;
+    selectedStationId: number | null;
     cityOverviewOpen: boolean;
 };
 
@@ -12,6 +13,7 @@ type EconomyUIActions = {
     toggleResourceOverlay: () => void;
     selectZone: (id: number | null) => void;
     selectIndustry: (id: number | null) => void;
+    selectStation: (id: number | null) => void;
     toggleCityOverview: () => void;
     clearSelection: () => void;
 };
@@ -24,6 +26,7 @@ export const useEconomyUIStore = create<EconomyUIStore>()(
             resourceOverlayVisible: false,
             selectedZoneId: null,
             selectedIndustryId: null,
+            selectedStationId: null,
             cityOverviewOpen: false,
 
             toggleResourceOverlay: () =>
@@ -37,13 +40,19 @@ export const useEconomyUIStore = create<EconomyUIStore>()(
             selectIndustry: id =>
                 set({ selectedIndustryId: id, selectedZoneId: null }),
 
+            selectStation: id => set({ selectedStationId: id }),
+
             toggleCityOverview: () =>
                 set(state => ({
                     cityOverviewOpen: !state.cityOverviewOpen,
                 })),
 
             clearSelection: () =>
-                set({ selectedZoneId: null, selectedIndustryId: null }),
+                set({
+                    selectedZoneId: null,
+                    selectedIndustryId: null,
+                    selectedStationId: null,
+                }),
         }),
         { name: 'banana-economy-ui' }
     )

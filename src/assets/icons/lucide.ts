@@ -72,4 +72,7 @@ export {
     Warehouse,
     X,
     Zap,
+    Factory,
+    BarChart3,
+    Truck,
 } from 'lucide-react';

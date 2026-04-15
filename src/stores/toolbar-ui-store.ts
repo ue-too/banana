@@ -12,7 +12,12 @@ export type PanelName =
     | 'timetable'
     | 'signalPanel'
     | 'exportSubmenu'
-    | 'autoSaveMenu';
+    | 'autoSaveMenu'
+    | 'zoneInfo'
+    | 'industryInfo'
+    | 'cityOverview'
+    | 'stationCargo'
+    | 'transportDemand';
 
 export type ToolbarCategory =
     | 'drawing'
@@ -31,6 +36,11 @@ type PanelState = {
     showSignalPanel: boolean;
     showExportSubmenu: boolean;
     showAutoSaveMenu: boolean;
+    showZoneInfo: boolean;
+    showIndustryInfo: boolean;
+    showCityOverview: boolean;
+    showStationCargo: boolean;
+    showTransportDemand: boolean;
 };
 
 const PANEL_KEY_MAP: Record<PanelName, keyof PanelState> = {
@@ -43,6 +53,11 @@ const PANEL_KEY_MAP: Record<PanelName, keyof PanelState> = {
     signalPanel: 'showSignalPanel',
     exportSubmenu: 'showExportSubmenu',
     autoSaveMenu: 'showAutoSaveMenu',
+    zoneInfo: 'showZoneInfo',
+    industryInfo: 'showIndustryInfo',
+    cityOverview: 'showCityOverview',
+    stationCargo: 'showStationCargo',
+    transportDemand: 'showTransportDemand',
 };
 
 type ToolbarUIState = PanelState & {
@@ -71,6 +86,11 @@ const INITIAL_PANEL_STATE: PanelState = {
     showSignalPanel: false,
     showExportSubmenu: false,
     showAutoSaveMenu: false,
+    showZoneInfo: false,
+    showIndustryInfo: false,
+    showCityOverview: false,
+    showStationCargo: false,
+    showTransportDemand: false,
 };
 
 export const useToolbarUIStore = create<ToolbarUIStore>()(
