@@ -19,7 +19,7 @@ export type ZonePlacementStates = (typeof ZONE_PLACEMENT_STATES)[number];
 export type ZonePlacementEvents = {
     startZonePlacement: {};
     confirmType: { zoneType: ZoneType };
-    leftPointerDown: { x: number; y: number };
+    leftPointerUp: { x: number; y: number };
     pointerMove: { x: number; y: number };
     escapeKey: {};
     endZonePlacement: {};
@@ -100,7 +100,7 @@ class DrawingBoundaryState extends TemplateState<
         ZonePlacementContext,
         ZonePlacementStates
     > = {
-        leftPointerDown: {
+        leftPointerUp: {
             action: (context, event) => {
                 const worldPos = context.convert2WorldPosition({
                     x: event.x,

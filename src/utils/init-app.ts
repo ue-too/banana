@@ -832,7 +832,8 @@ export const initApp = async (
     const zonePlacementEngine = new ZonePlacementEngine(
         baseComponents.canvasProxy,
         baseComponents.camera,
-        economyManager
+        economyManager,
+        worldRenderSystem
     );
     const zoneStateMachine = new ZonePlacementStateMachine(zonePlacementEngine);
     zonePlacementEngine.setStateMachine(zoneStateMachine);

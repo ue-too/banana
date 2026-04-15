@@ -6,13 +6,24 @@ import {
 } from '@ue-too/board';
 import type { Canvas, ObservableBoardCamera } from '@ue-too/board';
 import type { Point } from '@ue-too/math';
+import { Container, Graphics } from 'pixi.js';
+
+import type { WorldRenderSystem } from '@/world-render-system';
 
 import type { EconomyManager } from './economy-manager';
-import type { ZoneType } from './types';
+import { ZoneType } from './types';
 import type {
     ZonePlacementContext,
     ZonePlacementStateMachine,
 } from './zone-placement-state-machine';
+
+const ZONE_PREVIEW_COLORS: Record<ZoneType, number> = {
+    [ZoneType.RESIDENTIAL]: 0x4caf50,
+    [ZoneType.COMMERCIAL]: 0x2196f3,
+    [ZoneType.INDUSTRIAL]: 0xff9800,
+};
+
+const DOT_RADIUS = 4;
 
 export class ZonePlacementEngine
     extends ObservableInputTracker
@@ -20,6 +31,7 @@ export class ZonePlacementEngine
 {
     private _camera: ObservableBoardCamera;
     private _economyManager: EconomyManager;
+    private _worldRenderSystem: WorldRenderSystem;
     private _boundaryPoints: Point[] = [];
     private _selectedType: ZoneType | null = null;
     private _onShowTypeSelector: (() => void) | null = null;
@@ -27,14 +39,22 @@ export class ZonePlacementEngine
     private _onPlacementComplete: (() => void) | null = null;
     private _stateMachine: ZonePlacementStateMachine | null = null;
 
+    // Preview graphics
+    private _previewContainer: Container = new Container();
+    private _previewGraphics: Graphics = new Graphics();
+    private _previewAttached = false;
+
     constructor(
         canvas: Canvas,
         camera: ObservableBoardCamera,
-        economyManager: EconomyManager
+        economyManager: EconomyManager,
+        worldRenderSystem: WorldRenderSystem
     ) {
         super(canvas);
         this._camera = camera;
         this._economyManager = economyManager;
+        this._worldRenderSystem = worldRenderSystem;
+        this._previewContainer.addChild(this._previewGraphics);
     }
 
     setStateMachine(sm: ZonePlacementStateMachine): void {
@@ -50,10 +70,6 @@ export class ZonePlacementEngine
         this._onPlacementComplete = callback;
     }
 
-    /**
-     * Called from the React UI when the user picks a zone type.
-     * Fires the `confirmType` event on the state machine.
-     */
     selectZoneType(type: ZoneType): void {
         this._selectedType = type;
         this._stateMachine?.happens('confirmType', { zoneType: type });
@@ -74,16 +90,18 @@ export class ZonePlacementEngine
 
     addBoundaryPoint(position: Point): void {
         this._boundaryPoints.push(position);
+        this._drawPreview();
     }
 
-    updatePreview(_position: Point): void {
-        // Ghost polygon rendering — future enhancement
+    updatePreview(position: Point): void {
+        this._drawPreview(position);
     }
 
     finishZone(): void {
         if (this._boundaryPoints.length < 3 || !this._selectedType) {
             this._boundaryPoints = [];
             this._selectedType = null;
+            this._removePreview();
             this._onPlacementComplete?.();
             return;
         }
@@ -93,6 +111,7 @@ export class ZonePlacementEngine
         );
         this._boundaryPoints = [];
         this._selectedType = null;
+        this._removePreview();
         this._onPlacementComplete?.();
     }
 
@@ -104,10 +123,11 @@ export class ZonePlacementEngine
         this._boundaryPoints = [];
         this._selectedType = null;
         this._onHideTypeSelector?.();
+        this._removePreview();
     }
 
     clearPreview(): void {
-        // Preview clearing — future enhancement
+        this._removePreview();
     }
 
     setup(): void {}
@@ -126,5 +146,77 @@ export class ZonePlacementEngine
             this._camera.rotation,
             false
         );
+    }
+
+    // --- Preview rendering ---
+
+    private _ensurePreviewAttached(): void {
+        if (!this._previewAttached) {
+            this._worldRenderSystem.addOverlayContainer(this._previewContainer);
+            this._previewAttached = true;
+        }
+    }
+
+    private _removePreview(): void {
+        this._previewGraphics.clear();
+        if (this._previewAttached) {
+            this._previewContainer.removeFromParent();
+            this._previewAttached = false;
+        }
+    }
+
+    private _drawPreview(cursorPos?: Point): void {
+        this._ensurePreviewAttached();
+        const g = this._previewGraphics;
+        g.clear();
+
+        const color =
+            this._selectedType !== null
+                ? ZONE_PREVIEW_COLORS[this._selectedType]
+                : 0xffffff;
+        const points = this._boundaryPoints;
+
+        if (points.length === 0) return;
+
+        // Draw lines between existing points
+        if (points.length >= 2) {
+            g.moveTo(points[0].x, points[0].y);
+            for (let i = 1; i < points.length; i++) {
+                g.lineTo(points[i].x, points[i].y);
+            }
+            // Dashed line to cursor position
+            if (cursorPos) {
+                g.lineTo(cursorPos.x, cursorPos.y);
+                // Line back to start for closing hint
+                g.lineTo(points[0].x, points[0].y);
+            }
+            g.stroke({ color, width: 2, alpha: 0.6 });
+        }
+
+        // Draw a line from first point to cursor if only 1 point
+        if (points.length === 1 && cursorPos) {
+            g.moveTo(points[0].x, points[0].y);
+            g.lineTo(cursorPos.x, cursorPos.y);
+            g.stroke({ color, width: 2, alpha: 0.6 });
+        }
+
+        // Semi-transparent fill if 3+ points
+        if (points.length >= 3) {
+            g.moveTo(points[0].x, points[0].y);
+            for (let i = 1; i < points.length; i++) {
+                g.lineTo(points[i].x, points[i].y);
+            }
+            if (cursorPos) {
+                g.lineTo(cursorPos.x, cursorPos.y);
+            }
+            g.closePath();
+            g.fill({ color, alpha: 0.15 });
+        }
+
+        // Draw dots at each boundary point
+        for (const pt of points) {
+            g.circle(pt.x, pt.y, DOT_RADIUS);
+            g.fill({ color, alpha: 0.8 });
+        }
     }
 }
