@@ -344,6 +344,329 @@ describe('CollisionGuard', () => {
         });
     });
 
+    describe('Same-direction following collision', () => {
+
+        it('Tier 2: rear train catches front train within critical distance (both tangent)', () => {
+            // Segment 100 units. trainA at t=0.04 (arc=4), trainB at t=0.07 (arc=7).
+            // Both tangent. Distance = 3 <= 5. Rear (A) speed=10, front (B) speed=2 → closing.
+            const trackGraph = mockTrackGraph(100);
+            const guard = new CollisionGuard(trackGraph, crossingMap);
+
+            const trainA = mockTrain({
+                headPosition: makePosition(1, 0.04, 'tangent'),
+                bogiePositions: [makePosition(1, 0.04, 'tangent')],
+                speed: 10,
+                occupiedSegments: [{ trackNumber: 1, inTrackDirection: 'tangent' }],
+            });
+            const trainB = mockTrain({
+                headPosition: makePosition(1, 0.07, 'tangent'),
+                bogiePositions: [makePosition(1, 0.07, 'tangent')],
+                speed: 2,
+                occupiedSegments: [{ trackNumber: 1, inTrackDirection: 'tangent' }],
+            });
+
+            const entries = [entry(1, trainA), entry(2, trainB)];
+            registry.updateFromTrains(entries);
+            guard.update(entries, registry);
+
+            expect(trainA.collisionLocked).toBe(true);
+            expect(trainA.speed).toBe(0);
+            expect(trainA.throttleStep).toBe('er');
+            expect(trainB.collisionLocked).toBe(true);
+            expect(trainB.speed).toBe(0);
+            expect(trainB.throttleStep).toBe('er');
+        });
+
+        it('Tier 2: rear train catches front train within critical distance (both reverseTangent)', () => {
+            // Both reverseTangent → moving toward lower arc. trainA at t=0.07 (arc=7), trainB at t=0.04 (arc=4).
+            // trainA (higher arc) is behind. Distance = 3 <= 5. A speed=10, B speed=2 → closing.
+            const trackGraph = mockTrackGraph(100);
+            const guard = new CollisionGuard(trackGraph, crossingMap);
+
+            const trainA = mockTrain({
+                headPosition: makePosition(1, 0.07, 'reverseTangent'),
+                bogiePositions: [makePosition(1, 0.07, 'reverseTangent')],
+                speed: 10,
+                occupiedSegments: [{ trackNumber: 1, inTrackDirection: 'reverseTangent' }],
+            });
+            const trainB = mockTrain({
+                headPosition: makePosition(1, 0.04, 'reverseTangent'),
+                bogiePositions: [makePosition(1, 0.04, 'reverseTangent')],
+                speed: 2,
+                occupiedSegments: [{ trackNumber: 1, inTrackDirection: 'reverseTangent' }],
+            });
+
+            const entries = [entry(1, trainA), entry(2, trainB)];
+            registry.updateFromTrains(entries);
+            guard.update(entries, registry);
+
+            expect(trainA.collisionLocked).toBe(true);
+            expect(trainA.speed).toBe(0);
+            expect(trainB.collisionLocked).toBe(true);
+            expect(trainB.speed).toBe(0);
+        });
+
+        it('Tier 1: rear train approaching front train within braking distance', () => {
+            // Segment 1000 units. Both tangent. trainA at t=0.10 (arc=100), trainB at t=0.15 (arc=150).
+            // Distance = 50. Rear speed=10, front speed=2 → closingSpeed=8.
+            // brakingDistance = 8² / (2*1.3) ≈ 24.6. threshold = 24.6 * 1.8 ≈ 44.3.
+            // 50 > 44.3 → no trigger at these speeds.
+            // Use higher speed difference: rear=20, front=2 → closingSpeed=18.
+            // brakingDistance = 18² / (2*1.3) ≈ 124.6. threshold ≈ 224.3. 50 <= 224.3 → Tier 1.
+            const trackGraph = mockTrackGraph(1000);
+            const guard = new CollisionGuard(trackGraph, crossingMap);
+
+            const trainA = mockTrain({
+                headPosition: makePosition(1, 0.10, 'tangent'),
+                bogiePositions: [makePosition(1, 0.10, 'tangent')],
+                speed: 20,
+                occupiedSegments: [{ trackNumber: 1, inTrackDirection: 'tangent' }],
+            });
+            const trainB = mockTrain({
+                headPosition: makePosition(1, 0.15, 'tangent'),
+                bogiePositions: [makePosition(1, 0.15, 'tangent')],
+                speed: 2,
+                occupiedSegments: [{ trackNumber: 1, inTrackDirection: 'tangent' }],
+            });
+
+            const entries = [entry(1, trainA), entry(2, trainB)];
+            registry.updateFromTrains(entries);
+            guard.update(entries, registry);
+
+            expect(trainA.collisionLocked).toBe(false);
+            expect(trainB.collisionLocked).toBe(false);
+            expect(trainA.throttleStep).toBe('er');
+            expect(trainB.throttleStep).toBe('er');
+        });
+
+        it('No trigger: front train is faster than rear train (gap growing)', () => {
+            // Both tangent. trainA at t=0.04, trainB at t=0.07. Distance=3 <= 5.
+            // But rear (A) speed=2, front (B) speed=10 → gap growing, not closing.
+            const trackGraph = mockTrackGraph(100);
+            const guard = new CollisionGuard(trackGraph, crossingMap);
+
+            const trainA = mockTrain({
+                headPosition: makePosition(1, 0.04, 'tangent'),
+                bogiePositions: [makePosition(1, 0.04, 'tangent')],
+                speed: 2,
+                occupiedSegments: [{ trackNumber: 1, inTrackDirection: 'tangent' }],
+            });
+            const trainB = mockTrain({
+                headPosition: makePosition(1, 0.07, 'tangent'),
+                bogiePositions: [makePosition(1, 0.07, 'tangent')],
+                speed: 10,
+                occupiedSegments: [{ trackNumber: 1, inTrackDirection: 'tangent' }],
+            });
+
+            const entries = [entry(1, trainA), entry(2, trainB)];
+            registry.updateFromTrains(entries);
+            guard.update(entries, registry);
+
+            expect(trainA.collisionLocked).toBe(false);
+            expect(trainB.collisionLocked).toBe(false);
+            expect(trainA.throttleStep).toBe('N');
+            expect(trainB.throttleStep).toBe('N');
+        });
+
+        it('No trigger: same speed means gap is constant', () => {
+            const trackGraph = mockTrackGraph(100);
+            const guard = new CollisionGuard(trackGraph, crossingMap);
+
+            const trainA = mockTrain({
+                headPosition: makePosition(1, 0.04, 'tangent'),
+                bogiePositions: [makePosition(1, 0.04, 'tangent')],
+                speed: 5,
+                occupiedSegments: [{ trackNumber: 1, inTrackDirection: 'tangent' }],
+            });
+            const trainB = mockTrain({
+                headPosition: makePosition(1, 0.07, 'tangent'),
+                bogiePositions: [makePosition(1, 0.07, 'tangent')],
+                speed: 5,
+                occupiedSegments: [{ trackNumber: 1, inTrackDirection: 'tangent' }],
+            });
+
+            const entries = [entry(1, trainA), entry(2, trainB)];
+            registry.updateFromTrains(entries);
+            guard.update(entries, registry);
+
+            expect(trainA.collisionLocked).toBe(false);
+            expect(trainB.collisionLocked).toBe(false);
+            expect(trainA.throttleStep).toBe('N');
+            expect(trainB.throttleStep).toBe('N');
+        });
+
+        it('Tier 2: rear train catches stopped front train', () => {
+            // Both tangent. trainA at t=0.04 (speed=5), trainB at t=0.07 (speed=0, stopped).
+            // Distance = 3 <= 5. closingSpeed = 5-0 = 5 > 0 → Tier 2.
+            const trackGraph = mockTrackGraph(100);
+            const guard = new CollisionGuard(trackGraph, crossingMap);
+
+            const trainA = mockTrain({
+                headPosition: makePosition(1, 0.04, 'tangent'),
+                bogiePositions: [makePosition(1, 0.04, 'tangent')],
+                speed: 5,
+                occupiedSegments: [{ trackNumber: 1, inTrackDirection: 'tangent' }],
+            });
+            const trainB = mockTrain({
+                headPosition: makePosition(1, 0.07, 'tangent'),
+                bogiePositions: [makePosition(1, 0.07, 'tangent')],
+                speed: 0,
+                occupiedSegments: [{ trackNumber: 1, inTrackDirection: 'tangent' }],
+            });
+
+            const entries = [entry(1, trainA), entry(2, trainB)];
+            registry.updateFromTrains(entries);
+            guard.update(entries, registry);
+
+            expect(trainA.collisionLocked).toBe(true);
+            expect(trainA.speed).toBe(0);
+            expect(trainB.collisionLocked).toBe(true);
+            expect(trainB.speed).toBe(0);
+        });
+    });
+
+    describe('Following collision with multi-car formations', () => {
+
+        it('Tier 2: rear head is close to front tail despite large head-to-head distance', () => {
+            // Segment 1000 units long. Both trains tangent.
+            // Front train (B): head at t=0.60 (arc=600), last bogie at t=0.20 (arc=200).
+            // Rear train (A): head at t=0.22 (arc=220).
+            // Head-to-head distance = 380 (would NOT trigger on its own).
+            // But actual gap = rear head (220) to front tail bogie (200) = 20 → well within Tier 1.
+            // With closing speed 8 (A=10, B=2): brakingDist = 64/2.6 ≈ 24.6, threshold ≈ 44.3.
+            // 20 <= 44.3 → Tier 1 triggers.
+            const trackGraph = mockTrackGraph(1000);
+            const guard = new CollisionGuard(trackGraph, crossingMap);
+
+            const trainA = mockTrain({
+                headPosition: makePosition(1, 0.22, 'tangent'),
+                bogiePositions: [makePosition(1, 0.22, 'tangent')],
+                speed: 10,
+                occupiedSegments: [{ trackNumber: 1, inTrackDirection: 'tangent' }],
+            });
+            const trainB = mockTrain({
+                headPosition: makePosition(1, 0.60, 'tangent'),
+                bogiePositions: [
+                    makePosition(1, 0.60, 'tangent'),
+                    makePosition(1, 0.50, 'tangent'),
+                    makePosition(1, 0.40, 'tangent'),
+                    makePosition(1, 0.20, 'tangent'), // tail bogie
+                ],
+                speed: 2,
+                occupiedSegments: [{ trackNumber: 1, inTrackDirection: 'tangent' }],
+            });
+
+            const entries = [entry(1, trainA), entry(2, trainB)];
+            registry.updateFromTrains(entries);
+            guard.update(entries, registry);
+
+            expect(trainA.throttleStep).toBe('er');
+            expect(trainB.throttleStep).toBe('er');
+        });
+
+        it('Tier 2: rear head already overlapping front body → emergency stop', () => {
+            // Front train (B): head at t=0.60 (arc=600), tail bogie at t=0.25 (arc=250).
+            // Rear train (A): head at t=0.252 (arc=252).
+            // Gap = |252 - 250| = 2 ≤ 5 → Tier 2.
+            const trackGraph = mockTrackGraph(1000);
+            const guard = new CollisionGuard(trackGraph, crossingMap);
+
+            const trainA = mockTrain({
+                headPosition: makePosition(1, 0.252, 'tangent'),
+                bogiePositions: [makePosition(1, 0.252, 'tangent')],
+                speed: 5,
+                occupiedSegments: [{ trackNumber: 1, inTrackDirection: 'tangent' }],
+            });
+            const trainB = mockTrain({
+                headPosition: makePosition(1, 0.60, 'tangent'),
+                bogiePositions: [
+                    makePosition(1, 0.60, 'tangent'),
+                    makePosition(1, 0.45, 'tangent'),
+                    makePosition(1, 0.25, 'tangent'), // tail bogie
+                ],
+                speed: 2,
+                occupiedSegments: [{ trackNumber: 1, inTrackDirection: 'tangent' }],
+            });
+
+            const entries = [entry(1, trainA), entry(2, trainB)];
+            registry.updateFromTrains(entries);
+            guard.update(entries, registry);
+
+            expect(trainA.collisionLocked).toBe(true);
+            expect(trainA.speed).toBe(0);
+            expect(trainB.collisionLocked).toBe(true);
+            expect(trainB.speed).toBe(0);
+        });
+
+        it('No trigger for multi-car formation when gap is large enough', () => {
+            // Front train (B): head at t=0.80 (arc=800), tail bogie at t=0.45 (arc=450).
+            // Rear train (A): head at t=0.10 (arc=100).
+            // Gap = |100 - 450| = 350. Closing speed = 8. Threshold ≈ 44.3.
+            // 350 > 44.3 → no trigger.
+            const trackGraph = mockTrackGraph(1000);
+            const guard = new CollisionGuard(trackGraph, crossingMap);
+
+            const trainA = mockTrain({
+                headPosition: makePosition(1, 0.10, 'tangent'),
+                bogiePositions: [makePosition(1, 0.10, 'tangent')],
+                speed: 10,
+                occupiedSegments: [{ trackNumber: 1, inTrackDirection: 'tangent' }],
+            });
+            const trainB = mockTrain({
+                headPosition: makePosition(1, 0.80, 'tangent'),
+                bogiePositions: [
+                    makePosition(1, 0.80, 'tangent'),
+                    makePosition(1, 0.60, 'tangent'),
+                    makePosition(1, 0.45, 'tangent'), // tail bogie
+                ],
+                speed: 2,
+                occupiedSegments: [{ trackNumber: 1, inTrackDirection: 'tangent' }],
+            });
+
+            const entries = [entry(1, trainA), entry(2, trainB)];
+            registry.updateFromTrains(entries);
+            guard.update(entries, registry);
+
+            expect(trainA.collisionLocked).toBe(false);
+            expect(trainB.collisionLocked).toBe(false);
+            expect(trainA.throttleStep).toBe('N');
+            expect(trainB.throttleStep).toBe('N');
+        });
+
+        it('reverseTangent following: uses front tail for distance', () => {
+            // Both reverseTangent. Higher arc = rear.
+            // Rear (A): head at t=0.80 (arc=800). Front (B): head at t=0.30 (arc=300), tail bogie at t=0.78 (arc=780).
+            // Gap = |800 - 780| = 20. Closing speed = 8. Threshold ≈ 44.3.
+            // 20 ≤ 44.3 → Tier 1.
+            const trackGraph = mockTrackGraph(1000);
+            const guard = new CollisionGuard(trackGraph, crossingMap);
+
+            const trainA = mockTrain({
+                headPosition: makePosition(1, 0.80, 'reverseTangent'),
+                bogiePositions: [makePosition(1, 0.80, 'reverseTangent')],
+                speed: 10,
+                occupiedSegments: [{ trackNumber: 1, inTrackDirection: 'reverseTangent' }],
+            });
+            const trainB = mockTrain({
+                headPosition: makePosition(1, 0.30, 'reverseTangent'),
+                bogiePositions: [
+                    makePosition(1, 0.30, 'reverseTangent'),
+                    makePosition(1, 0.50, 'reverseTangent'),
+                    makePosition(1, 0.78, 'reverseTangent'), // tail bogie (higher arc, closer to rear)
+                ],
+                speed: 2,
+                occupiedSegments: [{ trackNumber: 1, inTrackDirection: 'reverseTangent' }],
+            });
+
+            const entries = [entry(1, trainA), entry(2, trainB)];
+            registry.updateFromTrains(entries);
+            guard.update(entries, registry);
+
+            expect(trainA.throttleStep).toBe('er');
+            expect(trainB.throttleStep).toBe('er');
+        });
+    });
+
     describe('Lock clearing', () => {
 
         it('clears lock for a train that is no longer in danger', () => {
