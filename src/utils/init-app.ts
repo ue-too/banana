@@ -14,6 +14,8 @@ import Stats from 'stats.js';
 
 import { BuildingManager, BuildingRenderSystem } from '@/buildings';
 import { EconomyManager } from '@/economy/economy-manager';
+import { IndustryRenderSystem } from '@/economy/industry-render-system';
+import { ZoneRenderSystem } from '@/economy/zone-render-system';
 import { IndustryPlacementEngine } from '@/economy/industry-placement-engine';
 import { IndustryPlacementStateMachine } from '@/economy/industry-placement-state-machine';
 import { ZonePlacementEngine } from '@/economy/zone-placement-engine';
@@ -833,6 +835,16 @@ export const initApp = async (
     );
     const zoneStateMachine = new ZonePlacementStateMachine(zonePlacementEngine);
     zonePlacementEngine.setStateMachine(zoneStateMachine);
+
+    // Economy render systems
+    const zoneRenderSystem = new ZoneRenderSystem(
+        worldRenderSystem,
+        economyManager.zones
+    );
+    const industryRenderSystem = new IndustryRenderSystem(
+        worldRenderSystem,
+        economyManager.industries
+    );
 
     // Block signal system
     const blockSignalManager = new BlockSignalManager();
