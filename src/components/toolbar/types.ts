@@ -12,7 +12,9 @@ export type AppMode =
     | 'single-spine-platform'
     | 'dual-spine-platform'
     | 'stress-pick'
-    | 'joint-direction';
+    | 'joint-direction'
+    | 'zone-placement'
+    | 'industry-placement';
 
 /** Shared left offset for left-aligned toolbars (main toolbar, layout deletion toolbar). */
 export const TOOLBAR_LEFT = 'left-6';

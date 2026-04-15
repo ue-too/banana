@@ -97,6 +97,7 @@ import { ExportSubmenu } from './ExportSubmenu';
 import { FormationSelector } from './FormationSelector';
 import { GaugeSelector } from './GaugeSelector';
 import { IndustryInfoPanel } from './IndustryInfoPanel';
+import { IndustryTypeSelector } from './IndustryTypeSelector';
 import { LanguageSwitcher } from './LanguageSwitcher';
 import { LayoutDeletionToolbar } from './LayoutDeletionToolbar';
 import { ScaleRuler } from './ScaleRuler';
@@ -111,6 +112,7 @@ import { TrackStyleSelector } from './TrackStyleSelector';
 import { TrainPanel } from './TrainPanel';
 import { TransportDemandPanel } from './TransportDemandPanel';
 import { ZoneInfoPanel } from './ZoneInfoPanel';
+import { ZoneTypeSelector } from './ZoneTypeSelector';
 import { TOOLBAR_LEFT } from './types';
 import { downloadJson, uploadJson } from './utils';
 
@@ -233,6 +235,8 @@ export function BananaToolbar({
     const [stressStartY, setStressStartY] = useState(0);
     const [carTemplates, setCarTemplates] = useState<CarTemplate[]>([]);
     const [libraryDialogOpen, setLibraryDialogOpen] = useState(false);
+    const [showIndustrySelector, setShowIndustrySelector] = useState(false);
+    const [showZoneSelector, setShowZoneSelector] = useState(false);
 
     const selectedBuildingRef = useRef<number | null>(null);
 
@@ -341,6 +345,18 @@ export function BananaToolbar({
             app.jointDirectionRenderSystem.hide();
         }
     }, [app, mode]);
+
+    useEffect(() => {
+        if (!app) return;
+        app.industryPlacementEngine.setTypeSelectorCallbacks(
+            () => setShowIndustrySelector(true),
+            () => setShowIndustrySelector(false)
+        );
+        app.zonePlacementEngine.setTypeSelectorCallbacks(
+            () => setShowZoneSelector(true),
+            () => setShowZoneSelector(false)
+        );
+    }, [app]);
 
     const exitAllModes = useCallback(() => {
         if (!app) return;
@@ -482,6 +498,30 @@ export function BananaToolbar({
         },
         [app, exitAllModes]
     );
+
+    const handleZonePlacementToggle = useCallback(() => {
+        if (!app) return;
+        if (mode === 'zone-placement') {
+            app.kmtStateMachineExpansion.happens('switchToIdle');
+            setMode('idle');
+        } else {
+            exitAllModes();
+            app.kmtStateMachineExpansion.happens('switchToZone');
+            setMode('zone-placement');
+        }
+    }, [app, mode, exitAllModes, setMode]);
+
+    const handleIndustryPlacementToggle = useCallback(() => {
+        if (!app) return;
+        if (mode === 'industry-placement') {
+            app.kmtStateMachineExpansion.happens('switchToIdle');
+            setMode('idle');
+        } else {
+            exitAllModes();
+            app.kmtStateMachineExpansion.happens('switchToIndustry');
+            setMode('industry-placement');
+        }
+    }, [app, mode, exitAllModes, setMode]);
 
     const handlePointerDown = useCallback(
         (event: PointerEvent) => {
@@ -1000,6 +1040,22 @@ export function BananaToolbar({
             rows: [
                 {
                     kind: 'button',
+                    id: 'zone-placement',
+                    icon: <Map />,
+                    label: t('economyZonePlacementBtn', 'Place Zone'),
+                    active: mode === 'zone-placement',
+                    onClick: handleZonePlacementToggle,
+                },
+                {
+                    kind: 'button',
+                    id: 'industry-placement',
+                    icon: <Warehouse />,
+                    label: t('economyIndustryPlacementBtn', 'Place Industry'),
+                    active: mode === 'industry-placement',
+                    onClick: handleIndustryPlacementToggle,
+                },
+                {
+                    kind: 'button',
                     id: 'zone-info',
                     icon: <MapPin />,
                     label: t('economyZoneInfoBtn'),
@@ -1462,6 +1518,23 @@ export function BananaToolbar({
                 <TransportDemandPanel
                     resourceManager={app.economyManager.resources}
                     onClose={() => setPanel('transportDemand', false)}
+                />
+            )}
+
+            {showIndustrySelector && (
+                <IndustryTypeSelector
+                    onSelect={type =>
+                        app.industryPlacementEngine.selectType(type)
+                    }
+                    onCancel={() => setShowIndustrySelector(false)}
+                />
+            )}
+            {showZoneSelector && (
+                <ZoneTypeSelector
+                    onSelect={type =>
+                        app.zonePlacementEngine.selectZoneType(type)
+                    }
+                    onCancel={() => setShowZoneSelector(false)}
                 />
             )}
 

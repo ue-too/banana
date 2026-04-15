@@ -14,6 +14,10 @@ import Stats from 'stats.js';
 
 import { BuildingManager, BuildingRenderSystem } from '@/buildings';
 import { EconomyManager } from '@/economy/economy-manager';
+import { IndustryPlacementEngine } from '@/economy/industry-placement-engine';
+import { IndustryPlacementStateMachine } from '@/economy/industry-placement-state-machine';
+import { ZonePlacementEngine } from '@/economy/zone-placement-engine';
+import { ZonePlacementStateMachine } from '@/economy/zone-placement-state-machine';
 import i18n from '@/i18n';
 import {
     BlockSignalManager,
@@ -312,6 +316,8 @@ export type BananaAppComponents = BaseAppComponents & {
     signalStateEngine: SignalStateEngine;
     signalRenderSystem: SignalRenderSystem;
     economyManager: EconomyManager;
+    industryPlacementEngine: IndustryPlacementEngine;
+    zonePlacementEngine: ZonePlacementEngine;
     /** The stats.js DOM element for toggling visibility. */
     statsDom: HTMLDivElement;
     /** Add a train at the given segment and t. For stress testing. */
@@ -808,6 +814,26 @@ export const initApp = async (
         return economyManager.findNearestStation(centroid, stationPositions);
     });
 
+    // Industry & zone placement
+    const industryPlacementEngine = new IndustryPlacementEngine(
+        baseComponents.canvasProxy,
+        baseComponents.camera,
+        economyManager,
+        stationManager
+    );
+    const industryStateMachine = new IndustryPlacementStateMachine(
+        industryPlacementEngine
+    );
+    industryPlacementEngine.setStateMachine(industryStateMachine);
+
+    const zonePlacementEngine = new ZonePlacementEngine(
+        baseComponents.canvasProxy,
+        baseComponents.camera,
+        economyManager
+    );
+    const zoneStateMachine = new ZonePlacementStateMachine(zonePlacementEngine);
+    zonePlacementEngine.setStateMachine(zoneStateMachine);
+
     // Block signal system
     const blockSignalManager = new BlockSignalManager();
     const signalStateEngine = new SignalStateEngine(blockSignalManager);
@@ -892,6 +918,8 @@ export const initApp = async (
         singleSpineStateMachine,
         dualSpineStateMachine,
         jointDirectionSubStateMachine,
+        zoneStateMachine,
+        industryStateMachine,
         baseComponents.observableInputTracker
     );
     baseComponents.kmtParser.stateMachine = kmtInputStateMachine;
@@ -1038,6 +1066,8 @@ export const initApp = async (
         signalStateEngine,
         signalRenderSystem,
         economyManager,
+        industryPlacementEngine,
+        zonePlacementEngine,
         statsDom: stats.dom,
         addTrainAtPosition,
         addStressTestTrains,

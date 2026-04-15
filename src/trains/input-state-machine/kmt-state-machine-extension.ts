@@ -22,6 +22,8 @@ import {
     ReadyToPanViaSpaceBarState,
 } from '@ue-too/board';
 
+import type { IndustryPlacementStateMachine } from '@/economy/industry-placement-state-machine';
+import type { ZonePlacementStateMachine } from '@/economy/zone-placement-state-machine';
 import type { DualSpinePlacementStateMachine } from '@/stations/dual-spine-placement-state-machine';
 import type { SingleSpinePlacementStateMachine } from '@/stations/single-spine-placement-state-machine';
 import { StationPlacementStateMachine } from '@/stations/station-placement-state-machine';
@@ -74,7 +76,9 @@ class KmtStateMachineExtensionIdleState extends TemplateState<
         catenarySubStateMachine: CatenaryLayoutStateMachine,
         singleSpineSubStateMachine: SingleSpinePlacementStateMachine,
         dualSpineSubStateMachine: DualSpinePlacementStateMachine,
-        jointDirectionSubStateMachine: JointDirectionStateMachine
+        jointDirectionSubStateMachine: JointDirectionStateMachine,
+        zoneSubStateMachine: ZonePlacementStateMachine,
+        industrySubStateMachine: IndustryPlacementStateMachine
     ) {
         super();
         const originalIdleState = new KmtIdleState();
@@ -128,7 +132,9 @@ class KmtStateMachineExtensionIdleState extends TemplateState<
             catenarySubStateMachine,
             singleSpineSubStateMachine,
             dualSpineSubStateMachine,
-            jointDirectionSubStateMachine
+            jointDirectionSubStateMachine,
+            zoneSubStateMachine,
+            industrySubStateMachine
         );
     }
 
@@ -204,6 +210,8 @@ export function createKmtInputStateMachineExpansion(
     singleSpineSubStateMachine: SingleSpinePlacementStateMachine,
     dualSpineSubStateMachine: DualSpinePlacementStateMachine,
     jointDirectionSubStateMachine: JointDirectionStateMachine,
+    zoneSubStateMachine: ZonePlacementStateMachine,
+    industrySubStateMachine: IndustryPlacementStateMachine,
     context: KmtStateMachineExtensionContext
 ): KmtExpandedStateMachine {
     const states = {
@@ -215,7 +223,9 @@ export function createKmtInputStateMachineExpansion(
             catenarySubStateMachine,
             singleSpineSubStateMachine,
             dualSpineSubStateMachine,
-            jointDirectionSubStateMachine
+            jointDirectionSubStateMachine,
+            zoneSubStateMachine,
+            industrySubStateMachine
         ),
         READY_TO_PAN_VIA_SPACEBAR: expandState(
             new ReadyToPanViaSpaceBarState()
