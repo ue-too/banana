@@ -26,6 +26,7 @@ export class IndustryPlacementEngine
     private _selectedType: IndustryType | null = null;
     private _onShowTypeSelector: (() => void) | null = null;
     private _onHideTypeSelector: (() => void) | null = null;
+    private _onPlacementComplete: (() => void) | null = null;
     private _stateMachine: IndustryPlacementStateMachine | null = null;
 
     constructor(
@@ -47,6 +48,10 @@ export class IndustryPlacementEngine
     setTypeSelectorCallbacks(onShow: () => void, onHide: () => void): void {
         this._onShowTypeSelector = onShow;
         this._onHideTypeSelector = onHide;
+    }
+
+    setOnPlacementComplete(callback: () => void): void {
+        this._onPlacementComplete = callback;
     }
 
     showTypeSelector(): void {
@@ -101,6 +106,7 @@ export class IndustryPlacementEngine
             this._economyManager.industries.assignStation(id, nearestStation);
         }
         this._selectedType = null;
+        this._onPlacementComplete?.();
     }
 
     clearGhost(): void {

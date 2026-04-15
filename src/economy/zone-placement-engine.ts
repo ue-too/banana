@@ -23,6 +23,7 @@ export class ZonePlacementEngine
     private _boundaryPoints: Point[] = [];
     private _onShowTypeSelector: (() => void) | null = null;
     private _onHideTypeSelector: (() => void) | null = null;
+    private _onPlacementComplete: (() => void) | null = null;
     private _stateMachine: ZonePlacementStateMachine | null = null;
 
     constructor(
@@ -42,6 +43,10 @@ export class ZonePlacementEngine
     setTypeSelectorCallbacks(onShow: () => void, onHide: () => void): void {
         this._onShowTypeSelector = onShow;
         this._onHideTypeSelector = onHide;
+    }
+
+    setOnPlacementComplete(callback: () => void): void {
+        this._onPlacementComplete = callback;
     }
 
     /**
@@ -73,6 +78,7 @@ export class ZonePlacementEngine
         }
         this._economyManager.zones.addZone(type, this._boundaryPoints);
         this._boundaryPoints = [];
+        this._onPlacementComplete?.();
     }
 
     cancelPlacement(): void {

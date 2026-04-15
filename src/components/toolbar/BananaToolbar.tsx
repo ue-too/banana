@@ -352,11 +352,19 @@ export function BananaToolbar({
             () => setShowIndustrySelector(true),
             () => setShowIndustrySelector(false)
         );
+        app.industryPlacementEngine.setOnPlacementComplete(() => {
+            app.kmtStateMachineExpansion.happens('switchToIdle');
+            setMode('idle');
+        });
         app.zonePlacementEngine.setTypeSelectorCallbacks(
             () => setShowZoneSelector(true),
             () => setShowZoneSelector(false)
         );
-    }, [app]);
+        app.zonePlacementEngine.setOnPlacementComplete(() => {
+            app.kmtStateMachineExpansion.happens('switchToIdle');
+            setMode('idle');
+        });
+    }, [app, setMode]);
 
     const exitAllModes = useCallback(() => {
         if (!app) return;
