@@ -22,8 +22,8 @@ export type IndustryPlacementEvents = {
     startIndustryPlacement: {};
     selectType: { industryType: IndustryType };
     pointerMove: { x: number; y: number };
-    pointerDown: { x: number; y: number };
-    cancel: {};
+    leftPointerDown: { x: number; y: number };
+    escapeKey: {};
     endIndustryPlacement: {};
 };
 
@@ -74,7 +74,7 @@ class SelectingTypeState extends TemplateState<
             },
             defaultTargetState: 'POSITIONING',
         },
-        cancel: {
+        escapeKey: {
             action: context => {
                 context.hideTypeSelector();
             },
@@ -109,7 +109,7 @@ class PositioningState extends TemplateState<
                 context.showServiceRadiusOverlay(worldPos);
             },
         },
-        pointerDown: {
+        leftPointerDown: {
             action: (context, event) => {
                 const worldPos = context.convert2WorldPosition({
                     x: event.x,
@@ -120,7 +120,7 @@ class PositioningState extends TemplateState<
             },
             defaultTargetState: 'IDLE',
         },
-        cancel: {
+        escapeKey: {
             action: context => {
                 context.clearGhost();
             },

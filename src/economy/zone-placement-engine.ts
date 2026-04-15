@@ -61,8 +61,7 @@ export class ZonePlacementEngine
         // Ghost polygon rendering — future enhancement
     }
 
-    closeBoundary(position: Point): void {
-        this._boundaryPoints.push(position);
+    closeBoundary(): void {
         // Show the type selector so the user can pick a zone type
         this._onShowTypeSelector?.();
     }

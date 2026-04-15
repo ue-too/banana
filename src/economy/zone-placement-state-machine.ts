@@ -19,18 +19,17 @@ export type ZonePlacementStates = (typeof ZONE_PLACEMENT_STATES)[number];
 
 export type ZonePlacementEvents = {
     startZonePlacement: {};
-    pointerDown: { x: number; y: number };
+    leftPointerDown: { x: number; y: number };
     pointerMove: { x: number; y: number };
-    doubleClick: { x: number; y: number };
+    escapeKey: {};
     confirmType: { zoneType: ZoneType };
-    cancel: {};
     endZonePlacement: {};
 };
 
 export interface ZonePlacementContext extends BaseContext {
     addBoundaryPoint: (position: Point) => void;
     updatePreview: (position: Point) => void;
-    closeBoundary: (position: Point) => void;
+    closeBoundary: () => void;
     confirmZone: (type: ZoneType) => void;
     cancelPlacement: () => void;
     clearPreview: () => void;
@@ -64,7 +63,7 @@ class DrawingBoundaryState extends TemplateState<
         ZonePlacementContext,
         ZonePlacementStates
     > = {
-        pointerDown: {
+        leftPointerDown: {
             action: (context, event) => {
                 const worldPos = context.convert2WorldPosition({
                     x: event.x,
@@ -82,21 +81,11 @@ class DrawingBoundaryState extends TemplateState<
                 context.updatePreview(worldPos);
             },
         },
-        doubleClick: {
-            action: (context, event) => {
-                const worldPos = context.convert2WorldPosition({
-                    x: event.x,
-                    y: event.y,
-                });
-                context.closeBoundary(worldPos);
+        escapeKey: {
+            action: context => {
+                context.closeBoundary();
             },
             defaultTargetState: 'CONFIRMING_TYPE',
-        },
-        cancel: {
-            action: context => {
-                context.cancelPlacement();
-            },
-            defaultTargetState: 'IDLE',
         },
         endZonePlacement: {
             action: context => {
@@ -124,7 +113,7 @@ class ConfirmingTypeState extends TemplateState<
             },
             defaultTargetState: 'IDLE',
         },
-        cancel: {
+        escapeKey: {
             action: context => {
                 context.cancelPlacement();
             },
