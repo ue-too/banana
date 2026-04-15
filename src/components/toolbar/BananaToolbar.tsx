@@ -8,12 +8,15 @@ import { useTranslation } from 'react-i18next';
 import { useShallow } from 'zustand/react/shallow';
 
 import {
+    BarChart3,
     Bug,
+    Building2,
     ChevronDown,
     ChevronUp,
     Clock,
     Copy,
     Download,
+    Factory,
     FilePlus,
     FolderOpen,
     GitFork,
@@ -22,12 +25,14 @@ import {
     List,
     ListOrdered,
     Map,
+    MapPin,
     Save,
     Signal,
     Spline,
     Timer,
     TrainFront,
     TrainTrack,
+    Truck,
     Warehouse,
     X,
     Zap,
@@ -85,15 +90,18 @@ import { AutoSaveIntervalSelector } from './AutoSaveIntervalSelector';
 import { BuildingOptionsPanel } from './BuildingOptionsPanel';
 import { CategoryFlyout, type FlyoutCategory } from './CategoryFlyout';
 import { CategoryRail } from './CategoryRail';
+import { CityOverviewPanel } from './CityOverviewPanel';
 import { DebugPanel } from './DebugPanel';
 import { DepotPanel } from './DepotPanel';
 import { ExportSubmenu } from './ExportSubmenu';
 import { FormationSelector } from './FormationSelector';
 import { GaugeSelector } from './GaugeSelector';
+import { IndustryInfoPanel } from './IndustryInfoPanel';
 import { LanguageSwitcher } from './LanguageSwitcher';
 import { LayoutDeletionToolbar } from './LayoutDeletionToolbar';
 import { ScaleRuler } from './ScaleRuler';
 import { SignalPanel } from './SignalPanel';
+import { StationCargoPanel } from './StationCargoPanel';
 import { StationListPanel } from './StationListPanel';
 import { SunAngleControl } from './SunAngleControl';
 import { TerrainControl } from './TerrainControl';
@@ -101,6 +109,8 @@ import { TerrainLegend } from './TerrainLegend';
 import { TimetablePanel } from './TimetablePanel';
 import { TrackStyleSelector } from './TrackStyleSelector';
 import { TrainPanel } from './TrainPanel';
+import { TransportDemandPanel } from './TransportDemandPanel';
+import { ZoneInfoPanel } from './ZoneInfoPanel';
 import { TOOLBAR_LEFT } from './types';
 import { downloadJson, uploadJson } from './utils';
 
@@ -145,6 +155,11 @@ export function BananaToolbar({
             showAutoSaveMenu: s.showAutoSaveMenu,
         }))
     );
+    const showZoneInfo = useToolbarUIStore(s => s.showZoneInfo);
+    const showIndustryInfo = useToolbarUIStore(s => s.showIndustryInfo);
+    const showCityOverview = useToolbarUIStore(s => s.showCityOverview);
+    const showStationCargo = useToolbarUIStore(s => s.showStationCargo);
+    const showTransportDemand = useToolbarUIStore(s => s.showTransportDemand);
     const setPanel = useToolbarUIStore(s => s.setPanel);
     const togglePanel = useToolbarUIStore(s => s.togglePanel);
     const activeCategory = useToolbarUIStore(s => s.activeCategory);
@@ -980,6 +995,51 @@ export function BananaToolbar({
                 },
             ],
         },
+        economy: {
+            title: t('toolbarCategoryEconomy'),
+            rows: [
+                {
+                    kind: 'button',
+                    id: 'zone-info',
+                    icon: <MapPin />,
+                    label: t('zoneInfo'),
+                    active: showZoneInfo,
+                    onClick: () => togglePanel('zoneInfo'),
+                },
+                {
+                    kind: 'button',
+                    id: 'industry-info',
+                    icon: <Factory />,
+                    label: t('industry'),
+                    active: showIndustryInfo,
+                    onClick: () => togglePanel('industryInfo'),
+                },
+                {
+                    kind: 'button',
+                    id: 'city-overview',
+                    icon: <Building2 />,
+                    label: t('cities'),
+                    active: showCityOverview,
+                    onClick: () => togglePanel('cityOverview'),
+                },
+                {
+                    kind: 'button',
+                    id: 'station-cargo',
+                    icon: <Truck />,
+                    label: t('cargo'),
+                    active: showStationCargo,
+                    onClick: () => togglePanel('stationCargo'),
+                },
+                {
+                    kind: 'button',
+                    id: 'transport-demand',
+                    icon: <BarChart3 />,
+                    label: t('demand'),
+                    active: showTransportDemand,
+                    onClick: () => togglePanel('transportDemand'),
+                },
+            ],
+        },
         scene: {
             title: t('toolbarCategoryScene'),
             rows: [
@@ -1370,6 +1430,38 @@ export function BananaToolbar({
                     isPicking={mode === 'stress-pick'}
                     onGenerateTracks={handleGenerateTracks}
                     onClose={() => setPanel('debugPanel', false)}
+                />
+            )}
+
+            {showZoneInfo && (
+                <ZoneInfoPanel
+                    zoneManager={app.economyManager.zones}
+                    onClose={() => setPanel('zoneInfo', false)}
+                />
+            )}
+            {showIndustryInfo && (
+                <IndustryInfoPanel
+                    industryManager={app.economyManager.industries}
+                    onClose={() => setPanel('industryInfo', false)}
+                />
+            )}
+            {showCityOverview && (
+                <CityOverviewPanel
+                    cityGrowthManager={app.economyManager.cityGrowth}
+                    zoneManager={app.economyManager.zones}
+                    onClose={() => setPanel('cityOverview', false)}
+                />
+            )}
+            {showStationCargo && (
+                <StationCargoPanel
+                    economyManager={app.economyManager}
+                    onClose={() => setPanel('stationCargo', false)}
+                />
+            )}
+            {showTransportDemand && (
+                <TransportDemandPanel
+                    resourceManager={app.economyManager.resources}
+                    onClose={() => setPanel('transportDemand', false)}
                 />
             )}
 

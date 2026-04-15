@@ -23,6 +23,7 @@ export type ToolbarCategory =
     | 'drawing'
     | 'trains'
     | 'infra'
+    | 'economy'
     | 'scene'
     | 'debug';
 

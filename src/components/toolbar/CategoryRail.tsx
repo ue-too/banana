@@ -1,6 +1,7 @@
 import { useTranslation } from 'react-i18next';
 
 import {
+    BarChart3,
     FolderOpen,
     Landmark,
     Pencil,
@@ -43,6 +44,11 @@ export function CategoryRail({
             id: 'infra',
             label: t('toolbarCategoryInfra'),
             icon: <Landmark />,
+        },
+        {
+            id: 'economy',
+            label: t('toolbarCategoryEconomy'),
+            icon: <BarChart3 />,
         },
         {
             id: 'scene',
