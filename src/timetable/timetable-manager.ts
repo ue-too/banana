@@ -16,7 +16,7 @@ import type { JointDirectionPreferenceMap } from '@/trains/tracks/joint-directio
 import type { TrackGraph } from '@/trains/tracks/track';
 import type { TrainManager } from '@/trains/train-manager';
 
-import { AutoDriver } from './auto-driver';
+import { AutoDriver, type OnArrivedAtStationCallback } from './auto-driver';
 import { RouteManager } from './route-manager';
 import { ScheduleClock } from './schedule-clock';
 import { ShiftTemplateManager } from './shift-template-manager';
@@ -62,6 +62,9 @@ export class TimetableManager {
 
     /** Active auto-drivers, keyed by train ID. */
     private _drivers: Map<number, AutoDriver> = new Map();
+
+    /** Forwarded to every auto-driver on creation. */
+    private _onArrivedAtStation: OnArrivedAtStationCallback | null = null;
 
     /** Map from train ID → the original JointDirectionManager before we swapped it. */
     private _originalJdms: Map<number, JointDirectionManager> = new Map();
@@ -381,6 +384,9 @@ export class TimetableManager {
         };
 
         const driver = new AutoDriver(state, jdm);
+        if (this._onArrivedAtStation) {
+            driver.setOnArrivedAtStation(this._onArrivedAtStation);
+        }
         this._drivers.set(trainId, driver);
     }
 
@@ -409,6 +415,15 @@ export class TimetableManager {
     // -----------------------------------------------------------------------
     // Cleanup
     // -----------------------------------------------------------------------
+
+    /** Register a callback invoked whenever a train arrives at a station stop. */
+    setOnArrivedAtStation(cb: OnArrivedAtStationCallback): void {
+        this._onArrivedAtStation = cb;
+        // Apply to existing drivers
+        for (const driver of this._drivers.values()) {
+            driver.setOnArrivedAtStation(cb);
+        }
+    }
 
     /** Unsubscribe from TrainManager events. Call when tearing down. */
     dispose(): void {

@@ -869,6 +869,11 @@ export const initApp = async (
     timetableManager.signalStateEngine = signalStateEngine;
     timetableManager.trackAlignedPlatformManager = trackAlignedPlatformManager;
 
+    // Wire cargo processing: when a train arrives at a station, load/unload freight
+    timetableManager.setOnArrivedAtStation((train, stationId) => {
+        economyManager.handleTrainArrival(train, stationId);
+    });
+
     // Collision prevention system
     const crossingMap = new CrossingMap();
     const collisionGuard = new CollisionGuard(trackGraph, crossingMap);

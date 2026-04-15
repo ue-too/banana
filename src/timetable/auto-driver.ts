@@ -74,9 +74,15 @@ const DEPARTING_SPEED_THRESHOLD = 1.0;
  * driver.driveStep(train, virtualWeekMs, shiftTemplate, route, stationManager, trackGraph);
  * ```
  */
+export type OnArrivedAtStationCallback = (
+  train: Train,
+  stationId: number,
+) => void;
+
 export class AutoDriver {
   private _state: ActiveShiftState;
   private _jdm: TimetableJointDirectionManager;
+  private _onArrivedAtStation: OnArrivedAtStationCallback | null = null;
 
   constructor(
     state: ActiveShiftState,
@@ -84,6 +90,10 @@ export class AutoDriver {
   ) {
     this._state = state;
     this._jdm = jdm;
+  }
+
+  setOnArrivedAtStation(cb: OnArrivedAtStationCallback): void {
+    this._onArrivedAtStation = cb;
   }
 
   /** The current runtime state. */
@@ -400,6 +410,12 @@ export class AutoDriver {
   private _onArrived(train: Train, shift: ShiftTemplate): void {
     train.setThrottleStep('b7');
     this._transition('stopped');
+
+    // Notify cargo system
+    const stop = shift.stops[this._state.currentLegIndex];
+    if (stop && this._onArrivedAtStation) {
+      this._onArrivedAtStation(train, stop.stationId);
+    }
   }
 
   private _transition(phase: AutoDriverPhase): void {
