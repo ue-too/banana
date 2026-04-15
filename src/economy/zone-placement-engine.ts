@@ -24,6 +24,14 @@ const ZONE_PREVIEW_COLORS: Record<ZoneType, number> = {
 };
 
 const DOT_RADIUS = 4;
+const SNAP_RADIUS = 15;
+const SNAP_RING_RADIUS = 10;
+
+function dist(a: Point, b: Point): number {
+    const dx = a.x - b.x;
+    const dy = a.y - b.y;
+    return Math.sqrt(dx * dx + dy * dy);
+}
 
 export class ZonePlacementEngine
     extends ObservableInputTracker
@@ -38,6 +46,7 @@ export class ZonePlacementEngine
     private _onHideTypeSelector: (() => void) | null = null;
     private _onPlacementComplete: (() => void) | null = null;
     private _stateMachine: ZonePlacementStateMachine | null = null;
+    private _lastCursorPos: Point | null = null;
 
     // Preview graphics
     private _previewContainer: Container = new Container();
@@ -89,11 +98,21 @@ export class ZonePlacementEngine
     }
 
     addBoundaryPoint(position: Point): void {
+        // If 3+ points and clicking near the start, close the polygon
+        if (this._boundaryPoints.length >= 3) {
+            const start = this._boundaryPoints[0];
+            if (dist(position, start) <= SNAP_RADIUS) {
+                this.finishZone();
+                return;
+            }
+        }
+
         this._boundaryPoints.push(position);
         this._drawPreview();
     }
 
     updatePreview(position: Point): void {
+        this._lastCursorPos = position;
         this._drawPreview(position);
     }
 
@@ -111,6 +130,7 @@ export class ZonePlacementEngine
         );
         this._boundaryPoints = [];
         this._selectedType = null;
+        this._lastCursorPos = null;
         this._removePreview();
         this._onPlacementComplete?.();
     }
@@ -122,6 +142,7 @@ export class ZonePlacementEngine
     cancelPlacement(): void {
         this._boundaryPoints = [];
         this._selectedType = null;
+        this._lastCursorPos = null;
         this._onHideTypeSelector?.();
         this._removePreview();
     }
@@ -165,6 +186,11 @@ export class ZonePlacementEngine
         }
     }
 
+    private _isNearStart(pos: Point): boolean {
+        if (this._boundaryPoints.length < 3) return false;
+        return dist(pos, this._boundaryPoints[0]) <= SNAP_RADIUS;
+    }
+
     private _drawPreview(cursorPos?: Point): void {
         this._ensurePreviewAttached();
         const g = this._previewGraphics;
@@ -178,45 +204,52 @@ export class ZonePlacementEngine
 
         if (points.length === 0) return;
 
+        const nearStart = cursorPos ? this._isNearStart(cursorPos) : false;
+
         // Draw lines between existing points
+        g.moveTo(points[0].x, points[0].y);
+        for (let i = 1; i < points.length; i++) {
+            g.lineTo(points[i].x, points[i].y);
+        }
+        // Line to cursor (or snapped to start)
+        if (cursorPos) {
+            if (nearStart) {
+                g.lineTo(points[0].x, points[0].y);
+            } else {
+                g.lineTo(cursorPos.x, cursorPos.y);
+                // Dashed hint back to start
+                g.moveTo(cursorPos.x, cursorPos.y);
+                g.lineTo(points[0].x, points[0].y);
+            }
+        }
+        g.stroke({ color, width: 2, alpha: nearStart ? 0.9 : 0.5 });
+
+        // Semi-transparent fill preview
         if (points.length >= 2) {
             g.moveTo(points[0].x, points[0].y);
             for (let i = 1; i < points.length; i++) {
                 g.lineTo(points[i].x, points[i].y);
             }
-            // Dashed line to cursor position
-            if (cursorPos) {
-                g.lineTo(cursorPos.x, cursorPos.y);
-                // Line back to start for closing hint
-                g.lineTo(points[0].x, points[0].y);
-            }
-            g.stroke({ color, width: 2, alpha: 0.6 });
-        }
-
-        // Draw a line from first point to cursor if only 1 point
-        if (points.length === 1 && cursorPos) {
-            g.moveTo(points[0].x, points[0].y);
-            g.lineTo(cursorPos.x, cursorPos.y);
-            g.stroke({ color, width: 2, alpha: 0.6 });
-        }
-
-        // Semi-transparent fill if 3+ points
-        if (points.length >= 3) {
-            g.moveTo(points[0].x, points[0].y);
-            for (let i = 1; i < points.length; i++) {
-                g.lineTo(points[i].x, points[i].y);
-            }
-            if (cursorPos) {
+            if (cursorPos && !nearStart) {
                 g.lineTo(cursorPos.x, cursorPos.y);
             }
             g.closePath();
-            g.fill({ color, alpha: 0.15 });
+            g.fill({ color, alpha: 0.1 });
         }
 
         // Draw dots at each boundary point
         for (const pt of points) {
             g.circle(pt.x, pt.y, DOT_RADIUS);
             g.fill({ color, alpha: 0.8 });
+        }
+
+        // Snap indicator: highlight ring around start point when cursor is close
+        if (nearStart) {
+            const start = points[0];
+            g.circle(start.x, start.y, SNAP_RING_RADIUS);
+            g.stroke({ color: 0xffffff, width: 2, alpha: 0.9 });
+            g.circle(start.x, start.y, SNAP_RING_RADIUS);
+            g.fill({ color, alpha: 0.3 });
         }
     }
 }
