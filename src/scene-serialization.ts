@@ -1,3 +1,8 @@
+import {
+    type SerializedEconomyData,
+    deserializeEconomy,
+    serializeEconomy,
+} from '@/economy/economy-serialization';
 import type { SerializedSignalData } from '@/signals/types';
 import { StationManager } from '@/stations/station-manager';
 import { TrackAlignedPlatformManager } from '@/stations/track-aligned-platform-manager';
@@ -35,6 +40,7 @@ export type SerializedSceneData = {
     time?: number;
     trackAlignedPlatforms?: SerializedTrackAlignedPlatformData;
     jointDirectionPreferences?: SerializedJointDirectionPreference[];
+    economy?: SerializedEconomyData; // optional for backward compatibility
 };
 
 export function serializeSceneData(
@@ -54,6 +60,7 @@ export function serializeSceneData(
         time: app.timeManager.currentTime,
         trackAlignedPlatforms: app.trackAlignedPlatformManager.serialize(),
         jointDirectionPreferences: app.jointDirectionPreferenceMap.serialize(),
+        economy: serializeEconomy(app.economyManager),
     };
 }
 
@@ -149,15 +156,28 @@ export async function deserializeSceneData(
         }
     }
 
+    // Load economy data if present
+    if (data.economy) {
+        deserializeEconomy(app.economyManager, data.economy);
+    }
+
     // Load joint direction preferences if present
     if (data.jointDirectionPreferences) {
         app.jointDirectionPreferenceMap.clear();
         for (const entry of data.jointDirectionPreferences) {
             if (entry.tangent !== undefined) {
-                app.jointDirectionPreferenceMap.set(entry.joint, 'tangent', entry.tangent);
+                app.jointDirectionPreferenceMap.set(
+                    entry.joint,
+                    'tangent',
+                    entry.tangent
+                );
             }
             if (entry.reverseTangent !== undefined) {
-                app.jointDirectionPreferenceMap.set(entry.joint, 'reverseTangent', entry.reverseTangent);
+                app.jointDirectionPreferenceMap.set(
+                    entry.joint,
+                    'reverseTangent',
+                    entry.reverseTangent
+                );
             }
         }
     }

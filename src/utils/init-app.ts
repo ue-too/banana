@@ -13,6 +13,7 @@ import { toast } from 'sonner';
 import Stats from 'stats.js';
 
 import { BuildingManager, BuildingRenderSystem } from '@/buildings';
+import { EconomyManager } from '@/economy/economy-manager';
 import i18n from '@/i18n';
 import {
     BlockSignalManager,
@@ -39,9 +40,9 @@ import { TerrainData } from '@/terrain/terrain-data';
 import { TerrainRenderSystem } from '@/terrain/terrain-render-system';
 import { TimeManager } from '@/time';
 import { ScheduleClock, TimetableManager } from '@/timetable';
-import { CollisionGuard, CrossingMap } from '@/trains/collision-guard';
 import { CarImageRegistry } from '@/trains/car-image-registry';
 import { CarStockManager } from '@/trains/car-stock-manager';
+import { CollisionGuard, CrossingMap } from '@/trains/collision-guard';
 import { Train, type TrainPosition } from '@/trains/formation';
 import { FormationManager } from '@/trains/formation-manager';
 import { CatenaryLayoutEngine } from '@/trains/input-state-machine/catenary-layout-engine';
@@ -310,6 +311,7 @@ export type BananaAppComponents = BaseAppComponents & {
     blockSignalManager: BlockSignalManager;
     signalStateEngine: SignalStateEngine;
     signalRenderSystem: SignalRenderSystem;
+    economyManager: EconomyManager;
     /** The stats.js DOM element for toggling visibility. */
     statsDom: HTMLDivElement;
     /** Add a train at the given segment and t. For stress testing. */
@@ -787,6 +789,25 @@ export const initApp = async (
     );
     timetableRef.current = timetableManager;
 
+    // Economy system
+    const economyManager = new EconomyManager(zoneId => {
+        const zone = economyManager.zones.getZone(zoneId);
+        if (!zone) return null;
+        const centroid = {
+            x:
+                zone.boundary.reduce((sum, p) => sum + p.x, 0) /
+                zone.boundary.length,
+            y:
+                zone.boundary.reduce((sum, p) => sum + p.y, 0) /
+                zone.boundary.length,
+        };
+        const stationPositions = new Map<number, { x: number; y: number }>();
+        for (const { id, station } of stationManager.getStations()) {
+            stationPositions.set(id, station.position);
+        }
+        return economyManager.findNearestStation(centroid, stationPositions);
+    });
+
     // Block signal system
     const blockSignalManager = new BlockSignalManager();
     const signalStateEngine = new SignalStateEngine(blockSignalManager);
@@ -807,23 +828,36 @@ export const initApp = async (
 
     const trackCurveManager = trackGraph.trackCurveManager;
 
-    function addSegmentCrossings(curveNumber: number, segment: TrackSegmentWithCollision) {
+    function addSegmentCrossings(
+        curveNumber: number,
+        segment: TrackSegmentWithCollision
+    ) {
         for (const col of segment.collision) {
             // Resolve the other segment's number by matching the BCurve reference
             for (const otherNum of trackCurveManager.livingEntities) {
                 if (otherNum === curveNumber) continue;
-                const otherSeg = trackCurveManager.getTrackSegmentWithJoints(otherNum);
-                if (!otherSeg || otherSeg.curve !== col.anotherCurve.curve) continue;
+                const otherSeg =
+                    trackCurveManager.getTrackSegmentWithJoints(otherNum);
+                if (!otherSeg || otherSeg.curve !== col.anotherCurve.curve)
+                    continue;
 
                 // Skip crossings with vertical clearance (different elevations)
-                if (intersectionSatisfiesVerticalClearance(
-                    col.selfT,
-                    segment,
-                    col.anotherCurve.tVal,
-                    otherSeg,
-                )) continue;
+                if (
+                    intersectionSatisfiesVerticalClearance(
+                        col.selfT,
+                        segment,
+                        col.anotherCurve.tVal,
+                        otherSeg
+                    )
+                )
+                    continue;
 
-                crossingMap.addCrossing(curveNumber, col.selfT, otherNum, col.anotherCurve.tVal);
+                crossingMap.addCrossing(
+                    curveNumber,
+                    col.selfT,
+                    otherNum,
+                    col.anotherCurve.tVal
+                );
                 break;
             }
         }
@@ -840,7 +874,7 @@ export const initApp = async (
         addSegmentCrossings(curveNumber, segment);
     });
 
-    trackCurveManager.onRemoveTrackSegment((curveNumber) => {
+    trackCurveManager.onRemoveTrackSegment(curveNumber => {
         crossingMap.removeSegment(curveNumber);
     });
 
@@ -890,6 +924,7 @@ export const initApp = async (
             signalRenderSystem.update();
             debugOverlayRenderSystem.updateFormationLabels();
             debugOverlayRenderSystem.updateProximityLines();
+            economyManager.update(deltaTime / 60000); // deltaTime is in ms, convert to game-minutes
         }
     );
 
@@ -1002,6 +1037,7 @@ export const initApp = async (
         blockSignalManager,
         signalStateEngine,
         signalRenderSystem,
+        economyManager,
         statsDom: stats.dom,
         addTrainAtPosition,
         addStressTestTrains,
