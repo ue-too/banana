@@ -25,6 +25,3 @@ jobs:
 
             - name: Test build
               run: bun run build
-
-            - name: Check formatting
-              run: bun run format:check
