@@ -21,6 +21,7 @@ export class ZonePlacementEngine
     private _camera: ObservableBoardCamera;
     private _economyManager: EconomyManager;
     private _boundaryPoints: Point[] = [];
+    private _selectedType: ZoneType | null = null;
     private _onShowTypeSelector: (() => void) | null = null;
     private _onHideTypeSelector: (() => void) | null = null;
     private _onPlacementComplete: (() => void) | null = null;
@@ -50,12 +51,25 @@ export class ZonePlacementEngine
     }
 
     /**
-     * Called from the React UI when the user picks a zone type from the selector.
-     * Fires the `confirmType` event on the state machine and hides the panel.
+     * Called from the React UI when the user picks a zone type.
+     * Fires the `confirmType` event on the state machine.
      */
     selectZoneType(type: ZoneType): void {
+        this._selectedType = type;
         this._stateMachine?.happens('confirmType', { zoneType: type });
         this._onHideTypeSelector?.();
+    }
+
+    showTypeSelector(): void {
+        this._onShowTypeSelector?.();
+    }
+
+    hideTypeSelector(): void {
+        this._onHideTypeSelector?.();
+    }
+
+    setSelectedType(type: ZoneType): void {
+        this._selectedType = type;
     }
 
     addBoundaryPoint(position: Point): void {
@@ -66,23 +80,29 @@ export class ZonePlacementEngine
         // Ghost polygon rendering — future enhancement
     }
 
-    closeBoundary(): void {
-        // Show the type selector so the user can pick a zone type
-        this._onShowTypeSelector?.();
-    }
-
-    confirmZone(type: ZoneType): void {
-        if (this._boundaryPoints.length < 3) {
+    finishZone(): void {
+        if (this._boundaryPoints.length < 3 || !this._selectedType) {
             this._boundaryPoints = [];
+            this._selectedType = null;
+            this._onPlacementComplete?.();
             return;
         }
-        this._economyManager.zones.addZone(type, this._boundaryPoints);
+        this._economyManager.zones.addZone(
+            this._selectedType,
+            this._boundaryPoints
+        );
         this._boundaryPoints = [];
+        this._selectedType = null;
         this._onPlacementComplete?.();
+    }
+
+    confirmZone(_type: ZoneType): void {
+        // No longer used — finishZone handles creation
     }
 
     cancelPlacement(): void {
         this._boundaryPoints = [];
+        this._selectedType = null;
         this._onHideTypeSelector?.();
     }
 

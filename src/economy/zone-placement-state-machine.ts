@@ -1,7 +1,6 @@
 import {
     BaseContext,
     EventReactions,
-    NO_OP,
     TemplateState,
     TemplateStateMachine,
 } from '@ue-too/being';
@@ -11,26 +10,28 @@ import type { ZoneType } from './types';
 
 export const ZONE_PLACEMENT_STATES = [
     'IDLE',
+    'SELECTING_TYPE',
     'DRAWING_BOUNDARY',
-    'CONFIRMING_TYPE',
 ] as const;
 
 export type ZonePlacementStates = (typeof ZONE_PLACEMENT_STATES)[number];
 
 export type ZonePlacementEvents = {
     startZonePlacement: {};
+    confirmType: { zoneType: ZoneType };
     leftPointerDown: { x: number; y: number };
     pointerMove: { x: number; y: number };
     escapeKey: {};
-    confirmType: { zoneType: ZoneType };
     endZonePlacement: {};
 };
 
 export interface ZonePlacementContext extends BaseContext {
+    showTypeSelector: () => void;
+    hideTypeSelector: () => void;
+    setSelectedType: (type: ZoneType) => void;
     addBoundaryPoint: (position: Point) => void;
     updatePreview: (position: Point) => void;
-    closeBoundary: () => void;
-    confirmZone: (type: ZoneType) => void;
+    finishZone: () => void;
     cancelPlacement: () => void;
     clearPreview: () => void;
     convert2WorldPosition: (position: Point) => Point;
@@ -47,8 +48,44 @@ class IdleState extends TemplateState<
         ZonePlacementStates
     > = {
         startZonePlacement: {
-            action: NO_OP,
+            action: context => {
+                context.showTypeSelector();
+            },
+            defaultTargetState: 'SELECTING_TYPE',
+        },
+    };
+}
+
+class SelectingTypeState extends TemplateState<
+    ZonePlacementEvents,
+    ZonePlacementContext,
+    ZonePlacementStates
+> {
+    protected _eventReactions: EventReactions<
+        ZonePlacementEvents,
+        ZonePlacementContext,
+        ZonePlacementStates
+    > = {
+        confirmType: {
+            action: (context, event) => {
+                context.setSelectedType(event.zoneType);
+                context.hideTypeSelector();
+            },
             defaultTargetState: 'DRAWING_BOUNDARY',
+        },
+        escapeKey: {
+            action: context => {
+                context.hideTypeSelector();
+                context.cancelPlacement();
+            },
+            defaultTargetState: 'IDLE',
+        },
+        endZonePlacement: {
+            action: context => {
+                context.hideTypeSelector();
+                context.cancelPlacement();
+            },
+            defaultTargetState: 'IDLE',
         },
     };
 }
@@ -83,39 +120,8 @@ class DrawingBoundaryState extends TemplateState<
         },
         escapeKey: {
             action: context => {
-                context.closeBoundary();
-            },
-            defaultTargetState: 'CONFIRMING_TYPE',
-        },
-        endZonePlacement: {
-            action: context => {
-                context.cancelPlacement();
-            },
-            defaultTargetState: 'IDLE',
-        },
-    };
-}
-
-class ConfirmingTypeState extends TemplateState<
-    ZonePlacementEvents,
-    ZonePlacementContext,
-    ZonePlacementStates
-> {
-    protected _eventReactions: EventReactions<
-        ZonePlacementEvents,
-        ZonePlacementContext,
-        ZonePlacementStates
-    > = {
-        confirmType: {
-            action: (context, event) => {
-                context.confirmZone(event.zoneType);
+                context.finishZone();
                 context.clearPreview();
-            },
-            defaultTargetState: 'IDLE',
-        },
-        escapeKey: {
-            action: context => {
-                context.cancelPlacement();
             },
             defaultTargetState: 'IDLE',
         },
@@ -137,8 +143,8 @@ export class ZonePlacementStateMachine extends TemplateStateMachine<
         super(
             {
                 IDLE: new IdleState(),
+                SELECTING_TYPE: new SelectingTypeState(),
                 DRAWING_BOUNDARY: new DrawingBoundaryState(),
-                CONFIRMING_TYPE: new ConfirmingTypeState(),
             },
             'IDLE',
             context
