@@ -7,6 +7,8 @@ import type { IndustryManager } from './industry-manager';
 import type { IndustryEntity } from './simulation-state';
 import { IndustryType } from './types';
 
+type SelectionCallback = (id: number) => void;
+
 const GROUND_BAND_INDEX = ELEVATION_VALUES.indexOf(ELEVATION.GROUND as number);
 
 const INDUSTRY_COLORS: Record<IndustryType, number> = {
@@ -39,6 +41,7 @@ export class IndustryRenderSystem {
     private _industryManager: IndustryManager;
     private _records: Map<number, IndustryRecord> = new Map();
     private _disposed = false;
+    private _onSelect: SelectionCallback | null = null;
 
     private _boundOnAdd: (id: number, entity: IndustryEntity) => void;
     private _boundOnRemove: (id: number) => void;
@@ -55,6 +58,10 @@ export class IndustryRenderSystem {
 
         industryManager.onAdd(this._boundOnAdd);
         industryManager.onRemove(this._boundOnRemove);
+    }
+
+    setOnSelect(callback: SelectionCallback): void {
+        this._onSelect = callback;
     }
 
     cleanup(): void {
@@ -81,6 +88,11 @@ export class IndustryRenderSystem {
         graphics.rect(-half, -half, INDUSTRY_SIZE, INDUSTRY_SIZE);
         graphics.stroke({ color: 0x000000, pixelLine: true });
         graphics.position.set(entity.position.x, entity.position.y);
+        graphics.eventMode = 'static';
+        graphics.cursor = 'pointer';
+        graphics.on('pointertap', () => {
+            this._onSelect?.(id);
+        });
 
         const style = new TextStyle({
             fontSize: 10,

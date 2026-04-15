@@ -1,4 +1,4 @@
-import { Graphics } from 'pixi.js';
+import { Graphics, Polygon } from 'pixi.js';
 
 import { ELEVATION, ELEVATION_VALUES } from '@/trains/tracks/types';
 import { WorldRenderSystem } from '@/world-render-system';
@@ -6,6 +6,8 @@ import { WorldRenderSystem } from '@/world-render-system';
 import type { ZoneEntity } from './simulation-state';
 import { ZoneType } from './types';
 import type { ZoneManager } from './zone-manager';
+
+type SelectionCallback = (id: number) => void;
 
 const GROUND_BAND_INDEX = ELEVATION_VALUES.indexOf(ELEVATION.GROUND as number);
 
@@ -32,6 +34,7 @@ export class ZoneRenderSystem {
     private _zoneManager: ZoneManager;
     private _graphics: Map<number, Graphics> = new Map();
     private _abortController: AbortController = new AbortController();
+    private _onSelect: SelectionCallback | null = null;
 
     constructor(
         worldRenderSystem: WorldRenderSystem,
@@ -42,6 +45,10 @@ export class ZoneRenderSystem {
 
         zoneManager.onAdd(this._onAdd.bind(this));
         zoneManager.onRemove(this._onRemove.bind(this));
+    }
+
+    setOnSelect(callback: SelectionCallback): void {
+        this._onSelect = callback;
     }
 
     dispose(): void {
@@ -58,6 +65,18 @@ export class ZoneRenderSystem {
         const key = zoneKey(id);
         const g = new Graphics();
         drawZone(g, zone);
+
+        // Make clickable for selection
+        if (zone.boundary.length >= 3) {
+            const flat = zone.boundary.flatMap(p => [p.x, p.y]);
+            g.hitArea = new Polygon(flat);
+            g.eventMode = 'static';
+            g.cursor = 'pointer';
+            g.on('pointertap', () => {
+                this._onSelect?.(id);
+            });
+        }
+
         this._graphics.set(id, g);
         this._worldRenderSystem.addToBand(
             key,

@@ -16,6 +16,7 @@ import { BuildingManager, BuildingRenderSystem } from '@/buildings';
 import { EconomyManager } from '@/economy/economy-manager';
 import { IndustryRenderSystem } from '@/economy/industry-render-system';
 import { ZoneRenderSystem } from '@/economy/zone-render-system';
+import { useEconomyUIStore } from '@/stores/economy-ui-store';
 import { IndustryPlacementEngine } from '@/economy/industry-placement-engine';
 import { IndustryPlacementStateMachine } from '@/economy/industry-placement-state-machine';
 import { ZonePlacementEngine } from '@/economy/zone-placement-engine';
@@ -845,6 +846,14 @@ export const initApp = async (
         worldRenderSystem,
         economyManager.industries
     );
+
+    // Wire click-to-select for economy entities
+    industryRenderSystem.setOnSelect(id => {
+        useEconomyUIStore.getState().selectIndustry(id);
+    });
+    zoneRenderSystem.setOnSelect(id => {
+        useEconomyUIStore.getState().selectZone(id);
+    });
 
     // Block signal system
     const blockSignalManager = new BlockSignalManager();
