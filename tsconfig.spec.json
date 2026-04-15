@@ -1,0 +1,12 @@
+{
+    "compilerOptions": {
+        "baseUrl": ".",
+        "declaration": true,
+        "outDir": "dist",
+        "rootDir": "src",
+        "tsBuildInfoFile": "dist/banana.tsbuildinfo"
+    },
+    "types": ["bun-types/test-globals"],
+    "extends": "./tsconfig.json",
+    "include": ["test/**/*"]
+}

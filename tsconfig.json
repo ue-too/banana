@@ -1,0 +1,23 @@
+{
+    "compilerOptions": {
+        "allowImportingTsExtensions": false,
+        "baseUrl": ".",
+        "composite": true,
+        "declaration": true,
+        "declarationMap": false,
+        "esModuleInterop": true,
+        "jsx": "react-jsx",
+        "module": "ESNext",
+        "moduleResolution": "bundler",
+        "outDir": "dist",
+        "paths": {
+            "@/*": ["./src/*"]
+        },
+        "resolveJsonModule": true,
+        "sourceMap": true,
+        "strict": true,
+        "target": "ES2020",
+        "types": []
+    },
+    "include": ["src/**/*", "assets/*.json"]
+}

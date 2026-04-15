@@ -1,0 +1,49 @@
+# Logs
+logs
+*.log
+npm-debug.log*
+
+# Runtime data
+pids
+*.pid
+*.seed
+*.pid.lock
+
+# Coverage
+coverage
+*.lcov
+.nyc_output
+
+# Dependencies
+node_modules/
+
+# TypeScript cache
+*.tsbuildinfo
+
+# dotenv
+.env
+.env.*.local
+.env.local
+
+# Build output
+dist
+
+# Cache
+.cache
+.parcel-cache
+
+# OS
+.DS_Store
+
+# Editor
+.vscode-test
+
+# Map tile data
+*.pmtiles
+public/tiles/
+
+# Font source files
+*.sfd
+
+# Vite temp files
+vite.config.*.timestamp*

@@ -1,0 +1,30 @@
+name: CI Test
+
+permissions:
+    contents: read
+
+on:
+    pull_request:
+        branches: ['main']
+    workflow_dispatch:
+
+jobs:
+    test:
+        runs-on: ubuntu-latest
+        steps:
+            - name: Checkout
+              uses: actions/checkout@v4
+
+            - name: Setup Bun
+              uses: ./.github/actions/setup-bun-env
+              with:
+                  npm-token: ${{ secrets.NPM_TOKEN }}
+
+            - name: Run tests
+              run: bun test
+
+            - name: Test build
+              run: bun run build
+
+            - name: Check formatting
+              run: bun run format:check
