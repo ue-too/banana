@@ -14,6 +14,8 @@ import type { DualSpinePlacementStateMachine } from '@/stations/dual-spine-place
 import type { SingleSpinePlacementStateMachine } from '@/stations/single-spine-placement-state-machine';
 import { StationPlacementStateMachine } from '@/stations/station-placement-state-machine';
 
+import { IndustryPlacementStateMachine } from '../../economy/industry-placement-state-machine';
+import { ZonePlacementStateMachine } from '../../economy/zone-placement-state-machine';
 import { CatenaryLayoutStateMachine } from './catenary-layout-state-machine';
 import { DuplicateToSideStateMachine } from './duplicate-to-side-state-machine';
 import type { JointDirectionStateMachine } from './joint-direction-state-machine';
@@ -34,6 +36,8 @@ export const TOOL_SWITCHER_STATES = [
     'SINGLE_SPINE_PLATFORM',
     'DUAL_SPINE_PLATFORM',
     'JOINT_DIRECTION',
+    'ZONE',
+    'INDUSTRY',
     'IDLE',
 ] as const;
 
@@ -48,6 +52,8 @@ export type ToolSwitcherEvents = {
     switchToSingleSpinePlatform: { stationId: number };
     switchToDualSpinePlatform: { stationId: number };
     switchToJointDirection: {};
+    switchToZone: {};
+    switchToIndustry: {};
     switchToIdle: {};
 };
 
@@ -66,6 +72,8 @@ export type ToolSwitcherEventOutputMapping = {
     switchToSingleSpinePlatform: void;
     switchToDualSpinePlatform: void;
     switchToJointDirection: void;
+    switchToZone: void;
+    switchToIndustry: void;
     switchToIdle: void;
 };
 
@@ -134,6 +142,14 @@ class ToolSwitcherIdleState extends TemplateState<
         switchToJointDirection: {
             action: NO_OP,
             defaultTargetState: 'JOINT_DIRECTION',
+        },
+        switchToZone: {
+            action: NO_OP,
+            defaultTargetState: 'ZONE',
+        },
+        switchToIndustry: {
+            action: NO_OP,
+            defaultTargetState: 'INDUSTRY',
         },
         switchToIdle: {
             action: NO_OP,
@@ -246,6 +262,14 @@ class ToolSwitcherLayoutState extends TemplateState<
             action: NO_OP,
             defaultTargetState: 'JOINT_DIRECTION',
         },
+        switchToZone: {
+            action: NO_OP,
+            defaultTargetState: 'ZONE',
+        },
+        switchToIndustry: {
+            action: NO_OP,
+            defaultTargetState: 'INDUSTRY',
+        },
         switchToIdle: {
             action: NO_OP,
             defaultTargetState: 'IDLE',
@@ -316,6 +340,14 @@ class ToolSwitcherTrainState extends TemplateState<
         switchToJointDirection: {
             action: NO_OP,
             defaultTargetState: 'JOINT_DIRECTION',
+        },
+        switchToZone: {
+            action: NO_OP,
+            defaultTargetState: 'ZONE',
+        },
+        switchToIndustry: {
+            action: NO_OP,
+            defaultTargetState: 'INDUSTRY',
         },
         switchToIdle: {
             action: NO_OP,
@@ -431,6 +463,14 @@ class ToolSwitcherStationState extends TemplateState<
             action: NO_OP,
             defaultTargetState: 'JOINT_DIRECTION',
         },
+        switchToZone: {
+            action: NO_OP,
+            defaultTargetState: 'ZONE',
+        },
+        switchToIndustry: {
+            action: NO_OP,
+            defaultTargetState: 'INDUSTRY',
+        },
         switchToIdle: {
             action: NO_OP,
             defaultTargetState: 'IDLE',
@@ -540,6 +580,14 @@ class ToolSwitcherDuplicateState extends TemplateState<
             action: NO_OP,
             defaultTargetState: 'JOINT_DIRECTION',
         },
+        switchToZone: {
+            action: NO_OP,
+            defaultTargetState: 'ZONE',
+        },
+        switchToIndustry: {
+            action: NO_OP,
+            defaultTargetState: 'INDUSTRY',
+        },
         switchToIdle: {
             action: NO_OP,
             defaultTargetState: 'IDLE',
@@ -648,6 +696,14 @@ class ToolSwitcherCatenaryState extends TemplateState<
         switchToJointDirection: {
             action: NO_OP,
             defaultTargetState: 'JOINT_DIRECTION',
+        },
+        switchToZone: {
+            action: NO_OP,
+            defaultTargetState: 'ZONE',
+        },
+        switchToIndustry: {
+            action: NO_OP,
+            defaultTargetState: 'INDUSTRY',
         },
         switchToIdle: {
             action: NO_OP,
@@ -763,6 +819,14 @@ class ToolSwitcherSingleSpinePlatformState extends TemplateState<
             action: NO_OP,
             defaultTargetState: 'JOINT_DIRECTION',
         },
+        switchToZone: {
+            action: NO_OP,
+            defaultTargetState: 'ZONE',
+        },
+        switchToIndustry: {
+            action: NO_OP,
+            defaultTargetState: 'INDUSTRY',
+        },
         switchToIdle: {
             action: NO_OP,
             defaultTargetState: 'IDLE',
@@ -876,6 +940,14 @@ class ToolSwitcherDualSpinePlatformState extends TemplateState<
             action: NO_OP,
             defaultTargetState: 'JOINT_DIRECTION',
         },
+        switchToZone: {
+            action: NO_OP,
+            defaultTargetState: 'ZONE',
+        },
+        switchToIndustry: {
+            action: NO_OP,
+            defaultTargetState: 'INDUSTRY',
+        },
         switchToIdle: {
             action: NO_OP,
             defaultTargetState: 'IDLE',
@@ -984,6 +1056,14 @@ class ToolSwitcherJointDirectionState extends TemplateState<
             action: NO_OP,
             defaultTargetState: 'JOINT_DIRECTION',
         },
+        switchToZone: {
+            action: NO_OP,
+            defaultTargetState: 'ZONE',
+        },
+        switchToIndustry: {
+            action: NO_OP,
+            defaultTargetState: 'INDUSTRY',
+        },
         switchToIdle: {
             action: NO_OP,
             defaultTargetState: 'IDLE',
@@ -1026,6 +1106,237 @@ class ToolSwitcherJointDirectionState extends TemplateState<
     };
 }
 
+class ToolSwitcherZoneState extends TemplateState<
+    ToolSwitcherEvents,
+    ToolSwitcherContext,
+    ToolSwitcherStates
+> {
+    private _zoneSubStateMachine: ZonePlacementStateMachine;
+    private _singleSpineState: ToolSwitcherSingleSpinePlatformState | null =
+        null;
+    private _dualSpineState: ToolSwitcherDualSpinePlatformState | null = null;
+
+    constructor(zoneSubStateMachine: ZonePlacementStateMachine) {
+        super();
+        this._zoneSubStateMachine = zoneSubStateMachine;
+    }
+
+    setSubStates(
+        singleSpineState: ToolSwitcherSingleSpinePlatformState,
+        dualSpineState: ToolSwitcherDualSpinePlatformState
+    ) {
+        this._singleSpineState = singleSpineState;
+        this._dualSpineState = dualSpineState;
+    }
+
+    protected _eventReactions: EventReactions<
+        ToolSwitcherEvents,
+        ToolSwitcherContext,
+        ToolSwitcherStates
+    > = {
+        switchToLayout: {
+            action: NO_OP,
+            defaultTargetState: 'LAYOUT',
+        },
+        switchToTrain: {
+            action: NO_OP,
+            defaultTargetState: 'TRAIN',
+        },
+        switchToStation: {
+            action: NO_OP,
+            defaultTargetState: 'STATION',
+        },
+        switchToDuplicate: {
+            action: NO_OP,
+            defaultTargetState: 'DUPLICATE',
+        },
+        switchToCatenary: {
+            action: NO_OP,
+            defaultTargetState: 'CATENARY',
+        },
+        switchToSingleSpinePlatform: {
+            action: (_context, event) => {
+                this._singleSpineState?.setStationId(event.stationId);
+            },
+            defaultTargetState: 'SINGLE_SPINE_PLATFORM',
+        },
+        switchToDualSpinePlatform: {
+            action: (_context, event) => {
+                this._dualSpineState?.setStationId(event.stationId);
+            },
+            defaultTargetState: 'DUAL_SPINE_PLATFORM',
+        },
+        switchToJointDirection: {
+            action: NO_OP,
+            defaultTargetState: 'JOINT_DIRECTION',
+        },
+        switchToZone: {
+            action: NO_OP,
+            defaultTargetState: 'ZONE',
+        },
+        switchToIndustry: {
+            action: NO_OP,
+            defaultTargetState: 'INDUSTRY',
+        },
+        switchToIdle: {
+            action: NO_OP,
+            defaultTargetState: 'IDLE',
+        },
+    };
+
+    uponEnter(
+        context: BaseContext,
+        stateMachine: StateMachine<
+            ToolSwitcherEvents,
+            BaseContext,
+            ToolSwitcherStates,
+            DefaultOutputMapping<ToolSwitcherEvents>
+        >,
+        from: ToolSwitcherStates | 'INITIAL'
+    ): void {
+        this._zoneSubStateMachine.happens('startZonePlacement');
+    }
+
+    beforeExit(
+        context: ToolSwitcherContext,
+        stateMachine: ToolSwitcherStateMachine,
+        toState: ToolSwitcherStates
+    ) {
+        this._zoneSubStateMachine.happens('endZonePlacement');
+    }
+
+    protected _defer: Defer<
+        ToolSwitcherContext,
+        ToolSwitcherEvents,
+        ToolSwitcherStates
+    > = {
+        action: (context, event, eventKey, stateMachine) => {
+            const result = this._zoneSubStateMachine.happens(eventKey, event);
+            if (result.handled) {
+                return { handled: true, output: result.output };
+            }
+            return { handled: false };
+        },
+    };
+}
+
+class ToolSwitcherIndustryState extends TemplateState<
+    ToolSwitcherEvents,
+    ToolSwitcherContext,
+    ToolSwitcherStates
+> {
+    private _industrySubStateMachine: IndustryPlacementStateMachine;
+    private _singleSpineState: ToolSwitcherSingleSpinePlatformState | null =
+        null;
+    private _dualSpineState: ToolSwitcherDualSpinePlatformState | null = null;
+
+    constructor(industrySubStateMachine: IndustryPlacementStateMachine) {
+        super();
+        this._industrySubStateMachine = industrySubStateMachine;
+    }
+
+    setSubStates(
+        singleSpineState: ToolSwitcherSingleSpinePlatformState,
+        dualSpineState: ToolSwitcherDualSpinePlatformState
+    ) {
+        this._singleSpineState = singleSpineState;
+        this._dualSpineState = dualSpineState;
+    }
+
+    protected _eventReactions: EventReactions<
+        ToolSwitcherEvents,
+        ToolSwitcherContext,
+        ToolSwitcherStates
+    > = {
+        switchToLayout: {
+            action: NO_OP,
+            defaultTargetState: 'LAYOUT',
+        },
+        switchToTrain: {
+            action: NO_OP,
+            defaultTargetState: 'TRAIN',
+        },
+        switchToStation: {
+            action: NO_OP,
+            defaultTargetState: 'STATION',
+        },
+        switchToDuplicate: {
+            action: NO_OP,
+            defaultTargetState: 'DUPLICATE',
+        },
+        switchToCatenary: {
+            action: NO_OP,
+            defaultTargetState: 'CATENARY',
+        },
+        switchToSingleSpinePlatform: {
+            action: (_context, event) => {
+                this._singleSpineState?.setStationId(event.stationId);
+            },
+            defaultTargetState: 'SINGLE_SPINE_PLATFORM',
+        },
+        switchToDualSpinePlatform: {
+            action: (_context, event) => {
+                this._dualSpineState?.setStationId(event.stationId);
+            },
+            defaultTargetState: 'DUAL_SPINE_PLATFORM',
+        },
+        switchToJointDirection: {
+            action: NO_OP,
+            defaultTargetState: 'JOINT_DIRECTION',
+        },
+        switchToZone: {
+            action: NO_OP,
+            defaultTargetState: 'ZONE',
+        },
+        switchToIndustry: {
+            action: NO_OP,
+            defaultTargetState: 'INDUSTRY',
+        },
+        switchToIdle: {
+            action: NO_OP,
+            defaultTargetState: 'IDLE',
+        },
+    };
+
+    uponEnter(
+        context: BaseContext,
+        stateMachine: StateMachine<
+            ToolSwitcherEvents,
+            BaseContext,
+            ToolSwitcherStates,
+            DefaultOutputMapping<ToolSwitcherEvents>
+        >,
+        from: ToolSwitcherStates | 'INITIAL'
+    ): void {
+        this._industrySubStateMachine.happens('startIndustryPlacement');
+    }
+
+    beforeExit(
+        context: ToolSwitcherContext,
+        stateMachine: ToolSwitcherStateMachine,
+        toState: ToolSwitcherStates
+    ) {
+        this._industrySubStateMachine.happens('endIndustryPlacement');
+    }
+
+    protected _defer: Defer<
+        ToolSwitcherContext,
+        ToolSwitcherEvents,
+        ToolSwitcherStates
+    > = {
+        action: (context, event, eventKey, stateMachine) => {
+            const result = this._industrySubStateMachine.happens(
+                eventKey,
+                event
+            );
+            if (result.handled) {
+                return { handled: true, output: result.output };
+            }
+            return { handled: false };
+        },
+    };
+}
+
 export const createToolSwitcherStateMachine = (
     layoutSubStateMachine: LayoutStateMachine,
     trainSubStateMachine: TrainPlacementStateMachine,
@@ -1034,7 +1345,9 @@ export const createToolSwitcherStateMachine = (
     catenarySubStateMachine: CatenaryLayoutStateMachine,
     singleSpineSubStateMachine: SingleSpinePlacementStateMachine,
     dualSpineSubStateMachine: DualSpinePlacementStateMachine,
-    jointDirectionSubStateMachine: JointDirectionStateMachine
+    jointDirectionSubStateMachine: JointDirectionStateMachine,
+    zoneSubStateMachine: ZonePlacementStateMachine,
+    industrySubStateMachine: IndustryPlacementStateMachine
 ): ToolSwitcherStateMachine => {
     const singleSpineState = new ToolSwitcherSingleSpinePlatformState(
         singleSpineSubStateMachine
@@ -1056,6 +1369,10 @@ export const createToolSwitcherStateMachine = (
     const jointDirectionState = new ToolSwitcherJointDirectionState(
         jointDirectionSubStateMachine
     );
+    const zoneState = new ToolSwitcherZoneState(zoneSubStateMachine);
+    const industryState = new ToolSwitcherIndustryState(
+        industrySubStateMachine
+    );
 
     idleState.setSubStates(singleSpineState, dualSpineState);
     layoutState.setSubStates(singleSpineState, dualSpineState);
@@ -1066,6 +1383,8 @@ export const createToolSwitcherStateMachine = (
     singleSpineState.setSubStates(singleSpineState, dualSpineState);
     dualSpineState.setSubStates(singleSpineState, dualSpineState);
     jointDirectionState.setSubStates(singleSpineState, dualSpineState);
+    zoneState.setSubStates(singleSpineState, dualSpineState);
+    industryState.setSubStates(singleSpineState, dualSpineState);
 
     return new TemplateStateMachine<
         ToolSwitcherEvents,
@@ -1082,6 +1401,8 @@ export const createToolSwitcherStateMachine = (
             SINGLE_SPINE_PLATFORM: singleSpineState,
             DUAL_SPINE_PLATFORM: dualSpineState,
             JOINT_DIRECTION: jointDirectionState,
+            ZONE: zoneState,
+            INDUSTRY: industryState,
         },
         'IDLE',
         {
