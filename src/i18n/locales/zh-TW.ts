@@ -341,7 +341,7 @@ const zhTW = {
             '直接模擬聯掛與解聯，PP 在苗栗臨時要掛補機？沒問題，不過你確定要嗎？（施工中）',
         featureGranularity: '細粒度的時刻表編排（施工中）',
         builtWithFooter:
-            '基於 <ueToo>ue-too</ueToo> 打造 · <issues>回饋</issues>',
+            '基於 <ueToo>ue-too</ueToo> 打造 · <issues>回饋，或是想要的 feature 可以提 issue</issues>',
         cjkFontCreditFooter:
             'CJK 點陣字型：<cubic11>Cubic 11</cubic11> by ACh-K',
         motionOn: '動態效果：開',
