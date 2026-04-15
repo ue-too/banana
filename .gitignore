@@ -47,3 +47,6 @@ public/tiles/
 
 # Vite temp files
 vite.config.*.timestamp*
+
+# Superpowers brainstorm artifacts
+.superpowers/
