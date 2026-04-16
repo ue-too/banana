@@ -33,47 +33,24 @@ export type SpineEntry = {
 };
 
 // ---------------------------------------------------------------------------
-// Outer vertices
-// ---------------------------------------------------------------------------
-
-/** Single-spine: a polyline from spine end anchor back to spine start anchor. */
-export type SingleOuterVertices = {
-    kind: 'single';
-    vertices: Point[];
-};
-
-/** Dual-spine: two end caps connecting the four spine anchors. */
-export type DualOuterVertices = {
-    kind: 'dual';
-    /** Vertices connecting spine A end anchor to spine B end anchor. */
-    capA: Point[];
-    /** Vertices connecting spine B start anchor to spine A start anchor. */
-    capB: Point[];
-};
-
-export type OuterVertices = SingleOuterVertices | DualOuterVertices;
-
-// ---------------------------------------------------------------------------
-// Entity
+// Entity (in-memory)
 // ---------------------------------------------------------------------------
 
 export type TrackAlignedPlatform = {
     id: number;
     /** Required — every track-aligned platform belongs to a station. */
     stationId: number;
-    /** Primary spine (track-side edge). */
-    spineA: SpineEntry[];
-    /** Second spine (dual-spine only). null for single-spine platforms. */
-    spineB: SpineEntry[] | null;
+    /** The single spine for this platform (track-side edge). */
+    spine: SpineEntry[];
     /** Offset from track centerline to platform edge (meters). */
     offset: number;
-    /** User-placed vertices defining the non-track side(s). */
-    outerVertices: OuterVertices;
+    /** User-placed vertices defining the non-track side, ordered from spine end back to spine start. */
+    outerVertices: Point[];
     stopPositions: StopPosition[];
 };
 
 // ---------------------------------------------------------------------------
-// Serialization
+// Serialization — new format
 // ---------------------------------------------------------------------------
 
 export type SerializedSpineEntry = {
@@ -83,20 +60,57 @@ export type SerializedSpineEntry = {
     side: 1 | -1;
 };
 
-export type SerializedOuterVertices =
-    | { kind: 'single'; vertices: { x: number; y: number }[] }
-    | { kind: 'dual'; capA: { x: number; y: number }[]; capB: { x: number; y: number }[] };
-
 export type SerializedTrackAlignedPlatform = {
     id: number;
     stationId: number;
-    spineA: SerializedSpineEntry[];
-    spineB: SerializedSpineEntry[] | null;
+    spine: SerializedSpineEntry[];
     offset: number;
-    outerVertices: SerializedOuterVertices;
+    outerVertices: { x: number; y: number }[];
     stopPositions: StopPosition[];
 };
 
 export type SerializedTrackAlignedPlatformData = {
     platforms: SerializedTrackAlignedPlatform[];
 };
+
+// ---------------------------------------------------------------------------
+// Serialization — legacy formats (read-only)
+// ---------------------------------------------------------------------------
+
+/**
+ * Legacy outer-vertices union, kept so we can decode saved scenes that still
+ * use the dual-spine representation.  New saves never write this shape.
+ */
+export type LegacySerializedOuterVertices =
+    | { kind: 'single'; vertices: { x: number; y: number }[] }
+    | { kind: 'dual'; capA: { x: number; y: number }[]; capB: { x: number; y: number }[] };
+
+export type LegacySerializedTrackAlignedPlatform = {
+    id: number;
+    stationId: number;
+    spineA: SerializedSpineEntry[];
+    spineB: SerializedSpineEntry[] | null;
+    offset: number;
+    outerVertices: LegacySerializedOuterVertices;
+    stopPositions: StopPosition[];
+};
+
+/**
+ * A raw serialized platforms payload, which may be in either the new format
+ * (`platform.spine` and `platform.outerVertices: Point[]`) or the legacy
+ * format (`spineA` / `spineB` / `outerVertices: { kind: ... }`).
+ */
+export type AnySerializedTrackAlignedPlatform =
+    | SerializedTrackAlignedPlatform
+    | LegacySerializedTrackAlignedPlatform;
+
+export type AnySerializedTrackAlignedPlatformData = {
+    platforms: AnySerializedTrackAlignedPlatform[];
+};
+
+/** Type guard: does this entry use the legacy dual/single union shape? */
+export function isLegacySerializedPlatform(
+    p: AnySerializedTrackAlignedPlatform,
+): p is LegacySerializedTrackAlignedPlatform {
+    return (p as LegacySerializedTrackAlignedPlatform).spineA !== undefined;
+}
