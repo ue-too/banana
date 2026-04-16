@@ -19,6 +19,8 @@ import {
     splitLegacyDualSpinePlatform,
     type PlatformMigrationMap,
 } from './track-aligned-platform-migration';
+import { nextStopPositionId } from './stop-position-utils';
+import type { TrackDirection } from './types';
 
 export class TrackAlignedPlatformManager {
     private _manager: GenericEntityManager<TrackAlignedPlatform>;
@@ -114,6 +116,83 @@ export class TrackAlignedPlatformManager {
                 entity.spine.some(e => e.trackSegment === segmentId)
             )
             .map(({ index, entity }) => ({ id: index, platform: entity }));
+    }
+
+    // -----------------------------------------------------------------------
+    // Stop position CRUD
+    // -----------------------------------------------------------------------
+
+    addStopPosition(
+        platformId: number,
+        input: { trackSegmentId: number; direction: TrackDirection; tValue: number },
+    ): number {
+        const platform = this._getPlatformOrThrow(platformId);
+        this._validateStop(platform, input);
+        const id = nextStopPositionId(platform.stopPositions);
+        platform.stopPositions.push({ id, ...input });
+        this._changeObservable.notify();
+        return id;
+    }
+
+    updateStopPosition(
+        platformId: number,
+        stopId: number,
+        patch: { direction?: TrackDirection; tValue?: number },
+    ): void {
+        const platform = this._getPlatformOrThrow(platformId);
+        const stop = platform.stopPositions.find((s) => s.id === stopId);
+        if (!stop) {
+            throw new Error(
+                `TrackAlignedPlatformManager.updateStopPosition: stop ${stopId} not found on platform ${platformId}`,
+            );
+        }
+        const next = {
+            trackSegmentId: stop.trackSegmentId,
+            direction: patch.direction ?? stop.direction,
+            tValue: patch.tValue ?? stop.tValue,
+        };
+        this._validateStop(platform, next);
+        stop.direction = next.direction;
+        stop.tValue = next.tValue;
+        this._changeObservable.notify();
+    }
+
+    removeStopPosition(platformId: number, stopId: number): void {
+        const platform = this._getPlatformOrThrow(platformId);
+        const before = platform.stopPositions.length;
+        platform.stopPositions = platform.stopPositions.filter((s) => s.id !== stopId);
+        if (platform.stopPositions.length !== before) {
+            this._changeObservable.notify();
+        }
+    }
+
+    private _getPlatformOrThrow(platformId: number): TrackAlignedPlatform {
+        const platform = this._manager.getEntity(platformId);
+        if (!platform) {
+            throw new Error(
+                `TrackAlignedPlatformManager: platform ${platformId} not found`,
+            );
+        }
+        return platform;
+    }
+
+    private _validateStop(
+        platform: TrackAlignedPlatform,
+        input: { trackSegmentId: number; tValue: number },
+    ): void {
+        const entry = platform.spine.find((e) => e.trackSegment === input.trackSegmentId);
+        if (!entry) {
+            throw new Error(
+                `TrackAlignedPlatformManager: trackSegmentId ${input.trackSegmentId} is not on platform ${platform.id}`,
+            );
+        }
+        const lo = Math.min(entry.tStart, entry.tEnd);
+        const hi = Math.max(entry.tStart, entry.tEnd);
+        if (input.tValue < lo || input.tValue > hi) {
+            throw new Error(
+                `TrackAlignedPlatformManager: tValue ${input.tValue} is outside spine entry range [${lo}, ${hi}] for segment ${input.trackSegmentId}`,
+            );
+        }
     }
 
     // -----------------------------------------------------------------------
