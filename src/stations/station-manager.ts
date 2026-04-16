@@ -6,6 +6,8 @@ import type {
   TrackDirection,
 } from './types';
 import { nextStopPositionId } from './stop-position-utils';
+import type { ShiftTemplateManager } from '@/timetable/shift-template-manager';
+import type { ShiftTemplate } from '@/timetable/types';
 
 export class StationManager {
   private _manager: GenericEntityManager<Station>;
@@ -142,6 +144,34 @@ export class StationManager {
               `StationManager: stop position tValue ${input.tValue} is out of range [0, 1]`,
           );
       }
+  }
+
+  /**
+   * Return the list of shift templates whose scheduled stops reference the
+   * given stop position on an island platform. Used by the editor panel to
+   * surface a deletion guard before removing a referenced stop.
+   */
+  findShiftsReferencingStopPosition(
+      stationId: number,
+      platformId: number,
+      stopPositionId: number,
+      shiftTemplateManager: ShiftTemplateManager,
+  ): ShiftTemplate[] {
+      const result: ShiftTemplate[] = [];
+      for (const template of shiftTemplateManager.getAllTemplates()) {
+          for (const stop of template.stops) {
+              if (
+                  stop.platformKind === 'island' &&
+                  stop.stationId === stationId &&
+                  stop.platformId === platformId &&
+                  stop.stopPositionId === stopPositionId
+              ) {
+                  result.push(template);
+                  break;
+              }
+          }
+      }
+      return result;
   }
 
   // -----------------------------------------------------------------------

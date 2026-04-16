@@ -1,6 +1,8 @@
 import { describe, it, expect, beforeEach } from 'bun:test';
 import { TrackAlignedPlatformManager } from '../src/stations/track-aligned-platform-manager';
 import type { TrackAlignedPlatform } from '../src/stations/track-aligned-platform-types';
+import { ShiftTemplateManager } from '../src/timetable/shift-template-manager';
+import { DayOfWeek } from '../src/timetable/types';
 
 function makePlatform(): Omit<TrackAlignedPlatform, 'id'> {
     return {
@@ -137,5 +139,82 @@ describe('TrackAlignedPlatformManager stop-position CRUD', () => {
             expect(() => mgr.removeStopPosition(platformId, 999)).not.toThrow();
             expect(mgr.getPlatform(platformId)!.stopPositions).toHaveLength(2);
         });
+    });
+});
+
+describe('TrackAlignedPlatformManager.findShiftsReferencingStopPosition', () => {
+    it('returns templates whose scheduled stops match', () => {
+        const mgr = new TrackAlignedPlatformManager();
+        const platformId = mgr.createPlatform(makePlatform());
+        const stm = new ShiftTemplateManager();
+        stm.addTemplate({
+            id: 's1',
+            name: 'S1',
+            activeDays: {
+                [DayOfWeek.Monday]: true,
+                [DayOfWeek.Tuesday]: false,
+                [DayOfWeek.Wednesday]: false,
+                [DayOfWeek.Thursday]: false,
+                [DayOfWeek.Friday]: false,
+                [DayOfWeek.Saturday]: false,
+                [DayOfWeek.Sunday]: false,
+            },
+            stops: [
+                {
+                    stationId: 1,
+                    platformKind: 'trackAligned',
+                    platformId,
+                    stopPositionId: 1,
+                    arrivalTime: null,
+                    departureTime: 100,
+                },
+            ],
+            legs: [],
+        });
+
+        const refs = mgr.findShiftsReferencingStopPosition(platformId, 1, stm);
+        expect(refs).toHaveLength(1);
+        expect(refs[0].id).toBe('s1');
+    });
+
+    it('returns empty when no template references the stop', () => {
+        const mgr = new TrackAlignedPlatformManager();
+        const platformId = mgr.createPlatform(makePlatform());
+        const stm = new ShiftTemplateManager();
+        const refs = mgr.findShiftsReferencingStopPosition(platformId, 1, stm);
+        expect(refs).toHaveLength(0);
+    });
+
+    it('does not match island stops with the same numbers', () => {
+        const mgr = new TrackAlignedPlatformManager();
+        const platformId = mgr.createPlatform(makePlatform());
+        const stm = new ShiftTemplateManager();
+        stm.addTemplate({
+            id: 's1',
+            name: 'S1',
+            activeDays: {
+                [DayOfWeek.Monday]: true,
+                [DayOfWeek.Tuesday]: false,
+                [DayOfWeek.Wednesday]: false,
+                [DayOfWeek.Thursday]: false,
+                [DayOfWeek.Friday]: false,
+                [DayOfWeek.Saturday]: false,
+                [DayOfWeek.Sunday]: false,
+            },
+            stops: [
+                {
+                    stationId: 1,
+                    platformKind: 'island',
+                    platformId,
+                    stopPositionId: 1,
+                    arrivalTime: null,
+                    departureTime: 100,
+                },
+            ],
+            legs: [],
+        });
+
+        const refs = mgr.findShiftsReferencingStopPosition(platformId, 1, stm);
+        expect(refs).toHaveLength(0);
     });
 });

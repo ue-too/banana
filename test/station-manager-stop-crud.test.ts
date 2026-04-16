@@ -2,6 +2,8 @@ import { describe, it, expect, beforeEach } from 'bun:test';
 import { ELEVATION } from '../src/trains/tracks/types';
 import { StationManager } from '../src/stations/station-manager';
 import type { Platform } from '../src/stations/types';
+import { ShiftTemplateManager } from '../src/timetable/shift-template-manager';
+import { DayOfWeek } from '../src/timetable/types';
 
 function makePlatform(track: number): Platform {
     return {
@@ -130,5 +132,47 @@ describe('StationManager stop-position CRUD', () => {
             const stops = mgr.getStation(stationId)!.platforms[0].stopPositions;
             expect(stops).toHaveLength(2);
         });
+    });
+});
+
+describe('StationManager.findShiftsReferencingStopPosition', () => {
+    it('returns templates whose scheduled stops match', () => {
+        const { mgr, stationId, platformId } = setupStationWithPlatform(10);
+        const stm = new ShiftTemplateManager();
+        stm.addTemplate({
+            id: 's1',
+            name: 'S1',
+            activeDays: {
+                [DayOfWeek.Monday]: true,
+                [DayOfWeek.Tuesday]: false,
+                [DayOfWeek.Wednesday]: false,
+                [DayOfWeek.Thursday]: false,
+                [DayOfWeek.Friday]: false,
+                [DayOfWeek.Saturday]: false,
+                [DayOfWeek.Sunday]: false,
+            },
+            stops: [
+                {
+                    stationId,
+                    platformKind: 'island',
+                    platformId,
+                    stopPositionId: 0,
+                    arrivalTime: null,
+                    departureTime: 100,
+                },
+            ],
+            legs: [],
+        });
+
+        const refs = mgr.findShiftsReferencingStopPosition(stationId, platformId, 0, stm);
+        expect(refs).toHaveLength(1);
+        expect(refs[0].id).toBe('s1');
+    });
+
+    it('returns empty when no template references the stop', () => {
+        const { mgr, stationId, platformId } = setupStationWithPlatform(10);
+        const stm = new ShiftTemplateManager();
+        const refs = mgr.findShiftsReferencingStopPosition(stationId, platformId, 0, stm);
+        expect(refs).toHaveLength(0);
     });
 });
