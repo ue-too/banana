@@ -385,5 +385,35 @@ describe('TrackAlignedPlatformManager', () => {
             expect(manager.getAllPlatforms()).toHaveLength(1);
             expect(migrationMap.size).toBe(0);
         });
+
+        it('reads a legacy single-spine platform and preserves its id', () => {
+            const legacySingle = {
+                platforms: [
+                    {
+                        id: 8,
+                        stationId: 2,
+                        spineA: [{ trackSegment: 15, tStart: 0, tEnd: 1, side: 1 as const }],
+                        spineB: null,
+                        offset: 1.5,
+                        outerVertices: {
+                            kind: 'single' as const,
+                            vertices: [{ x: 2, y: 4 }],
+                        },
+                        stopPositions: [
+                            { trackSegmentId: 15, direction: 'tangent' as const, tValue: 0.3 },
+                        ],
+                    },
+                ],
+            };
+            const { manager, migrationMap } = TrackAlignedPlatformManager.deserializeAny(
+                legacySingle,
+                () => [],
+            );
+            const p = manager.getPlatform(8);
+            expect(p).not.toBeNull();
+            expect(p!.spine[0].trackSegment).toBe(15);
+            expect(p!.outerVertices).toEqual([{ x: 2, y: 4 }]);
+            expect(migrationMap.size).toBe(0);
+        });
     });
 });
