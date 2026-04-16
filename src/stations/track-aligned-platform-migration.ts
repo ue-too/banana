@@ -14,7 +14,7 @@ import type { StopPosition } from './types';
 // ---------------------------------------------------------------------------
 
 /** Per-stop entry in the migration mapping for one dual-spine platform. */
-export type StopIndexMapEntry = { face: 'A' | 'B'; newIndex: number };
+export type StopIndexMapEntry = { face: 'A' | 'B'; newIndex: number; newId: number };
 
 /**
  * Result of splitting a legacy dual-spine serialized platform into two new
@@ -35,6 +35,7 @@ export type DualSpineSplitResult = {
 export type PlatformMigrationEntry = {
     newPlatformId: number;
     newStopIndex: number;
+    newStopId: number;
 };
 
 /** oldPlatformId -> oldStopIndex -> new location. */
@@ -131,18 +132,29 @@ export function splitLegacyDualSpinePlatform(
 
     for (let i = 0; i < legacy.stopPositions.length; i++) {
         const stop = legacy.stopPositions[i];
-        const copy: StopPosition = { ...stop };
         if (spineASegmentIds.has(stop.trackSegmentId)) {
-            stopIndexMap[i] = { face: 'A', newIndex: stopsA.length };
-            stopsA.push(copy);
+            const newId = stopsA.length;
+            stopIndexMap[i] = { face: 'A', newIndex: stopsA.length, newId };
+            stopsA.push({
+                id: newId,
+                trackSegmentId: stop.trackSegmentId,
+                direction: stop.direction,
+                tValue: stop.tValue,
+            });
         } else if (spineBSegmentIds.has(stop.trackSegmentId)) {
-            stopIndexMap[i] = { face: 'B', newIndex: stopsB.length };
-            stopsB.push(copy);
+            const newId = stopsB.length;
+            stopIndexMap[i] = { face: 'B', newIndex: stopsB.length, newId };
+            stopsB.push({
+                id: newId,
+                trackSegmentId: stop.trackSegmentId,
+                direction: stop.direction,
+                tValue: stop.tValue,
+            });
         } else {
             // Stop references a segment on neither spine — drop it. The
             // corresponding map entry points to face A at `-1` so downstream
             // code can recognise 'no longer reachable'.
-            stopIndexMap[i] = { face: 'A', newIndex: -1 };
+            stopIndexMap[i] = { face: 'A', newIndex: -1, newId: -1 };
         }
     }
 

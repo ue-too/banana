@@ -165,7 +165,12 @@ export class TrackAlignedPlatformManager {
                 })),
                 offset: p.offset,
                 outerVertices: p.outerVertices.map(v => ({ x: v.x, y: v.y })),
-                stopPositions: p.stopPositions.map(sp => ({ ...sp })),
+                stopPositions: p.stopPositions.map((sp, i) => ({
+                    id: typeof sp.id === 'number' ? sp.id : i,
+                    trackSegmentId: sp.trackSegmentId,
+                    direction: sp.direction,
+                    tValue: sp.tValue,
+                })),
             });
         }
         return manager;
@@ -209,7 +214,12 @@ export class TrackAlignedPlatformManager {
                     spine: p.spine.map(e => ({ ...e })),
                     offset: p.offset,
                     outerVertices: p.outerVertices.map(v => ({ x: v.x, y: v.y })),
-                    stopPositions: p.stopPositions.map(sp => ({ ...sp })),
+                    stopPositions: p.stopPositions.map((sp, i) => ({
+                        id: typeof sp.id === 'number' ? sp.id : i,
+                        trackSegmentId: sp.trackSegmentId,
+                        direction: sp.direction,
+                        tValue: sp.tValue,
+                    })),
                 });
                 continue;
             }
@@ -227,7 +237,12 @@ export class TrackAlignedPlatformManager {
                     spine: p.spineA.map(e => ({ ...e })),
                     offset: p.offset,
                     outerVertices: verts,
-                    stopPositions: p.stopPositions.map(sp => ({ ...sp })),
+                    stopPositions: p.stopPositions.map((sp, i) => ({
+                        id: typeof sp.id === 'number' ? sp.id : i,
+                        trackSegmentId: sp.trackSegmentId,
+                        direction: sp.direction,
+                        tValue: sp.tValue,
+                    })),
                 });
                 continue;
             }
@@ -243,12 +258,13 @@ export class TrackAlignedPlatformManager {
             manager._manager.createEntityWithId(idB, { ...faceB, id: idB });
             splitIds.set(p.id, [idA, idB]);
 
-            const entries = new Map<number, { newPlatformId: number; newStopIndex: number }>();
+            const entries = new Map<number, { newPlatformId: number; newStopIndex: number; newStopId: number }>();
             for (let i = 0; i < stopIndexMap.length; i++) {
                 const mapEntry = stopIndexMap[i];
                 entries.set(i, {
                     newPlatformId: mapEntry.face === 'A' ? idA : idB,
                     newStopIndex: mapEntry.newIndex,
+                    newStopId: mapEntry.newId,
                 });
             }
             migrationMap.set(p.id, entries);

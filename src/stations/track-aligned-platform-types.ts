@@ -85,6 +85,10 @@ export type LegacySerializedOuterVertices =
     | { kind: 'single'; vertices: { x: number; y: number }[] }
     | { kind: 'dual'; capA: { x: number; y: number }[]; capB: { x: number; y: number }[] };
 
+/** Stop position as it may appear in legacy serialized data — `id` is optional
+ * because old saves were written before the field was introduced. */
+export type LegacySerializedStopPosition = Omit<StopPosition, 'id'> & { id?: number };
+
 export type LegacySerializedTrackAlignedPlatform = {
     id: number;
     stationId: number;
@@ -92,7 +96,7 @@ export type LegacySerializedTrackAlignedPlatform = {
     spineB: SerializedSpineEntry[] | null;
     offset: number;
     outerVertices: LegacySerializedOuterVertices;
-    stopPositions: StopPosition[];
+    stopPositions: LegacySerializedStopPosition[];
 };
 
 /**

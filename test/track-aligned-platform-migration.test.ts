@@ -46,6 +46,8 @@ describe('splitLegacyDualSpinePlatform', () => {
 
         expect(faceA.stopPositions.map((s) => s.trackSegmentId)).toEqual([10, 10]);
         expect(faceB.stopPositions.map((s) => s.trackSegmentId)).toEqual([20, 20]);
+        expect(faceA.stopPositions.map((s) => s.id)).toEqual([0, 1]);
+        expect(faceB.stopPositions.map((s) => s.id)).toEqual([0, 1]);
     });
 
     it('emits a migration mapping that traces each old stop index to its new face + index', () => {
@@ -56,10 +58,10 @@ describe('splitLegacyDualSpinePlatform', () => {
         );
 
         expect(stopIndexMap).toEqual([
-            { face: 'A', newIndex: 0 },
-            { face: 'A', newIndex: 1 },
-            { face: 'B', newIndex: 0 },
-            { face: 'B', newIndex: 1 },
+            { face: 'A', newIndex: 0, newId: 0 },
+            { face: 'A', newIndex: 1, newId: 1 },
+            { face: 'B', newIndex: 0, newId: 0 },
+            { face: 'B', newIndex: 1, newId: 1 },
         ]);
     });
 

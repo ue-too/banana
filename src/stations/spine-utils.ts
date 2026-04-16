@@ -220,8 +220,8 @@ export function computeStopPositions(
             const tValue = entry.tStart + (entry.tEnd - entry.tStart) * fraction;
 
             return [
-                { trackSegmentId: entry.trackSegment, direction: 'tangent', tValue },
-                { trackSegmentId: entry.trackSegment, direction: 'reverseTangent', tValue },
+                { id: 0, trackSegmentId: entry.trackSegment, direction: 'tangent', tValue },
+                { id: 1, trackSegmentId: entry.trackSegment, direction: 'reverseTangent', tValue },
             ];
         }
         accumulated += entryLength;
@@ -230,7 +230,7 @@ export function computeStopPositions(
     // Fallback: use the last entry's endpoint.
     const lastEntry = spine[spine.length - 1];
     return [
-        { trackSegmentId: lastEntry.trackSegment, direction: 'tangent', tValue: lastEntry.tEnd },
-        { trackSegmentId: lastEntry.trackSegment, direction: 'reverseTangent', tValue: lastEntry.tEnd },
+        { id: 0, trackSegmentId: lastEntry.trackSegment, direction: 'tangent', tValue: lastEntry.tEnd },
+        { id: 1, trackSegmentId: lastEntry.trackSegment, direction: 'reverseTangent', tValue: lastEntry.tEnd },
     ];
 }

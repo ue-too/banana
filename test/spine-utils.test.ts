@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'bun:test';
 import { BCurve } from '@ue-too/curve';
-import { validateSpine, sampleSpineEdge, computeAnchorPoint } from '../src/stations/spine-utils';
+import { validateSpine, sampleSpineEdge, computeAnchorPoint, computeStopPositions } from '../src/stations/spine-utils';
 import type { SpineEntry } from '../src/stations/track-aligned-platform-types';
 
 // ---------------------------------------------------------------------------
@@ -411,5 +411,22 @@ describe('validateSpine — edge cases', () => {
         if (!result.valid) {
             expect(result.error).toContain('branching');
         }
+    });
+});
+
+// ---------------------------------------------------------------------------
+// computeStopPositions — id fields
+// ---------------------------------------------------------------------------
+
+describe('computeStopPositions', () => {
+    const curves = makeStraightCurves();
+    const getCurve = (id: number) => curves.get(id)!;
+
+    it('assigns id 0 and id 1 to the two returned stops', () => {
+        const spine: SpineEntry[] = [{ trackSegment: 0, tStart: 0, tEnd: 1, side: 1 }];
+        const stops = computeStopPositions(spine, getCurve);
+        expect(stops).toHaveLength(2);
+        expect(stops[0].id).toBe(0);
+        expect(stops[1].id).toBe(1);
     });
 });

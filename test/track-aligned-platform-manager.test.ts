@@ -412,7 +412,7 @@ describe('TrackAlignedPlatformManager', () => {
                         offset: 2,
                         outerVertices: [{ x: 0, y: 5 }, { x: 10, y: 5 }],
                         stopPositions: [
-                            { trackSegmentId: 10, direction: 'tangent' as const, tValue: 0.5 },
+                            { id: 0, trackSegmentId: 10, direction: 'tangent' as const, tValue: 0.5 },
                         ],
                     },
                 ],

@@ -51,7 +51,7 @@ describe('ShiftTemplateManager.remapTrackAlignedPlatformReferences', () => {
             [
                 5,
                 new Map([
-                    [2, { newPlatformId: 11, newStopIndex: 0 }],
+                    [2, { newPlatformId: 11, newStopIndex: 0, newStopId: 0 }],
                 ]),
             ],
         ]);
@@ -71,7 +71,7 @@ describe('ShiftTemplateManager.remapTrackAlignedPlatformReferences', () => {
         mgr.addTemplate(template);
 
         const map: PlatformMigrationMap = new Map([
-            [5, new Map([[2, { newPlatformId: 11, newStopIndex: 0 }]])],
+            [5, new Map([[2, { newPlatformId: 11, newStopIndex: 0, newStopId: 0 }]])],
         ]);
         mgr.remapTrackAlignedPlatformReferences(map);
 
@@ -85,7 +85,7 @@ describe('ShiftTemplateManager.remapTrackAlignedPlatformReferences', () => {
         mgr.addTemplate(makeTemplate(1, 99, 0));
 
         const map: PlatformMigrationMap = new Map([
-            [5, new Map([[2, { newPlatformId: 11, newStopIndex: 0 }]])],
+            [5, new Map([[2, { newPlatformId: 11, newStopIndex: 0, newStopId: 0 }]])],
         ]);
         mgr.remapTrackAlignedPlatformReferences(map);
 
@@ -99,7 +99,7 @@ describe('ShiftTemplateManager.remapTrackAlignedPlatformReferences', () => {
         mgr.addTemplate(makeTemplate(1, 5, 2));
 
         const map: PlatformMigrationMap = new Map([
-            [5, new Map([[2, { newPlatformId: 11, newStopIndex: -1 }]])],
+            [5, new Map([[2, { newPlatformId: 11, newStopIndex: -1, newStopId: -1 }]])],
         ]);
         mgr.remapTrackAlignedPlatformReferences(map);
 

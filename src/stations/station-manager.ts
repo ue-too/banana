@@ -91,7 +91,12 @@ export class StationManager {
           width: p.width,
           offset: p.offset,
           side: p.side as 1 | -1,
-          stopPositions: p.stopPositions.map((sp) => ({ ...sp })),
+          stopPositions: p.stopPositions.map((sp, i) => ({
+              id: typeof sp.id === 'number' ? sp.id : i,
+              trackSegmentId: sp.trackSegmentId,
+              direction: sp.direction,
+              tValue: sp.tValue,
+          })),
         })),
         trackSegments: [...s.trackSegments],
         joints: [...s.joints],
