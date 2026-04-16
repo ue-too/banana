@@ -6,6 +6,8 @@ export type TrackDirection = 'tangent' | 'reverseTangent';
 
 /** Defines where a train stops on a particular platform. */
 export type StopPosition = {
+  /** Unique within the owning platform's `stopPositions` array. */
+  id: number;
   trackSegmentId: number;
   direction: TrackDirection;
   tValue: number;
