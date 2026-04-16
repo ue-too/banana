@@ -1,5 +1,4 @@
 import { Container, Graphics, MeshSimple, Texture } from 'pixi.js';
-import earcut from 'earcut';
 import type { Point } from '@ue-too/math';
 import type { TrackGraph } from '@/trains/tracks/track';
 import type { TrackTextureRenderer } from '@/trains/tracks/render-system';
@@ -566,24 +565,8 @@ export class TrackAlignedPlatformRenderSystem {
         };
 
         try {
-            const trackEdgeA = sampleSpineEdge(platform.spineA, platform.offset, getCurve);
-
-            if (platform.outerVertices.kind === 'single') {
-                return this._buildSingleSpineStripMesh(
-                    trackEdgeA,
-                    platform.outerVertices.vertices,
-                    texture,
-                );
-            } else {
-                const trackEdgeB = sampleSpineEdge(platform.spineB!, platform.offset, getCurve);
-                return this._buildDualSpineStripMesh(
-                    trackEdgeA,
-                    trackEdgeB,
-                    platform.outerVertices.capA,
-                    platform.outerVertices.capB,
-                    texture,
-                );
-            }
+            const trackEdge = sampleSpineEdge(platform.spine, platform.offset, getCurve);
+            return this._buildSingleSpineStripMesh(trackEdge, platform.outerVertices, texture);
         } catch {
             return null;
         }
@@ -650,113 +633,5 @@ export class TrackAlignedPlatformRenderSystem {
         });
     }
 
-    /**
-     * Build a triangle-strip mesh for a dual-spine platform.
-     *
-     * Both spines are expected to run in the same direction (the placement
-     * tool's cap-pairing step normalises them). The strip pairs A[t] with
-     * B[t] directly; caps are triangulated at each end.
-     */
-    private _buildDualSpineStripMesh(
-        trackEdgeA: Point[],
-        trackEdgeB: Point[],
-        capA: Point[],
-        capB: Point[],
-        texture: Texture,
-    ): MeshSimple | null {
-        if (trackEdgeA.length < 2 || trackEdgeB.length < 2) return null;
-
-        const arcLensA = cumulativeArcLengths(trackEdgeA);
-        const totalArcA = arcLensA[arcLensA.length - 1];
-        if (totalArcA < 1e-9) return null;
-
-        const arcLensB = cumulativeArcLengths(trackEdgeB);
-        const totalArcB = arcLensB[arcLensB.length - 1];
-
-        const verts: number[] = [];
-        const uvs: number[] = [];
-        const indices: number[] = [];
-
-        // --- Main body strip: edge A (u=0) paired with edge B (u=1). ---
-        // Both edges run in the same direction; pair by normalised arc-length.
-        for (let i = 0; i < trackEdgeA.length; i++) {
-            const t = arcLensA[i] / totalArcA;
-            const pA = trackEdgeA[i];
-            const pB =
-                totalArcB > 0
-                    ? samplePolylineAtArcLength(trackEdgeB, arcLensB, t * totalArcB)
-                    : trackEdgeB[0];
-            const v = arcLensA[i] / PLATFORM_TEXTURE_TILE_LEN;
-
-            verts.push(pA.x, pA.y);
-            uvs.push(0, v); // spine A — safety line
-
-            verts.push(pB.x, pB.y);
-            uvs.push(1, v); // spine B — safety line (wraps to u=0)
-        }
-
-        for (let i = 0; i < trackEdgeA.length - 1; i++) {
-            const b = i * 2;
-            indices.push(b, b + 1, b + 2, b + 1, b + 3, b + 2);
-        }
-
-        // --- End caps (earcut for non-empty cap vertex arrays). ---
-        // capA connects A_end to B_end; capB connects B_start to A_start.
-        const lastA = trackEdgeA[trackEdgeA.length - 1];
-        const lastB = trackEdgeB[trackEdgeB.length - 1];
-        this._appendCapTriangles(lastA, capA, lastB, trackEdgeA, arcLensA, verts, uvs, indices);
-
-        const firstB = trackEdgeB[0];
-        const firstA = trackEdgeA[0];
-        this._appendCapTriangles(firstB, capB, firstA, trackEdgeA, arcLensA, verts, uvs, indices);
-
-        if (indices.length === 0) return null;
-
-        return new MeshSimple({
-            texture,
-            vertices: new Float32Array(verts),
-            uvs: new Float32Array(uvs),
-            indices: new Uint32Array(indices),
-        });
-    }
-
-    /**
-     * Triangulate and append a small cap polygon (startPt → capVerts → endPt)
-     * to the running vertex/index arrays using earcut.
-     */
-    private _appendCapTriangles(
-        startPt: Point,
-        capVerts: Point[],
-        endPt: Point,
-        spineEdge: Point[],
-        spineArcLens: number[],
-        verts: number[],
-        uvs: number[],
-        indices: number[],
-    ): void {
-        if (capVerts.length === 0) return;
-
-        const capPolygon = [startPt, ...capVerts, endPt];
-        if (capPolygon.length < 3) return;
-
-        const baseVertex = verts.length / 2;
-
-        const flatCoords: number[] = [];
-        for (const p of capPolygon) {
-            flatCoords.push(p.x, p.y);
-        }
-        const capIndices = earcut(flatCoords);
-        if (capIndices.length === 0) return;
-
-        // Approximate UVs for cap vertices via projection onto the spine.
-        for (const p of capPolygon) {
-            const proj = projectOntoPolyline(p, spineEdge, spineArcLens);
-            verts.push(p.x, p.y);
-            uvs.push(0.5, proj.arcLength / PLATFORM_TEXTURE_TILE_LEN);
-        }
-
-        for (const idx of capIndices) {
-            indices.push(baseVertex + idx);
-        }
-    }
 }
+

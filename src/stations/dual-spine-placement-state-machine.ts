@@ -783,20 +783,13 @@ export class DualSpinePlacementEngine
             return curve;
         };
 
+        // TODO(phase-1-task-5): create a second platform for spineB
         const platformId = this._platformManager.createPlatform({
             stationId: this._activeStationId,
-            spineA: [...this._spineA],
-            spineB: [...this._spineB],
+            spine: [...this._spineA],
             offset: this._spineAOffset,
-            outerVertices: {
-                kind: 'dual',
-                capA: [...this._capA],
-                capB: [...this._capB],
-            },
-            stopPositions: [
-                ...computeStopPositions(this._spineA, getCurve),
-                ...computeStopPositions(this._spineB, getCurve),
-            ],
+            outerVertices: [...this._capA],
+            stopPositions: computeStopPositions(this._spineA, getCurve),
         });
 
         station.trackAlignedPlatforms.push(platformId);

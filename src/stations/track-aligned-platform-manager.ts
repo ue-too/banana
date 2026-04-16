@@ -81,11 +81,7 @@ export class TrackAlignedPlatformManager {
     getPlatformsBySegment(segmentId: number): { id: number; platform: TrackAlignedPlatform }[] {
         return this._manager
             .getLivingEntitiesWithIndex()
-            .filter(({ entity }) => {
-                const inSpineA = entity.spineA.some((e) => e.trackSegment === segmentId);
-                const inSpineB = entity.spineB !== null && entity.spineB.some((e) => e.trackSegment === segmentId);
-                return inSpineA || inSpineB;
-            })
+            .filter(({ entity }) => entity.spine.some((e) => e.trackSegment === segmentId))
             .map(({ index, entity }) => ({ id: index, platform: entity }));
     }
 
@@ -99,33 +95,14 @@ export class TrackAlignedPlatformManager {
             .map(({ index, entity }) => ({
                 id: index,
                 stationId: entity.stationId,
-                spineA: entity.spineA.map((e) => ({
+                spine: entity.spine.map((e) => ({
                     trackSegment: e.trackSegment,
                     tStart: e.tStart,
                     tEnd: e.tEnd,
                     side: e.side,
                 })),
-                spineB:
-                    entity.spineB !== null
-                        ? entity.spineB.map((e) => ({
-                              trackSegment: e.trackSegment,
-                              tStart: e.tStart,
-                              tEnd: e.tEnd,
-                              side: e.side,
-                          }))
-                        : null,
                 offset: entity.offset,
-                outerVertices:
-                    entity.outerVertices.kind === 'single'
-                        ? {
-                              kind: 'single' as const,
-                              vertices: entity.outerVertices.vertices.map((v) => ({ x: v.x, y: v.y })),
-                          }
-                        : {
-                              kind: 'dual' as const,
-                              capA: entity.outerVertices.capA.map((v) => ({ x: v.x, y: v.y })),
-                              capB: entity.outerVertices.capB.map((v) => ({ x: v.x, y: v.y })),
-                          },
+                outerVertices: entity.outerVertices.map((v) => ({ x: v.x, y: v.y })),
                 stopPositions: entity.stopPositions.map((sp) => ({ ...sp })),
             }));
 
@@ -139,33 +116,14 @@ export class TrackAlignedPlatformManager {
             manager._manager.createEntityWithId(p.id, {
                 id: p.id,
                 stationId: p.stationId,
-                spineA: p.spineA.map((e) => ({
+                spine: p.spine.map((e) => ({
                     trackSegment: e.trackSegment,
                     tStart: e.tStart,
                     tEnd: e.tEnd,
                     side: e.side,
                 })),
-                spineB:
-                    p.spineB !== null
-                        ? p.spineB.map((e) => ({
-                              trackSegment: e.trackSegment,
-                              tStart: e.tStart,
-                              tEnd: e.tEnd,
-                              side: e.side,
-                          }))
-                        : null,
                 offset: p.offset,
-                outerVertices:
-                    p.outerVertices.kind === 'single'
-                        ? {
-                              kind: 'single' as const,
-                              vertices: p.outerVertices.vertices.map((v) => ({ x: v.x, y: v.y })),
-                          }
-                        : {
-                              kind: 'dual' as const,
-                              capA: p.outerVertices.capA.map((v) => ({ x: v.x, y: v.y })),
-                              capB: p.outerVertices.capB.map((v) => ({ x: v.x, y: v.y })),
-                          },
+                outerVertices: p.outerVertices.map((v) => ({ x: v.x, y: v.y })),
                 stopPositions: p.stopPositions.map((sp) => ({ ...sp })),
             });
         }

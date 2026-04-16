@@ -423,13 +423,9 @@ export class SingleSpinePlacementEngine
 
         const platformId = this._platformManager.createPlatform({
             stationId: this._activeStationId,
-            spineA: [...this._spine],
-            spineB: null,
+            spine: [...this._spine],
             offset: this._offset,
-            outerVertices: {
-                kind: 'single',
-                vertices: [...this._outerVertices],
-            },
+            outerVertices: [...this._outerVertices],
             stopPositions: computeStopPositions(this._spine, getCurve),
         });
 
