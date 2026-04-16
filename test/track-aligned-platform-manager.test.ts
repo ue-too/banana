@@ -1,17 +1,32 @@
-import { describe, it, expect, beforeEach } from 'bun:test';
+import { beforeEach, describe, expect, it } from 'bun:test';
+
 import { TrackAlignedPlatformManager } from '../src/stations/track-aligned-platform-manager';
-import type { TrackAlignedPlatform } from '../src/stations/track-aligned-platform-types';
+import type {
+    LegacySerializedTrackAlignedPlatform,
+    TrackAlignedPlatform,
+} from '../src/stations/track-aligned-platform-types';
 
 // ---------------------------------------------------------------------------
 // Helpers
 // ---------------------------------------------------------------------------
 
-function makePlatform(stationId: number, segments: number[]): Omit<TrackAlignedPlatform, 'id'> {
+function makePlatform(
+    stationId: number,
+    segments: number[]
+): Omit<TrackAlignedPlatform, 'id'> {
     return {
         stationId,
-        spine: segments.map((seg) => ({ trackSegment: seg, tStart: 0, tEnd: 1, side: 1 as const })),
+        spine: segments.map(seg => ({
+            trackSegment: seg,
+            tStart: 0,
+            tEnd: 1,
+            side: 1 as const,
+        })),
         offset: 2.0,
-        outerVertices: [{ x: 0, y: 5 }, { x: 10, y: 5 }],
+        outerVertices: [
+            { x: 0, y: 5 },
+            { x: 10, y: 5 },
+        ],
         stopPositions: [],
     };
 }
@@ -64,7 +79,7 @@ describe('TrackAlignedPlatformManager', () => {
 
             const results = mgr.getPlatformsByStation(1);
             expect(results.length).toBe(2);
-            const ids = results.map((r) => r.id);
+            const ids = results.map(r => r.id);
             expect(ids).toContain(id1);
             expect(ids).toContain(id2);
         });
@@ -106,7 +121,7 @@ describe('TrackAlignedPlatformManager', () => {
             const id2 = mgr.createPlatform(makePlatform(2, [10]));
             const results = mgr.getPlatformsBySegment(10);
             expect(results).toHaveLength(2);
-            const ids = results.map((r) => r.id);
+            const ids = results.map(r => r.id);
             expect(ids).toContain(id1);
             expect(ids).toContain(id2);
         });
@@ -288,7 +303,9 @@ describe('TrackAlignedPlatformManager', () => {
         it('should preserve t-values and side through round-trip', () => {
             const platform: Omit<TrackAlignedPlatform, 'id'> = {
                 stationId: 1,
-                spine: [{ trackSegment: 10, tStart: 0.25, tEnd: 0.75, side: -1 }],
+                spine: [
+                    { trackSegment: 10, tStart: 0.25, tEnd: 0.75, side: -1 },
+                ],
                 offset: 3.5,
                 outerVertices: [{ x: 1, y: 2 }],
                 stopPositions: [],
@@ -302,6 +319,71 @@ describe('TrackAlignedPlatformManager', () => {
             expect(p.spine[0].tEnd).toBe(0.75);
             expect(p.spine[0].side).toBe(-1);
             expect(p.offset).toBe(3.5);
+        });
+    });
+
+    // -----------------------------------------------------------------------
+    // 10. Legacy dual-spine migration
+    // -----------------------------------------------------------------------
+
+    describe('legacy dual-spine migration', () => {
+        it('splits a legacy dual-spine platform into two single-spine platforms', () => {
+            const legacyData = {
+                platforms: [
+                    {
+                        id: 5,
+                        stationId: 1,
+                        spineA: [{ trackSegment: 10, tStart: 0, tEnd: 1, side: 1 as const }],
+                        spineB: [{ trackSegment: 20, tStart: 0, tEnd: 1, side: -1 as const }],
+                        offset: 2,
+                        outerVertices: {
+                            kind: 'dual' as const,
+                            capA: [{ x: 0, y: 5 }],
+                            capB: [{ x: 10, y: 5 }],
+                        },
+                        stopPositions: [
+                            { trackSegmentId: 10, direction: 'tangent' as const, tValue: 0.5 },
+                            { trackSegmentId: 20, direction: 'tangent' as const, tValue: 0.5 },
+                        ],
+                    },
+                ],
+            };
+            const { manager, migrationMap } = TrackAlignedPlatformManager.deserializeAny(
+                legacyData,
+                (_: LegacySerializedTrackAlignedPlatform) => [{ x: 5, y: 0 }, { x: 5, y: 2.5 }],
+            );
+
+            const all = manager.getAllPlatforms();
+            expect(all).toHaveLength(2);
+            expect(all.map((p) => p.platform.spine[0].trackSegment).sort()).toEqual([10, 20]);
+
+            // Migration map records where each legacy index ended up.
+            const entries = migrationMap.get(5);
+            expect(entries).toBeDefined();
+            expect(entries!.size).toBe(2);
+        });
+
+        it('reads the new format unchanged (empty migration map)', () => {
+            const newData = {
+                platforms: [
+                    {
+                        id: 3,
+                        stationId: 1,
+                        spine: [{ trackSegment: 10, tStart: 0, tEnd: 1, side: 1 as const }],
+                        offset: 2,
+                        outerVertices: [{ x: 0, y: 5 }, { x: 10, y: 5 }],
+                        stopPositions: [
+                            { trackSegmentId: 10, direction: 'tangent' as const, tValue: 0.5 },
+                        ],
+                    },
+                ],
+            };
+            const { manager, migrationMap } = TrackAlignedPlatformManager.deserializeAny(
+                newData,
+                () => [],
+            );
+            expect(manager.getAllPlatforms()).toHaveLength(1);
+            expect(migrationMap.size).toBe(0);
         });
     });
 });
