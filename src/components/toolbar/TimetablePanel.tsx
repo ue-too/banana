@@ -352,7 +352,7 @@ function ShiftSection({
         {
             stationId: string;
             platformValue: string;
-            stopPositionIndex: string;
+            stopPositionId: string;
             arrive: string;
             depart: string;
         }[]
@@ -360,14 +360,14 @@ function ShiftSection({
         {
             stationId: '',
             platformValue: '',
-            stopPositionIndex: '',
+            stopPositionId: '',
             arrive: '',
             depart: '',
         },
         {
             stationId: '',
             platformValue: '',
-            stopPositionIndex: '',
+            stopPositionId: '',
             arrive: '',
             depart: '',
         },
@@ -389,7 +389,7 @@ function ShiftSection({
             {
                 stationId: '',
                 platformValue: '',
-                stopPositionIndex: '',
+                stopPositionId: '',
                 arrive: '',
                 depart: '',
             },
@@ -409,7 +409,7 @@ function ShiftSection({
         field:
             | 'stationId'
             | 'platformValue'
-            | 'stopPositionIndex'
+            | 'stopPositionId'
             | 'arrive'
             | 'depart',
         value: string
@@ -446,7 +446,7 @@ function ShiftSection({
                               : null;
                       })();
 
-            const spId = parseInt(s.stopPositionIndex, 10);
+            const spId = parseInt(s.stopPositionId, 10);
 
             return {
                 stationId: isNaN(stationId) ? 0 : stationId,
@@ -477,14 +477,14 @@ function ShiftSection({
                 {
                     stationId: '',
                     platformValue: '',
-                    stopPositionIndex: '',
+                    stopPositionId: '',
                     arrive: '',
                     depart: '',
                 },
                 {
                     stationId: '',
                     platformValue: '',
-                    stopPositionIndex: '',
+                    stopPositionId: '',
                     arrive: '',
                     depart: '',
                 },
@@ -549,7 +549,7 @@ function ShiftSection({
                                             updateStop(i, 'platformValue', '');
                                             updateStop(
                                                 i,
-                                                'stopPositionIndex',
+                                                'stopPositionId',
                                                 ''
                                             );
                                         }}
@@ -596,7 +596,7 @@ function ShiftSection({
                                             );
                                             updateStop(
                                                 i,
-                                                'stopPositionIndex',
+                                                'stopPositionId',
                                                 ''
                                             );
                                         }}
@@ -634,12 +634,12 @@ function ShiftSection({
                                     return spOptions.length > 0 ? (
                                         <Select
                                             value={
-                                                stop.stopPositionIndex || NONE
+                                                stop.stopPositionId || NONE
                                             }
                                             onValueChange={val =>
                                                 updateStop(
                                                     i,
-                                                    'stopPositionIndex',
+                                                    'stopPositionId',
                                                     val === NONE ? '' : val
                                                 )
                                             }
