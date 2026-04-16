@@ -137,6 +137,7 @@ export class ShiftTemplateManager {
                 if (entries === undefined) continue;
                 const target = entries.get(stop.stopPositionIndex);
                 if (target === undefined) continue;
+                if (target.newStopIndex < 0) continue;
                 stop.platformId = target.newPlatformId;
                 stop.stopPositionIndex = target.newStopIndex;
             }

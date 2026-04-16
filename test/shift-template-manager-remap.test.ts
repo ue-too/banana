@@ -93,4 +93,18 @@ describe('ShiftTemplateManager.remapTrackAlignedPlatformReferences', () => {
         expect(t.stops[0].platformId).toBe(99);
         expect(t.stops[0].stopPositionIndex).toBe(0);
     });
+
+    it('leaves orphaned stops (newStopIndex === -1) unchanged', () => {
+        const mgr = new ShiftTemplateManager();
+        mgr.addTemplate(makeTemplate(1, 5, 2));
+
+        const map: PlatformMigrationMap = new Map([
+            [5, new Map([[2, { newPlatformId: 11, newStopIndex: -1 }]])],
+        ]);
+        mgr.remapTrackAlignedPlatformReferences(map);
+
+        const t = mgr.getTemplate('shift-1')!;
+        expect(t.stops[0].platformId).toBe(5);
+        expect(t.stops[0].stopPositionIndex).toBe(2);
+    });
 });
