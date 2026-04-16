@@ -1,6 +1,10 @@
 import type { SerializedSignalData } from '@/signals/types';
 import { StationManager } from '@/stations/station-manager';
 import { TrackAlignedPlatformManager } from '@/stations/track-aligned-platform-manager';
+import {
+    computeDualSpineMidline,
+    type PlatformMigrationMap,
+} from '@/stations/track-aligned-platform-migration';
 import type { SerializedTrackAlignedPlatformData } from '@/stations/track-aligned-platform-types';
 import type { SerializedStationData } from '@/stations/types';
 import {
@@ -84,24 +88,6 @@ export async function deserializeSceneData(
         app.terrainRenderSystem.setTerrainData(restoredTerrain);
     }
 
-    // Load timetable data if present
-    if (data.timetable) {
-        // Dispose the current timetable manager's subscriptions
-        app.timetableManager.dispose();
-        const restored = TimetableManager.deserialize(
-            data.timetable,
-            app.curveEngine.trackGraph,
-            app.trainManager,
-            app.stationManager,
-            app.signalStateEngine
-        );
-        // Replace the timetable manager on the app components and the mutable ref
-        // so the TimeManager callback uses the new instance.
-        (app as { timetableManager: TimetableManager }).timetableManager =
-            restored;
-        app.timetableRef.current = restored;
-    }
-
     // Restore simulation time if present
     if (data.time !== undefined) {
         app.timeManager.setCurrentTime(data.time);
@@ -127,26 +113,57 @@ export async function deserializeSceneData(
         }
     }
 
-    // Load track-aligned platforms if present (after stations are restored)
+    // Load track-aligned platforms (split any legacy dual-spine) before the
+    // timetable so shift-template references can be rewritten using the
+    // migration map.
+    let platformMigrationMap: PlatformMigrationMap = new Map();
     if (data.trackAlignedPlatforms) {
-        const restored = TrackAlignedPlatformManager.deserialize(
-            data.trackAlignedPlatforms
-        );
-        // Remove existing platforms
-        for (const {
-            id,
-        } of app.trackAlignedPlatformManager.getAllPlatforms()) {
+        const { manager: restored, migrationMap } =
+            TrackAlignedPlatformManager.deserializeAny(
+                data.trackAlignedPlatforms,
+                (legacy) =>
+                    computeDualSpineMidline(
+                        legacy.spineA,
+                        legacy.spineB!,
+                        legacy.offset,
+                        (segmentId) => {
+                            const curve = app.curveEngine.trackGraph.getTrackSegmentCurve(segmentId);
+                            if (curve === null) throw new Error(`Missing curve for segment ${segmentId}`);
+                            return curve;
+                        },
+                    ),
+            );
+        platformMigrationMap = migrationMap;
+
+        for (const { id } of app.trackAlignedPlatformManager.getAllPlatforms()) {
             app.trackAlignedPlatformRenderSystem.removePlatform(id);
             app.trackAlignedPlatformManager.destroyPlatform(id);
         }
-        // Add restored platforms
         for (const { id, platform } of restored.getAllPlatforms()) {
             app.trackAlignedPlatformManager.createPlatformWithId(id, platform);
             const elevation =
-                app.stationManager.getStation(platform.stationId)?.elevation ??
-                0;
+                app.stationManager.getStation(platform.stationId)?.elevation ?? 0;
             app.trackAlignedPlatformRenderSystem.addPlatform(id, elevation);
         }
+    }
+
+    // Load timetable data if present (after platforms so migration map is known).
+    if (data.timetable) {
+        app.timetableManager.dispose();
+        const restored = TimetableManager.deserialize(
+            data.timetable,
+            app.curveEngine.trackGraph,
+            app.trainManager,
+            app.stationManager,
+            app.signalStateEngine,
+        );
+        // Rewrite any ScheduledStop entries that referenced a legacy dual-spine
+        // platform.
+        restored.shiftTemplateManager.remapTrackAlignedPlatformReferences(
+            platformMigrationMap,
+        );
+        (app as { timetableManager: TimetableManager }).timetableManager = restored;
+        app.timetableRef.current = restored;
     }
 
     // Load joint direction preferences if present
@@ -154,10 +171,18 @@ export async function deserializeSceneData(
         app.jointDirectionPreferenceMap.clear();
         for (const entry of data.jointDirectionPreferences) {
             if (entry.tangent !== undefined) {
-                app.jointDirectionPreferenceMap.set(entry.joint, 'tangent', entry.tangent);
+                app.jointDirectionPreferenceMap.set(
+                    entry.joint,
+                    'tangent',
+                    entry.tangent
+                );
             }
             if (entry.reverseTangent !== undefined) {
-                app.jointDirectionPreferenceMap.set(entry.joint, 'reverseTangent', entry.reverseTangent);
+                app.jointDirectionPreferenceMap.set(
+                    entry.joint,
+                    'reverseTangent',
+                    entry.reverseTangent
+                );
             }
         }
     }
