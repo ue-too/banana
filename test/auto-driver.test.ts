@@ -59,7 +59,8 @@ function makeStop(overrides: Partial<ScheduledStop> = {}): ScheduledStop {
   return {
     stationId: 1,
     platformId: 1,
-    stopPositionIndex: 0,
+    platformKind: 'island',
+    stopPositionId: 0,
     arrivalTime: null,
     departureTime: null,
     ...overrides,

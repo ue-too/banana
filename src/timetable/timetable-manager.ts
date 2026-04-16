@@ -444,12 +444,15 @@ export class TimetableManager {
         trackGraph: TrackGraph,
         trainManager: TrainManager,
         stationManager: StationManager,
+        trackAlignedPlatformManager: TrackAlignedPlatformManager,
         signalStateEngine?: SignalStateEngine | null
     ): TimetableManager {
         const clock = ScheduleClock.deserialize(data.clock);
         const routeManager = RouteManager.deserialize(data.routes);
         const shiftTemplateManager = ShiftTemplateManager.deserialize(
-            data.shiftTemplates
+            data.shiftTemplates,
+            stationManager,
+            trackAlignedPlatformManager,
         );
 
         const manager = new TimetableManager(

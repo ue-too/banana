@@ -432,12 +432,14 @@ export class AutoDriver {
 
     if (nextScheduledStop.platformKind === 'trackAligned') {
       const tap = trackAlignedPlatformManager?.getPlatform(nextScheduledStop.platformId);
-      stopPos = tap?.stopPositions[nextScheduledStop.stopPositionIndex];
+      const id = nextScheduledStop.stopPositionId;
+      stopPos = tap?.stopPositions.find((s) => s.id === id);
     } else {
       const platform = station.platforms.find(
         (p) => p.id === nextScheduledStop.platformId,
       );
-      stopPos = platform?.stopPositions[nextScheduledStop.stopPositionIndex];
+      const id = nextScheduledStop.stopPositionId;
+      stopPos = platform?.stopPositions.find((s) => s.id === id);
     }
 
     if (!stopPos) return null;

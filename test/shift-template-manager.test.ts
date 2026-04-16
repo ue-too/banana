@@ -5,6 +5,8 @@ import {
   type ShiftTemplateChangeEvent,
 } from '../src/timetable/shift-template-manager';
 import { DayOfWeek, type ShiftTemplate, type ScheduledStop, type ShiftLeg } from '../src/timetable/types';
+import { StationManager } from '../src/stations/station-manager';
+import { TrackAlignedPlatformManager } from '../src/stations/track-aligned-platform-manager';
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -15,7 +17,7 @@ function makeStop(overrides: Partial<ScheduledStop> = {}): ScheduledStop {
     stationId: 1,
     platformKind: 'island',
     platformId: 1,
-    stopPositionIndex: 0,
+    stopPositionId: 0,
     arrivalTime: null,
     departureTime: null,
     ...overrides,
@@ -218,7 +220,7 @@ describe('ShiftTemplateManager', () => {
       const t = makeTemplate('s');
       mgr.addTemplate(t);
       const serialized = mgr.serialize();
-      const restored = ShiftTemplateManager.deserialize(serialized);
+      const restored = ShiftTemplateManager.deserialize(serialized, new StationManager(), new TrackAlignedPlatformManager());
       const rt = restored.getTemplate('s');
       expect(rt).not.toBeNull();
       expect(rt!.name).toBe(t.name);
@@ -239,7 +241,7 @@ describe('ShiftTemplateManager', () => {
       };
       mgr.addTemplate(t);
       const serialized = mgr.serialize();
-      const restored = ShiftTemplateManager.deserialize(serialized);
+      const restored = ShiftTemplateManager.deserialize(serialized, new StationManager(), new TrackAlignedPlatformManager());
       const rt = restored.getTemplate('days')!;
       expect(rt.activeDays[DayOfWeek.Monday]).toBe(true);
       expect(rt.activeDays[DayOfWeek.Tuesday]).toBe(false);
@@ -250,7 +252,7 @@ describe('ShiftTemplateManager', () => {
     it('round-trips multiple templates', () => {
       mgr.addTemplate(makeTemplate('a'));
       mgr.addTemplate(makeThreeStopTemplate('b'));
-      const restored = ShiftTemplateManager.deserialize(mgr.serialize());
+      const restored = ShiftTemplateManager.deserialize(mgr.serialize(), new StationManager(), new TrackAlignedPlatformManager());
       expect(restored.getAllTemplates()).toHaveLength(2);
       expect(restored.getTemplate('b')!.stops).toHaveLength(3);
       expect(restored.getTemplate('b')!.legs).toHaveLength(2);

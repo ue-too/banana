@@ -99,8 +99,8 @@ export type ScheduledStop = {
    *  `TrackAlignedPlatformManager`. Defaults to `'island'` for backward compat. */
   platformKind: 'island' | 'trackAligned';
   platformId: number;
-  /** Index into the platform's `stopPositions` array. */
-  stopPositionIndex: number;
+  /** Stable id within the platform's stopPositions array. */
+  stopPositionId: number;
   /** Virtual week-ms when the train should arrive, or `null` for the first stop. */
   arrivalTime: WeekMs | null;
   /** Virtual week-ms when the train should depart, or `null` for the last stop. */
@@ -203,7 +203,10 @@ export type SerializedScheduledStop = {
   /** Optional for backward compat — defaults to `'island'` when absent. */
   platformKind?: 'island' | 'trackAligned';
   platformId: number;
-  stopPositionIndex: number;
+  /** New format: stable stop id. */
+  stopPositionId?: number;
+  /** Legacy format: positional index. Resolved to id at deserialize time. */
+  stopPositionIndex?: number;
   arrivalTime: number | null;
   departureTime: number | null;
 };

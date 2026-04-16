@@ -120,7 +120,7 @@ function buildStopPositionOptions(
     stationId: number,
     stationManager: StationManager,
     trackAlignedPlatformManager: TrackAlignedPlatformManager
-): { index: number; label: string }[] {
+): { id: number; label: string }[] {
     const parsed = parsePlatformValue(platformValue);
     if (!parsed) return [];
 
@@ -132,8 +132,8 @@ function buildStopPositionOptions(
     if (parsed.kind === 'trackAligned') {
         const tap = trackAlignedPlatformManager.getPlatform(parsed.platformId);
         if (!tap) return [];
-        return tap.stopPositions.map((_, i) => ({
-            index: i,
+        return tap.stopPositions.map((sp, i) => ({
+            id: sp.id,
             label: `${platformLabel}[${i}]`,
         }));
     }
@@ -142,8 +142,8 @@ function buildStopPositionOptions(
     if (!station) return [];
     const platform = station.platforms.find(p => p.id === parsed.platformId);
     if (!platform) return [];
-    return platform.stopPositions.map((_, i) => ({
-        index: i,
+    return platform.stopPositions.map((sp, i) => ({
+        id: sp.id,
         label: `${platformLabel}[${i}]`,
     }));
 }
@@ -446,13 +446,13 @@ function ShiftSection({
                               : null;
                       })();
 
-            const spIdx = parseInt(s.stopPositionIndex, 10);
+            const spId = parseInt(s.stopPositionIndex, 10);
 
             return {
                 stationId: isNaN(stationId) ? 0 : stationId,
                 platformKind: parsed?.kind ?? ('island' as const),
                 platformId: parsed?.platformId ?? 0,
-                stopPositionIndex: isNaN(spIdx) ? 0 : spIdx,
+                stopPositionId: isNaN(spId) ? -1 : spId,
                 arrivalTime: arriveMs,
                 departureTime: departMs,
             };
@@ -658,9 +658,9 @@ function ShiftSection({
                                                 </SelectItem>
                                                 {spOptions.map(opt => (
                                                     <SelectItem
-                                                        key={opt.index}
+                                                        key={opt.id}
                                                         value={String(
-                                                            opt.index
+                                                            opt.id
                                                         )}
                                                     >
                                                         {opt.label}
@@ -981,7 +981,8 @@ export function TimetablePanel({ onClose }: TimetablePanelProps) {
                 data,
                 app.curveEngine.trackGraph,
                 app.trainManager,
-                app.stationManager
+                app.stationManager,
+                app.trackAlignedPlatformManager
             );
             // Replace the current timetable manager and update the ref
             app.timetableManager.dispose();

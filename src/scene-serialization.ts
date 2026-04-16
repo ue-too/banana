@@ -172,6 +172,7 @@ export async function deserializeSceneData(
             app.curveEngine.trackGraph,
             app.trainManager,
             app.stationManager,
+            app.trackAlignedPlatformManager,
             app.signalStateEngine,
         );
         // Rewrite any ScheduledStop entries that referenced a legacy dual-spine

@@ -6,10 +6,13 @@
 import { Observable, SynchronousObservable } from '@ue-too/board';
 
 import type { PlatformMigrationMap } from '@/stations/track-aligned-platform-migration';
+import type { StationManager } from '@/stations/station-manager';
+import type { TrackAlignedPlatformManager } from '@/stations/track-aligned-platform-manager';
 
 import {
     type DayMask,
     DayOfWeek,
+    type SerializedScheduledStop,
     type SerializedShiftTemplate,
     type ShiftTemplate,
     type ShiftTemplateId,
@@ -135,11 +138,11 @@ export class ShiftTemplateManager {
                 if (stop.platformKind !== 'trackAligned') continue;
                 const entries = map.get(stop.platformId);
                 if (entries === undefined) continue;
-                const target = entries.get(stop.stopPositionIndex);
+                const target = entries.get(stop.stopPositionId);
                 if (target === undefined) continue;
                 if (target.newStopIndex < 0) continue;
                 stop.platformId = target.newPlatformId;
-                stop.stopPositionIndex = target.newStopIndex;
+                stop.stopPositionId = target.newStopIndex;
             }
         }
     }
@@ -149,25 +152,29 @@ export class ShiftTemplateManager {
     // -----------------------------------------------------------------------
 
     serialize(): SerializedShiftTemplate[] {
-        return this.getAllTemplates().map(t => ({
+        return this.getAllTemplates().map((t) => ({
             id: t.id,
             name: t.name,
             activeDays: Object.fromEntries(
-                Object.entries(t.activeDays).map(([k, v]) => [String(k), v])
+                Object.entries(t.activeDays).map(([k, v]) => [String(k), v]),
             ),
-            stops: t.stops.map(s => ({
+            stops: t.stops.map((s) => ({
                 stationId: s.stationId,
                 platformKind: s.platformKind,
                 platformId: s.platformId,
-                stopPositionIndex: s.stopPositionIndex,
+                stopPositionId: s.stopPositionId,
                 arrivalTime: s.arrivalTime,
                 departureTime: s.departureTime,
             })),
-            legs: t.legs.map(l => ({ routeId: l.routeId })),
+            legs: t.legs.map((l) => ({ routeId: l.routeId })),
         }));
     }
 
-    static deserialize(data: SerializedShiftTemplate[]): ShiftTemplateManager {
+    static deserialize(
+        data: SerializedShiftTemplate[],
+        stationManager: StationManager,
+        trackAlignedPlatformManager: TrackAlignedPlatformManager,
+    ): ShiftTemplateManager {
         const manager = new ShiftTemplateManager();
         for (const st of data) {
             const activeDays = {} as DayMask;
@@ -178,18 +185,52 @@ export class ShiftTemplateManager {
                 id: st.id,
                 name: st.name,
                 activeDays,
-                stops: st.stops.map(s => ({
+                stops: st.stops.map((s) => ({
                     stationId: s.stationId,
                     platformKind: s.platformKind ?? 'island',
                     platformId: s.platformId,
-                    stopPositionIndex: s.stopPositionIndex,
+                    stopPositionId: ShiftTemplateManager._resolveStopPositionId(
+                        s,
+                        stationManager,
+                        trackAlignedPlatformManager,
+                    ),
                     arrivalTime: s.arrivalTime,
                     departureTime: s.departureTime,
                 })),
-                legs: st.legs.map(l => ({ routeId: l.routeId })),
+                legs: st.legs.map((l) => ({ routeId: l.routeId })),
             });
         }
         return manager;
+    }
+
+    /**
+     * Resolve a serialized scheduled stop to a stable `stopPositionId`.
+     *
+     * - If `stopPositionId` is present, it wins.
+     * - Else if `stopPositionIndex` is present, look up the platform's
+     *   `stopPositions[index].id` and use that.
+     * - Otherwise (or if the lookup fails), return `-1` to surface the
+     *   reference as broken — the timetable UI / AutoDriver treat negative
+     *   ids as "no stop".
+     */
+    private static _resolveStopPositionId(
+        s: SerializedScheduledStop,
+        stationManager: StationManager,
+        trackAlignedPlatformManager: TrackAlignedPlatformManager,
+    ): number {
+        if (typeof s.stopPositionId === 'number') return s.stopPositionId;
+        if (typeof s.stopPositionIndex !== 'number') return -1;
+
+        const kind = s.platformKind ?? 'island';
+        if (kind === 'island') {
+            const station = stationManager.getStation(s.stationId);
+            const platform = station?.platforms.find((p) => p.id === s.platformId);
+            const stop = platform?.stopPositions[s.stopPositionIndex];
+            return stop?.id ?? -1;
+        }
+        const tap = trackAlignedPlatformManager.getPlatform(s.platformId);
+        const stop = tap?.stopPositions[s.stopPositionIndex];
+        return stop?.id ?? -1;
     }
 }
 

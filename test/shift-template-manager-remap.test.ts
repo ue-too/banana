@@ -25,7 +25,7 @@ function makeTemplate(
                 stationId,
                 platformKind: 'trackAligned',
                 platformId,
-                stopPositionIndex,
+                stopPositionId: stopPositionIndex,
                 arrivalTime: null,
                 departureTime: 100,
             },
@@ -33,7 +33,7 @@ function makeTemplate(
                 stationId,
                 platformKind: 'trackAligned',
                 platformId,
-                stopPositionIndex,
+                stopPositionId: stopPositionIndex,
                 arrivalTime: 200,
                 departureTime: null,
             },
@@ -59,9 +59,9 @@ describe('ShiftTemplateManager.remapTrackAlignedPlatformReferences', () => {
 
         const t = mgr.getTemplate('shift-1')!;
         expect(t.stops[0].platformId).toBe(11);
-        expect(t.stops[0].stopPositionIndex).toBe(0);
+        expect(t.stops[0].stopPositionId).toBe(0);
         expect(t.stops[1].platformId).toBe(11);
-        expect(t.stops[1].stopPositionIndex).toBe(0);
+        expect(t.stops[1].stopPositionId).toBe(0);
     });
 
     it('leaves island-platform stops unchanged', () => {
@@ -77,7 +77,7 @@ describe('ShiftTemplateManager.remapTrackAlignedPlatformReferences', () => {
 
         const t = mgr.getTemplate('shift-1')!;
         expect(t.stops[0].platformId).toBe(5);
-        expect(t.stops[0].stopPositionIndex).toBe(2);
+        expect(t.stops[0].stopPositionId).toBe(2);
     });
 
     it('leaves unrelated track-aligned stops unchanged', () => {
@@ -91,7 +91,7 @@ describe('ShiftTemplateManager.remapTrackAlignedPlatformReferences', () => {
 
         const t = mgr.getTemplate('shift-1')!;
         expect(t.stops[0].platformId).toBe(99);
-        expect(t.stops[0].stopPositionIndex).toBe(0);
+        expect(t.stops[0].stopPositionId).toBe(0);
     });
 
     it('leaves orphaned stops (newStopIndex === -1) unchanged', () => {
@@ -105,6 +105,6 @@ describe('ShiftTemplateManager.remapTrackAlignedPlatformReferences', () => {
 
         const t = mgr.getTemplate('shift-1')!;
         expect(t.stops[0].platformId).toBe(5);
-        expect(t.stops[0].stopPositionIndex).toBe(2);
+        expect(t.stops[0].stopPositionId).toBe(2);
     });
 });
