@@ -174,10 +174,6 @@ export async function deserializeSceneData(
             app.stationManager,
             app.trackAlignedPlatformManager,
             app.signalStateEngine,
-        );
-        // Rewrite any ScheduledStop entries that referenced a legacy dual-spine
-        // platform.
-        restored.shiftTemplateManager.remapTrackAlignedPlatformReferences(
             platformMigrationMap,
         );
         (app as { timetableManager: TimetableManager }).timetableManager = restored;

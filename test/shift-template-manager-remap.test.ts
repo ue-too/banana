@@ -1,110 +1,86 @@
 import { describe, it, expect } from 'bun:test';
 import { ShiftTemplateManager } from '../src/timetable/shift-template-manager';
-import { DayOfWeek, type ShiftTemplate } from '../src/timetable/types';
+import { StationManager } from '../src/stations/station-manager';
+import { TrackAlignedPlatformManager } from '../src/stations/track-aligned-platform-manager';
 import type { PlatformMigrationMap } from '../src/stations/track-aligned-platform-migration';
+import type { SerializedShiftTemplate } from '../src/timetable/types';
 
-function makeTemplate(
-    stationId: number,
+function makeSerializedTemplate(
     platformId: number,
     stopPositionIndex: number,
-): ShiftTemplate {
-    return {
-        id: 'shift-1',
-        name: 'Test',
-        activeDays: {
-            [DayOfWeek.Monday]: true,
-            [DayOfWeek.Tuesday]: false,
-            [DayOfWeek.Wednesday]: false,
-            [DayOfWeek.Thursday]: false,
-            [DayOfWeek.Friday]: false,
-            [DayOfWeek.Saturday]: false,
-            [DayOfWeek.Sunday]: false,
+): SerializedShiftTemplate[] {
+    return [
+        {
+            id: 's1',
+            name: 'S1',
+            activeDays: { '0': true, '1': false, '2': false, '3': false, '4': false, '5': false, '6': false },
+            stops: [
+                {
+                    stationId: 1,
+                    platformKind: 'trackAligned',
+                    platformId,
+                    stopPositionIndex,
+                    arrivalTime: null,
+                    departureTime: 100,
+                },
+            ],
+            legs: [],
         },
-        stops: [
-            {
-                stationId,
-                platformKind: 'trackAligned',
-                platformId,
-                stopPositionId: stopPositionIndex,
-                arrivalTime: null,
-                departureTime: 100,
-            },
-            {
-                stationId,
-                platformKind: 'trackAligned',
-                platformId,
-                stopPositionId: stopPositionIndex,
-                arrivalTime: 200,
-                departureTime: null,
-            },
-        ],
-        legs: [{ routeId: 'r1' }],
-    };
+    ];
 }
 
-describe('ShiftTemplateManager.remapTrackAlignedPlatformReferences', () => {
-    it('rewrites platformId and stopPositionIndex according to the migration map', () => {
-        const mgr = new ShiftTemplateManager();
-        mgr.addTemplate(makeTemplate(1, 5, 2));
-
+describe('ShiftTemplateManager.deserialize with platformMigrationMap', () => {
+    it('rewrites platformId and stopPositionId using the migration map', () => {
+        const stationMgr = new StationManager();
+        const tapMgr = new TrackAlignedPlatformManager();
         const map: PlatformMigrationMap = new Map([
-            [
-                5,
-                new Map([
-                    [2, { newPlatformId: 11, newStopIndex: 0, newStopId: 0 }],
-                ]),
-            ],
+            [5, new Map([[2, { newPlatformId: 11, newStopIndex: 0, newStopId: 7 }]])],
         ]);
-        mgr.remapTrackAlignedPlatformReferences(map);
 
-        const t = mgr.getTemplate('shift-1')!;
+        const restored = ShiftTemplateManager.deserialize(
+            makeSerializedTemplate(5, 2),
+            stationMgr,
+            tapMgr,
+            map,
+        );
+        const t = restored.getTemplate('s1')!;
         expect(t.stops[0].platformId).toBe(11);
-        expect(t.stops[0].stopPositionId).toBe(0);
-        expect(t.stops[1].platformId).toBe(11);
-        expect(t.stops[1].stopPositionId).toBe(0);
+        expect(t.stops[0].stopPositionId).toBe(7);
     });
 
-    it('leaves island-platform stops unchanged', () => {
-        const mgr = new ShiftTemplateManager();
-        const template = makeTemplate(1, 5, 2);
-        template.stops[0].platformKind = 'island';
-        mgr.addTemplate(template);
-
-        const map: PlatformMigrationMap = new Map([
-            [5, new Map([[2, { newPlatformId: 11, newStopIndex: 0, newStopId: 0 }]])],
-        ]);
-        mgr.remapTrackAlignedPlatformReferences(map);
-
-        const t = mgr.getTemplate('shift-1')!;
-        expect(t.stops[0].platformId).toBe(5);
-        expect(t.stops[0].stopPositionId).toBe(2);
-    });
-
-    it('leaves unrelated track-aligned stops unchanged', () => {
-        const mgr = new ShiftTemplateManager();
-        mgr.addTemplate(makeTemplate(1, 99, 0));
-
-        const map: PlatformMigrationMap = new Map([
-            [5, new Map([[2, { newPlatformId: 11, newStopIndex: 0, newStopId: 0 }]])],
-        ]);
-        mgr.remapTrackAlignedPlatformReferences(map);
-
-        const t = mgr.getTemplate('shift-1')!;
-        expect(t.stops[0].platformId).toBe(99);
-        expect(t.stops[0].stopPositionId).toBe(0);
-    });
-
-    it('leaves orphaned stops (newStopIndex === -1) unchanged', () => {
-        const mgr = new ShiftTemplateManager();
-        mgr.addTemplate(makeTemplate(1, 5, 2));
-
+    it('returns stopPositionId = -1 when migration entry has newStopId = -1 (orphan)', () => {
+        const stationMgr = new StationManager();
+        const tapMgr = new TrackAlignedPlatformManager();
         const map: PlatformMigrationMap = new Map([
             [5, new Map([[2, { newPlatformId: 11, newStopIndex: -1, newStopId: -1 }]])],
         ]);
-        mgr.remapTrackAlignedPlatformReferences(map);
 
-        const t = mgr.getTemplate('shift-1')!;
-        expect(t.stops[0].platformId).toBe(5);
-        expect(t.stops[0].stopPositionId).toBe(2);
+        const restored = ShiftTemplateManager.deserialize(
+            makeSerializedTemplate(5, 2),
+            stationMgr,
+            tapMgr,
+            map,
+        );
+        const t = restored.getTemplate('s1')!;
+        expect(t.stops[0].platformId).toBe(11);
+        expect(t.stops[0].stopPositionId).toBe(-1);
+    });
+
+    it('falls back to direct platform lookup when no migration entry exists', () => {
+        const stationMgr = new StationManager();
+        const tapMgr = new TrackAlignedPlatformManager();
+        // Empty map — no migration.
+        const map: PlatformMigrationMap = new Map();
+
+        const restored = ShiftTemplateManager.deserialize(
+            makeSerializedTemplate(99, 0),
+            stationMgr,
+            tapMgr,
+            map,
+        );
+        const t = restored.getTemplate('s1')!;
+        expect(t.stops[0].platformId).toBe(99);
+        // No matching platform either, so stopPositionId is -1 (broken reference).
+        expect(t.stops[0].stopPositionId).toBe(-1);
     });
 });

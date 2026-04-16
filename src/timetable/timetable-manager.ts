@@ -7,6 +7,7 @@
 import type { SignalStateEngine } from '@/signals/signal-state-engine';
 import type { StationManager } from '@/stations/station-manager';
 import type { TrackAlignedPlatformManager } from '@/stations/track-aligned-platform-manager';
+import type { PlatformMigrationMap } from '@/stations/track-aligned-platform-migration';
 import type { Train } from '@/trains/formation';
 import {
     DefaultJointDirectionManager,
@@ -445,7 +446,8 @@ export class TimetableManager {
         trainManager: TrainManager,
         stationManager: StationManager,
         trackAlignedPlatformManager: TrackAlignedPlatformManager,
-        signalStateEngine?: SignalStateEngine | null
+        signalStateEngine?: SignalStateEngine | null,
+        platformMigrationMap: PlatformMigrationMap = new Map(),
     ): TimetableManager {
         const clock = ScheduleClock.deserialize(data.clock);
         const routeManager = RouteManager.deserialize(data.routes);
@@ -453,6 +455,7 @@ export class TimetableManager {
             data.shiftTemplates,
             stationManager,
             trackAlignedPlatformManager,
+            platformMigrationMap,
         );
 
         const manager = new TimetableManager(

@@ -124,29 +124,6 @@ export class ShiftTemplateManager {
         }
     }
 
-    /**
-     * Rewrite `stopPositionIndex` and `platformId` on every `ScheduledStop`
-     * that refers to a track-aligned platform listed in `map`.
-     *
-     * Intended for one-off migrations on scene load; does not emit change
-     * events because the templates have not yet been observed by the UI.
-     */
-    remapTrackAlignedPlatformReferences(map: PlatformMigrationMap): void {
-        if (map.size === 0) return;
-        for (const template of this._templates.values()) {
-            for (const stop of template.stops) {
-                if (stop.platformKind !== 'trackAligned') continue;
-                const entries = map.get(stop.platformId);
-                if (entries === undefined) continue;
-                const target = entries.get(stop.stopPositionId);
-                if (target === undefined) continue;
-                if (target.newStopIndex < 0) continue;
-                stop.platformId = target.newPlatformId;
-                stop.stopPositionId = target.newStopIndex;
-            }
-        }
-    }
-
     // -----------------------------------------------------------------------
     // Serialization
     // -----------------------------------------------------------------------
@@ -174,6 +151,7 @@ export class ShiftTemplateManager {
         data: SerializedShiftTemplate[],
         stationManager: StationManager,
         trackAlignedPlatformManager: TrackAlignedPlatformManager,
+        platformMigrationMap: PlatformMigrationMap = new Map(),
     ): ShiftTemplateManager {
         const manager = new ShiftTemplateManager();
         for (const st of data) {
@@ -185,18 +163,22 @@ export class ShiftTemplateManager {
                 id: st.id,
                 name: st.name,
                 activeDays,
-                stops: st.stops.map((s) => ({
-                    stationId: s.stationId,
-                    platformKind: s.platformKind ?? 'island',
-                    platformId: s.platformId,
-                    stopPositionId: ShiftTemplateManager._resolveStopPositionId(
+                stops: st.stops.map((s) => {
+                    const resolved = ShiftTemplateManager._resolveStopPositionId(
                         s,
                         stationManager,
                         trackAlignedPlatformManager,
-                    ),
-                    arrivalTime: s.arrivalTime,
-                    departureTime: s.departureTime,
-                })),
+                        platformMigrationMap,
+                    );
+                    return {
+                        stationId: s.stationId,
+                        platformKind: s.platformKind ?? 'island',
+                        platformId: resolved.platformId,
+                        stopPositionId: resolved.stopPositionId,
+                        arrivalTime: s.arrivalTime,
+                        departureTime: s.departureTime,
+                    };
+                }),
                 legs: st.legs.map((l) => ({ routeId: l.routeId })),
             });
         }
@@ -204,33 +186,63 @@ export class ShiftTemplateManager {
     }
 
     /**
-     * Resolve a serialized scheduled stop to a stable `stopPositionId`.
+     * Resolve a serialized scheduled stop to a stable `{ platformId, stopPositionId }`.
      *
      * - If `stopPositionId` is present, it wins.
-     * - Else if `stopPositionIndex` is present, look up the platform's
-     *   `stopPositions[index].id` and use that.
-     * - Otherwise (or if the lookup fails), return `-1` to surface the
-     *   reference as broken — the timetable UI / AutoDriver treat negative
-     *   ids as "no stop".
+     * - Else if `stopPositionIndex` is present:
+     *   - For track-aligned platforms, consult the migration map first
+     *     (handles dual-spine split on scene load).
+     *   - Otherwise look up the platform's `stopPositions[index].id`.
+     * - Returns `-1` for stopPositionId to surface the reference as broken —
+     *   the timetable UI / AutoDriver treat negative ids as "no stop".
      */
     private static _resolveStopPositionId(
         s: SerializedScheduledStop,
         stationManager: StationManager,
         trackAlignedPlatformManager: TrackAlignedPlatformManager,
-    ): number {
-        if (typeof s.stopPositionId === 'number') return s.stopPositionId;
-        if (typeof s.stopPositionIndex !== 'number') return -1;
+        platformMigrationMap: PlatformMigrationMap,
+    ): { platformId: number; stopPositionId: number } {
+        // Direct id wins.
+        if (typeof s.stopPositionId === 'number') {
+            return { platformId: s.platformId, stopPositionId: s.stopPositionId };
+        }
+
+        if (typeof s.stopPositionIndex !== 'number') {
+            return { platformId: s.platformId, stopPositionId: -1 };
+        }
 
         const kind = s.platformKind ?? 'island';
-        if (kind === 'island') {
-            const station = stationManager.getStation(s.stationId);
-            const platform = station?.platforms.find((p) => p.id === s.platformId);
-            const stop = platform?.stopPositions[s.stopPositionIndex];
-            return stop?.id ?? -1;
+
+        // Track-aligned: consult the migration map (handles dual-spine split).
+        if (kind === 'trackAligned') {
+            const migration = platformMigrationMap
+                .get(s.platformId)
+                ?.get(s.stopPositionIndex);
+            if (migration) {
+                if (migration.newStopId < 0) {
+                    // Orphaned by the split — return the migrated platform id
+                    // but leave the stop reference broken so the UI can flag it.
+                    return { platformId: migration.newPlatformId, stopPositionId: -1 };
+                }
+                return {
+                    platformId: migration.newPlatformId,
+                    stopPositionId: migration.newStopId,
+                };
+            }
+            // No migration entry: look up directly on the (un-split) platform.
+            const tap = trackAlignedPlatformManager.getPlatform(s.platformId);
+            const stop = tap?.stopPositions[s.stopPositionIndex];
+            return {
+                platformId: s.platformId,
+                stopPositionId: stop?.id ?? -1,
+            };
         }
-        const tap = trackAlignedPlatformManager.getPlatform(s.platformId);
-        const stop = tap?.stopPositions[s.stopPositionIndex];
-        return stop?.id ?? -1;
+
+        // Island platforms never participate in the dual-spine split.
+        const station = stationManager.getStation(s.stationId);
+        const platform = station?.platforms.find((p) => p.id === s.platformId);
+        const stop = platform?.stopPositions[s.stopPositionIndex];
+        return { platformId: s.platformId, stopPositionId: stop?.id ?? -1 };
     }
 }
 
