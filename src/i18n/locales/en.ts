@@ -285,6 +285,7 @@ const en = {
         arrivalTime: 'Arr HH:MM',
         departureTime: 'Dep HH:MM',
         platformPlaceholder: 'Platform...',
+        stopPositionPlaceholder: 'Stop position...',
         routePlaceholder: 'Route...',
         addStop: '+ Stop',
         assignments: 'Assignments',

@@ -93,6 +93,37 @@ function parsePlatformValue(value: string): { kind: 'island' | 'trackAligned'; p
     return { kind: m[1] as 'island' | 'trackAligned', platformId: parseInt(m[2], 10) };
 }
 
+/** Build a list of stop position options for a given platform. */
+function buildStopPositionOptions(
+    platformValue: string,
+    stationId: number,
+    stationManager: StationManager,
+    trackAlignedPlatformManager: TrackAlignedPlatformManager,
+): { index: number; label: string }[] {
+    const parsed = parsePlatformValue(platformValue);
+    if (!parsed) return [];
+
+    const platformLabel = parsed.kind === 'trackAligned' ? `T${parsed.platformId}` : `P${parsed.platformId}`;
+
+    if (parsed.kind === 'trackAligned') {
+        const tap = trackAlignedPlatformManager.getPlatform(parsed.platformId);
+        if (!tap) return [];
+        return tap.stopPositions.map((_, i) => ({
+            index: i,
+            label: `${platformLabel}[${i}]`,
+        }));
+    }
+
+    const station = stationManager.getStation(stationId);
+    if (!station) return [];
+    const platform = station.platforms.find((p) => p.id === parsed.platformId);
+    if (!platform) return [];
+    return platform.stopPositions.map((_, i) => ({
+        index: i,
+        label: `${platformLabel}[${i}]`,
+    }));
+}
+
 type Tab = 'routes' | 'shifts' | 'assign';
 
 // ---------------------------------------------------------------------------
@@ -282,10 +313,10 @@ function ShiftSection({
     const [adding, setAdding] = useState(false);
     const [shiftName, setShiftName] = useState('');
     const [stopsInput, setStopsInput] = useState<
-        { stationId: string; platformValue: string; arrive: string; depart: string }[]
+        { stationId: string; platformValue: string; stopPositionIndex: string; arrive: string; depart: string }[]
     >([
-        { stationId: '', platformValue: '', arrive: '', depart: '' },
-        { stationId: '', platformValue: '', arrive: '', depart: '' },
+        { stationId: '', platformValue: '', stopPositionIndex: '', arrive: '', depart: '' },
+        { stationId: '', platformValue: '', stopPositionIndex: '', arrive: '', depart: '' },
     ]);
     const [routeIds, setRouteIds] = useState<string[]>(['']);
 
@@ -301,7 +332,7 @@ function ShiftSection({
     const addStop = () => {
         setStopsInput((prev) => [
             ...prev,
-            { stationId: '', platformValue: '', arrive: '', depart: '' },
+            { stationId: '', platformValue: '', stopPositionIndex: '', arrive: '', depart: '' },
         ]);
         setRouteIds((prev) => [...prev, '']);
     };
@@ -315,7 +346,7 @@ function ShiftSection({
 
     const updateStop = (
         index: number,
-        field: 'stationId' | 'platformValue' | 'arrive' | 'depart',
+        field: 'stationId' | 'platformValue' | 'stopPositionIndex' | 'arrive' | 'depart',
         value: string,
     ) => {
         setStopsInput((prev) =>
@@ -346,11 +377,13 @@ function ShiftSection({
                           return t !== null ? DayOfWeek.Monday * MS_PER_DAY + t : null;
                       })();
 
+            const spIdx = parseInt(s.stopPositionIndex, 10);
+
             return {
                 stationId: isNaN(stationId) ? 0 : stationId,
                 platformKind: parsed?.kind ?? 'island' as const,
                 platformId: parsed?.platformId ?? 0,
-                stopPositionIndex: 0,
+                stopPositionIndex: isNaN(spIdx) ? 0 : spIdx,
                 arrivalTime: arriveMs,
                 departureTime: departMs,
             };
@@ -372,8 +405,8 @@ function ShiftSection({
             timetableManager.shiftTemplateManager.addTemplate(template);
             setShiftName('');
             setStopsInput([
-                { stationId: '', platformValue: '', arrive: '', depart: '' },
-                { stationId: '', platformValue: '', arrive: '', depart: '' },
+                { stationId: '', platformValue: '', stopPositionIndex: '', arrive: '', depart: '' },
+                { stationId: '', platformValue: '', stopPositionIndex: '', arrive: '', depart: '' },
             ]);
             setRouteIds(['']);
             setAdding(false);
@@ -419,6 +452,7 @@ function ShiftSection({
                                     onValueChange={(val) => {
                                         updateStop(i, 'stationId', val === NONE ? '' : val);
                                         updateStop(i, 'platformValue', '');
+                                        updateStop(i, 'stopPositionIndex', '');
                                     }}
                                 >
                                     <SelectTrigger size="sm" className="flex-1">
@@ -446,9 +480,10 @@ function ShiftSection({
                             {platformOptions.length > 0 && (
                                 <Select
                                     value={stop.platformValue || NONE}
-                                    onValueChange={(val) =>
-                                        updateStop(i, 'platformValue', val === NONE ? '' : val)
-                                    }
+                                    onValueChange={(val) => {
+                                        updateStop(i, 'platformValue', val === NONE ? '' : val);
+                                        updateStop(i, 'stopPositionIndex', '');
+                                    }}
                                 >
                                     <SelectTrigger size="sm" className="text-[10px]">
                                         <SelectValue />
@@ -463,6 +498,31 @@ function ShiftSection({
                                     </SelectContent>
                                 </Select>
                             )}
+                            {(() => {
+                                const spOptions = stop.platformValue
+                                    ? buildStopPositionOptions(stop.platformValue, stationIdNum, stationManager, trackAlignedPlatformManager)
+                                    : [];
+                                return spOptions.length > 0 ? (
+                                    <Select
+                                        value={stop.stopPositionIndex || NONE}
+                                        onValueChange={(val) =>
+                                            updateStop(i, 'stopPositionIndex', val === NONE ? '' : val)
+                                        }
+                                    >
+                                        <SelectTrigger size="sm" className="text-[10px]">
+                                            <SelectValue />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                            <SelectItem value={NONE}>{t('stopPositionPlaceholder')}</SelectItem>
+                                            {spOptions.map((opt) => (
+                                                <SelectItem key={opt.index} value={String(opt.index)}>
+                                                    {opt.label}
+                                                </SelectItem>
+                                            ))}
+                                        </SelectContent>
+                                    </Select>
+                                ) : null;
+                            })()}
                             <div className="flex gap-1">
                                 {i > 0 && (
                                     <input

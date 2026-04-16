@@ -275,6 +275,7 @@ const zhTW = {
         arrivalTime: '到 HH:MM',
         departureTime: '發 HH:MM',
         platformPlaceholder: '月台...',
+        stopPositionPlaceholder: '停車位置...',
         routePlaceholder: '路線...',
         addStop: '+ 停靠站',
         assignments: '指派',

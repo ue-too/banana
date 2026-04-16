@@ -511,7 +511,8 @@ export class DebugOverlayRenderSystem {
         stopPositions: readonly { trackSegmentId: number; direction: string; tValue: number }[],
         platformLabel: string,
     ): void {
-        for (const stop of stopPositions) {
+        for (let idx = 0; idx < stopPositions.length; idx++) {
+            const stop = stopPositions[idx];
             const curve = this._trackGraph.getTrackSegmentCurve(
                 stop.trackSegmentId
             );
@@ -528,7 +529,7 @@ export class DebugOverlayRenderSystem {
                         ? unit
                         : { x: -unit.x, y: -unit.y };
             }
-            const label = `${platformLabel}:S${stop.trackSegmentId}`;
+            const label = `${platformLabel}[${idx}]`;
             const node = this._makeLabelNode(
                 label,
                 pos.x,
