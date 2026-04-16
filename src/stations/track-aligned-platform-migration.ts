@@ -1,12 +1,13 @@
-import type { Point } from '@ue-too/math';
 import type { BCurve } from '@ue-too/curve';
-import type { StopPosition } from './types';
+import type { Point } from '@ue-too/math';
+
+import { sampleSpineEdge } from './spine-utils';
 import type {
     LegacySerializedTrackAlignedPlatform,
     SerializedSpineEntry,
     TrackAlignedPlatform,
 } from './track-aligned-platform-types';
-import { sampleSpineEdge } from './spine-utils';
+import type { StopPosition } from './types';
 
 // ---------------------------------------------------------------------------
 // Types
@@ -37,7 +38,10 @@ export type PlatformMigrationEntry = {
 };
 
 /** oldPlatformId -> oldStopIndex -> new location. */
-export type PlatformMigrationMap = Map<number, Map<number, PlatformMigrationEntry>>;
+export type PlatformMigrationMap = Map<
+    number,
+    Map<number, PlatformMigrationEntry>
+>;
 
 // ---------------------------------------------------------------------------
 // Split helper
@@ -47,24 +51,30 @@ export type PlatformMigrationMap = Map<number, Map<number, PlatformMigrationEntr
  * Compute the midline between two spines by sampling both offset edges and
  * averaging paired points.
  *
+ * The returned polyline runs from spine END back to spine START — matching
+ * the convention used by `_buildSingleSpineStripMesh`, which reverses the
+ * outer-vertex polyline before pairing it with the spine's start-to-end
+ * samples. Storing the midline reversed lets it round-trip through the
+ * same renderer used for user-drawn single-spine platforms.
+ *
  * @param spineA - First spine entries.
  * @param spineB - Second spine entries.
  * @param offset - Lateral offset in world units.
  * @param getCurve - Curve lookup for each segment id.
- * @returns A polyline running between the two spine offset edges. The caller
- *   assigns this to each face's `outerVertices`.
+ * @returns A polyline (in end→start order) suitable for assigning as a
+ *   single-spine platform's `outerVertices`.
  */
 export function computeDualSpineMidline(
     spineA: SerializedSpineEntry[],
     spineB: SerializedSpineEntry[],
     offset: number,
-    getCurve: (segmentId: number) => BCurve,
+    getCurve: (segmentId: number) => BCurve
 ): Point[] {
     const edgeA = sampleSpineEdge(spineA, offset, getCurve);
     const edgeB = sampleSpineEdge(spineB, offset, getCurve);
     const n = Math.min(edgeA.length, edgeB.length);
     const midline: Point[] = [];
-    for (let i = 0; i < n; i++) {
+    for (let i = n - 1; i >= 0; i--) {
         midline.push({
             x: (edgeA[i].x + edgeB[i].x) / 2,
             y: (edgeA[i].y + edgeB[i].y) / 2,
@@ -86,20 +96,24 @@ export function computeDualSpineMidline(
  */
 export function splitLegacyDualSpinePlatform(
     legacy: LegacySerializedTrackAlignedPlatform,
-    getMidline: () => Point[],
+    getMidline: () => Point[]
 ): DualSpineSplitResult {
     if (legacy.spineB === null) {
-        throw new Error(`splitLegacyDualSpinePlatform: legacy.spineB is null for platform ${legacy.id}`);
+        throw new Error(
+            `splitLegacyDualSpinePlatform: legacy.spineB is null for platform ${legacy.id}`
+        );
     }
 
     const midline = getMidline();
 
-    const spineASegmentIds = new Set(legacy.spineA.map((e) => e.trackSegment));
-    const spineBSegmentIds = new Set(legacy.spineB.map((e) => e.trackSegment));
+    const spineASegmentIds = new Set(legacy.spineA.map(e => e.trackSegment));
+    const spineBSegmentIds = new Set(legacy.spineB.map(e => e.trackSegment));
 
     const stopsA: StopPosition[] = [];
     const stopsB: StopPosition[] = [];
-    const stopIndexMap: StopIndexMapEntry[] = new Array(legacy.stopPositions.length);
+    const stopIndexMap: StopIndexMapEntry[] = new Array(
+        legacy.stopPositions.length
+    );
 
     for (let i = 0; i < legacy.stopPositions.length; i++) {
         const stop = legacy.stopPositions[i];
@@ -120,17 +134,17 @@ export function splitLegacyDualSpinePlatform(
 
     const faceA: Omit<TrackAlignedPlatform, 'id'> = {
         stationId: legacy.stationId,
-        spine: legacy.spineA.map((e) => ({ ...e })),
+        spine: legacy.spineA.map(e => ({ ...e })),
         offset: legacy.offset,
-        outerVertices: midline.map((v) => ({ x: v.x, y: v.y })),
+        outerVertices: midline.map(v => ({ x: v.x, y: v.y })),
         stopPositions: stopsA,
     };
 
     const faceB: Omit<TrackAlignedPlatform, 'id'> = {
         stationId: legacy.stationId,
-        spine: legacy.spineB.map((e) => ({ ...e })),
+        spine: legacy.spineB.map(e => ({ ...e })),
         offset: legacy.offset,
-        outerVertices: midline.map((v) => ({ x: v.x, y: v.y })),
+        outerVertices: midline.map(v => ({ x: v.x, y: v.y })),
         stopPositions: stopsB,
     };
 
