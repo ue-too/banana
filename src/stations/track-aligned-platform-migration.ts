@@ -70,8 +70,22 @@ export function computeDualSpineMidline(
     offset: number,
     getCurve: (segmentId: number) => BCurve
 ): Point[] {
-    const edgeA = sampleSpineEdge(spineA, offset, getCurve);
-    const edgeB = sampleSpineEdge(spineB, offset, getCurve);
+    // Use a single shared per-segment step count so both edges sample to
+    // arrays of equal length. Without this, `sampleSpineEdge` chooses the
+    // step count from each curve's own `fullLength`, so two spines with
+    // even slightly-different segment lengths produce mismatched arrays
+    // and `Math.min` truncates the longer one — the midline then ends
+    // short of the spine endpoint, producing a visible notch in the mesh.
+    let maxLength = 0;
+    for (const entry of spineA) {
+        maxLength = Math.max(maxLength, getCurve(entry.trackSegment).fullLength);
+    }
+    for (const entry of spineB) {
+        maxLength = Math.max(maxLength, getCurve(entry.trackSegment).fullLength);
+    }
+    const stepsPerSegment = Math.max(2, Math.ceil(maxLength / 2));
+    const edgeA = sampleSpineEdge(spineA, offset, getCurve, stepsPerSegment);
+    const edgeB = sampleSpineEdge(spineB, offset, getCurve, stepsPerSegment);
     const n = Math.min(edgeA.length, edgeB.length);
     const midline: Point[] = [];
     for (let i = n - 1; i >= 0; i--) {
