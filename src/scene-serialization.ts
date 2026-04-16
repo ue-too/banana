@@ -118,7 +118,7 @@ export async function deserializeSceneData(
     // migration map.
     let platformMigrationMap: PlatformMigrationMap = new Map();
     if (data.trackAlignedPlatforms) {
-        const { manager: restored, migrationMap } =
+        const { manager: restored, migrationMap, splitIds } =
             TrackAlignedPlatformManager.deserializeAny(
                 data.trackAlignedPlatforms,
                 (legacy) =>
@@ -144,6 +144,23 @@ export async function deserializeSceneData(
             const elevation =
                 app.stationManager.getStation(platform.stationId)?.elevation ?? 0;
             app.trackAlignedPlatformRenderSystem.addPlatform(id, elevation);
+        }
+
+        // Rewrite station.trackAlignedPlatforms: replace any old dual-spine
+        // platform ID with the two new face IDs produced by the split.
+        if (splitIds.size > 0) {
+            for (const { station } of app.stationManager.getStations()) {
+                const rewritten: number[] = [];
+                for (const oldId of station.trackAlignedPlatforms) {
+                    const newIds = splitIds.get(oldId);
+                    if (newIds !== undefined) {
+                        rewritten.push(...newIds);
+                    } else {
+                        rewritten.push(oldId);
+                    }
+                }
+                station.trackAlignedPlatforms = rewritten;
+            }
         }
     }
 

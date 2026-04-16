@@ -189,8 +189,9 @@ export class TrackAlignedPlatformManager {
     static deserializeAny(
         data: AnySerializedTrackAlignedPlatformData,
         getMidline: (legacy: LegacySerializedTrackAlignedPlatform) => Point[],
-    ): { manager: TrackAlignedPlatformManager; migrationMap: PlatformMigrationMap } {
+    ): { manager: TrackAlignedPlatformManager; migrationMap: PlatformMigrationMap; splitIds: Map<number, [number, number]> } {
         const migrationMap: PlatformMigrationMap = new Map();
+        const splitIds: Map<number, [number, number]> = new Map();
 
         // Pre-compute the maximum id so assigned new ids do not collide with
         // existing ones.
@@ -240,6 +241,7 @@ export class TrackAlignedPlatformManager {
             const idB = nextId();
             manager._manager.createEntityWithId(idA, { ...faceA, id: idA });
             manager._manager.createEntityWithId(idB, { ...faceB, id: idB });
+            splitIds.set(p.id, [idA, idB]);
 
             const entries = new Map<number, { newPlatformId: number; newStopIndex: number }>();
             for (let i = 0; i < stopIndexMap.length; i++) {
@@ -252,6 +254,6 @@ export class TrackAlignedPlatformManager {
             migrationMap.set(p.id, entries);
         }
 
-        return { manager, migrationMap };
+        return { manager, migrationMap, splitIds };
     }
 }

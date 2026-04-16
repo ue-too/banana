@@ -363,6 +363,45 @@ describe('TrackAlignedPlatformManager', () => {
             expect(entries!.size).toBe(2);
         });
 
+        it('populates splitIds with the two new face IDs for each split dual-spine platform', () => {
+            const legacyData = {
+                platforms: [
+                    {
+                        id: 5,
+                        stationId: 1,
+                        spineA: [{ trackSegment: 10, tStart: 0, tEnd: 1, side: 1 as const }],
+                        spineB: [{ trackSegment: 20, tStart: 0, tEnd: 1, side: -1 as const }],
+                        offset: 2,
+                        outerVertices: {
+                            kind: 'dual' as const,
+                            capA: [{ x: 0, y: 5 }],
+                            capB: [{ x: 10, y: 5 }],
+                        },
+                        stopPositions: [
+                            { trackSegmentId: 10, direction: 'tangent' as const, tValue: 0.5 },
+                        ],
+                    },
+                ],
+            };
+            const { manager, splitIds } = TrackAlignedPlatformManager.deserializeAny(
+                legacyData,
+                () => [{ x: 5, y: 0 }, { x: 5, y: 2.5 }],
+            );
+
+            expect(splitIds.size).toBe(1);
+
+            const newIds = splitIds.get(5);
+            expect(newIds).toBeDefined();
+            expect(newIds).toHaveLength(2);
+
+            const allPlatformIds = manager.getAllPlatforms().map(p => p.id);
+            expect(allPlatformIds).toContain(newIds![0]);
+            expect(allPlatformIds).toContain(newIds![1]);
+            // New IDs must not equal the old ID.
+            expect(newIds![0]).not.toBe(5);
+            expect(newIds![1]).not.toBe(5);
+        });
+
         it('reads the new format unchanged (empty migration map)', () => {
             const newData = {
                 platforms: [
@@ -378,12 +417,13 @@ describe('TrackAlignedPlatformManager', () => {
                     },
                 ],
             };
-            const { manager, migrationMap } = TrackAlignedPlatformManager.deserializeAny(
+            const { manager, migrationMap, splitIds } = TrackAlignedPlatformManager.deserializeAny(
                 newData,
                 () => [],
             );
             expect(manager.getAllPlatforms()).toHaveLength(1);
             expect(migrationMap.size).toBe(0);
+            expect(splitIds.size).toBe(0);
         });
 
         it('reads a legacy single-spine platform and preserves its id', () => {
