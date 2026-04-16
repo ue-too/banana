@@ -425,16 +425,19 @@ export class AutoDriver {
     if (nextStopIndex >= shift.stops.length) return null;
 
     const nextScheduledStop = shift.stops[nextStopIndex];
-    const station = stationManager.getStation(nextScheduledStop.stationId);
-    if (station === null) return null;
 
     let stopPos: StopPosition | undefined;
 
     if (nextScheduledStop.platformKind === 'trackAligned') {
       const tap = trackAlignedPlatformManager?.getPlatform(nextScheduledStop.platformId);
       const id = nextScheduledStop.stopPositionId;
+      // A stopPositionId of -1 (broken reference, e.g. after a deletion) won't
+      // match any stop and `find` returns undefined → `stopPos` stays undefined →
+      // we return null below, holding the train.
       stopPos = tap?.stopPositions.find((s) => s.id === id);
     } else {
+      const station = stationManager.getStation(nextScheduledStop.stationId);
+      if (station === null) return null;
       const platform = station.platforms.find(
         (p) => p.id === nextScheduledStop.platformId,
       );

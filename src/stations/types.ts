@@ -50,7 +50,13 @@ export type Station = {
 // Serialization
 // ---------------------------------------------------------------------------
 
-export type SerializedStopPosition = StopPosition;
+export type SerializedStopPosition = {
+  /** Optional — older saves predate the id field; deserialize back-fills it. */
+  id?: number;
+  trackSegmentId: number;
+  direction: TrackDirection;
+  tValue: number;
+};
 
 export type SerializedPlatform = {
   id: number;
