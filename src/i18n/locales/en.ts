@@ -286,6 +286,21 @@ const en = {
         departureTime: 'Dep HH:MM',
         platformPlaceholder: 'Platform...',
         stopPositionPlaceholder: 'Stop position...',
+
+        // Platform Editor Panel
+        platformEditor: 'Platform Editor',
+        stopPositions: 'Stop Positions',
+        addStopPosition: '+ Stop',
+        deleteStopPosition: 'Delete',
+        directionTangent: '→',
+        directionReverseTangent: '←',
+        position: 'Position',
+        noStopPositions: 'No stop positions',
+        confirmDeleteStopTitle: 'Delete stop position?',
+        confirmDeleteStopMessage:
+            'This stop is referenced by {{count}} shift(s): {{shifts}}. Removing it will leave those shifts with a broken reference.',
+        confirmDeleteStopConfirm: 'Delete anyway',
+        confirmDeleteStopCancel: 'Cancel',
         routePlaceholder: 'Route...',
         addStop: '+ Stop',
         assignments: 'Assignments',

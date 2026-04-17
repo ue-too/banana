@@ -276,6 +276,21 @@ const zhTW = {
         departureTime: '發 HH:MM',
         platformPlaceholder: '月台...',
         stopPositionPlaceholder: '停車位置...',
+
+        // Platform Editor Panel
+        platformEditor: '月台編輯',
+        stopPositions: '停車位置',
+        addStopPosition: '+ 停車位置',
+        deleteStopPosition: '刪除',
+        directionTangent: '→',
+        directionReverseTangent: '←',
+        position: '位置',
+        noStopPositions: '沒有停車位置',
+        confirmDeleteStopTitle: '刪除停車位置？',
+        confirmDeleteStopMessage:
+            '此停車位置被 {{count}} 個班次引用：{{shifts}}。刪除後會使這些班次的引用失效。',
+        confirmDeleteStopConfirm: '仍然刪除',
+        confirmDeleteStopCancel: '取消',
         routePlaceholder: '路線...',
         addStop: '+ 停靠站',
         assignments: '指派',

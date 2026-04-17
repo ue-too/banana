@@ -29,6 +29,8 @@ type StationListPanelProps = {
     onAddSingleSpinePlatform?: (stationId: number) => void;
     /** Activate dual-spine platform tool for the given station. */
     onAddDualSpinePlatform?: (stationId: number) => void;
+    /** Open the platform editor for a specific platform. */
+    onEditPlatform?: (stationId: number, platformId: number, platformKind: 'island' | 'trackAligned') => void;
 };
 
 /**
@@ -165,6 +167,7 @@ export function StationListPanel({
     onStationChange,
     onAddSingleSpinePlatform,
     onAddDualSpinePlatform,
+    onEditPlatform,
 }: StationListPanelProps) {
     const { t } = useTranslation();
     const stations = stationManager.getStations();
@@ -369,6 +372,36 @@ export function StationListPanel({
                                     {t('addDualSpinePlatform')}
                                 </Button>
                             </div>
+                            {/* Platform chips — click to edit */}
+                            {(station.platforms.length > 0 ||
+                                station.trackAlignedPlatforms.length > 0) && (
+                                <div className="mt-1 flex flex-wrap gap-0.5">
+                                    {station.platforms.map((p) => (
+                                        <button
+                                            key={`island-${p.id}`}
+                                            type="button"
+                                            className="bg-muted hover:bg-foreground/20 rounded px-1.5 py-0.5 text-[10px] font-medium transition-colors"
+                                            onClick={() =>
+                                                onEditPlatform?.(id, p.id, 'island')
+                                            }
+                                        >
+                                            P{p.id}
+                                        </button>
+                                    ))}
+                                    {station.trackAlignedPlatforms.map((tapId) => (
+                                        <button
+                                            key={`ta-${tapId}`}
+                                            type="button"
+                                            className="bg-muted hover:bg-foreground/20 rounded px-1.5 py-0.5 text-[10px] font-medium transition-colors"
+                                            onClick={() =>
+                                                onEditPlatform?.(id, tapId, 'trackAligned')
+                                            }
+                                        >
+                                            T{tapId}
+                                        </button>
+                                    ))}
+                                </div>
+                            )}
                         </div>
                         );
                     })
