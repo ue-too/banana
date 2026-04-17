@@ -866,18 +866,21 @@ export const initApp = async (
         platformBufferStore.destroyPlatform(handle);
     });
 
-    stationPresenceDetector.subscribe(event => {
-        if (event.type === 'arrived') {
-            const handle: PlatformHandle = {
-                kind: event.presence.platformKind,
-                stationId: event.presence.stationId,
-                platformId: event.presence.platformId,
-            };
-            transferManager.begin(event.trainId, handle);
-        } else {
-            transferManager.end(event.trainId);
+    const unsubscribeResourceTransfer = stationPresenceDetector.subscribe(
+        event => {
+            if (event.type === 'arrived') {
+                const handle: PlatformHandle = {
+                    kind: event.presence.platformKind,
+                    stationId: event.presence.stationId,
+                    platformId: event.presence.platformId,
+                };
+                transferManager.begin(event.trainId, handle);
+            } else {
+                transferManager.end(event.trainId);
+            }
         }
-    });
+    );
+    baseComponents.cleanups.push(() => unsubscribeResourceTransfer());
     trainRenderSystem.setTransferManager(transferManager);
     trainRenderSystem.setSourceSinkTicker(sourceSinkTicker);
 
