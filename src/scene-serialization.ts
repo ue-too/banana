@@ -1,9 +1,11 @@
+import type { SerializedPlatformBufferStore } from '@/resources';
+import type { ResourceCounts } from '@/resources';
 import type { SerializedSignalData } from '@/signals/types';
 import { StationManager } from '@/stations/station-manager';
 import { TrackAlignedPlatformManager } from '@/stations/track-aligned-platform-manager';
 import {
-    computeDualSpineMidline,
     type PlatformMigrationMap,
+    computeDualSpineMidline,
 } from '@/stations/track-aligned-platform-migration';
 import type { SerializedTrackAlignedPlatformData } from '@/stations/track-aligned-platform-types';
 import type { SerializedStationData } from '@/stations/types';
@@ -29,6 +31,18 @@ import {
 import { clearShadowCache } from '@/utils';
 import type { BananaAppComponents } from '@/utils/init-app';
 
+export type SerializedCarCargo = {
+    carId: string;
+    capacity: number;
+    contents: ResourceCounts;
+};
+
+export type SerializedResourcesV1 = {
+    version: 1;
+    buffers: SerializedPlatformBufferStore;
+    carCargo: SerializedCarCargo[];
+};
+
 export type SerializedSceneData = {
     tracks: SerializedTrackData;
     trains: SerializedTrainData;
@@ -39,11 +53,17 @@ export type SerializedSceneData = {
     time?: number;
     trackAlignedPlatforms?: SerializedTrackAlignedPlatformData;
     jointDirectionPreferences?: SerializedJointDirectionPreference[];
+    resources?: SerializedResourcesV1;
 };
 
 export function serializeSceneData(
     app: BananaAppComponents
 ): SerializedSceneData {
+    const resources: SerializedResourcesV1 = {
+        version: 1,
+        buffers: app.platformBufferStore.serialize(),
+        carCargo: app.carCargoStore.serialize(),
+    };
     return {
         tracks: app.curveEngine.trackGraph.serialize(),
         trains: serializeTrainData(
@@ -58,6 +78,7 @@ export function serializeSceneData(
         time: app.timeManager.currentTime,
         trackAlignedPlatforms: app.trackAlignedPlatformManager.serialize(),
         jointDirectionPreferences: app.jointDirectionPreferenceMap.serialize(),
+        resources,
     };
 }
 
@@ -118,31 +139,43 @@ export async function deserializeSceneData(
     // migration map.
     let platformMigrationMap: PlatformMigrationMap = new Map();
     if (data.trackAlignedPlatforms) {
-        const { manager: restored, migrationMap, splitIds } =
-            TrackAlignedPlatformManager.deserializeAny(
-                data.trackAlignedPlatforms,
-                (legacy) =>
-                    computeDualSpineMidline(
-                        legacy.spineA,
-                        legacy.spineB!,
-                        legacy.offset,
-                        (segmentId) => {
-                            const curve = app.curveEngine.trackGraph.getTrackSegmentCurve(segmentId);
-                            if (curve === null) throw new Error(`Missing curve for segment ${segmentId}`);
-                            return curve;
-                        },
-                    ),
-            );
+        const {
+            manager: restored,
+            migrationMap,
+            splitIds,
+        } = TrackAlignedPlatformManager.deserializeAny(
+            data.trackAlignedPlatforms,
+            legacy =>
+                computeDualSpineMidline(
+                    legacy.spineA,
+                    legacy.spineB!,
+                    legacy.offset,
+                    segmentId => {
+                        const curve =
+                            app.curveEngine.trackGraph.getTrackSegmentCurve(
+                                segmentId
+                            );
+                        if (curve === null)
+                            throw new Error(
+                                `Missing curve for segment ${segmentId}`
+                            );
+                        return curve;
+                    }
+                )
+        );
         platformMigrationMap = migrationMap;
 
-        for (const { id } of app.trackAlignedPlatformManager.getAllPlatforms()) {
+        for (const {
+            id,
+        } of app.trackAlignedPlatformManager.getAllPlatforms()) {
             app.trackAlignedPlatformRenderSystem.removePlatform(id);
             app.trackAlignedPlatformManager.destroyPlatform(id);
         }
         for (const { id, platform } of restored.getAllPlatforms()) {
             app.trackAlignedPlatformManager.createPlatformWithId(id, platform);
             const elevation =
-                app.stationManager.getStation(platform.stationId)?.elevation ?? 0;
+                app.stationManager.getStation(platform.stationId)?.elevation ??
+                0;
             app.trackAlignedPlatformRenderSystem.addPlatform(id, elevation);
         }
 
@@ -174,9 +207,10 @@ export async function deserializeSceneData(
             app.stationManager,
             app.trackAlignedPlatformManager,
             app.signalStateEngine,
-            platformMigrationMap,
+            platformMigrationMap
         );
-        (app as { timetableManager: TimetableManager }).timetableManager = restored;
+        (app as { timetableManager: TimetableManager }).timetableManager =
+            restored;
         app.timetableRef.current = restored;
     }
 
@@ -199,6 +233,21 @@ export async function deserializeSceneData(
                 );
             }
         }
+    }
+
+    // Hydrate resource stores last (depends on hydrated platforms/stations).
+    if (data.resources) {
+        app.platformBufferStore.hydrate(data.resources.buffers);
+        app.carCargoStore.hydrate(data.resources.carCargo);
+    } else {
+        // Old scene with no resource block — clear defaults to avoid leaking state
+        // from a previous load.
+        app.platformBufferStore.hydrate({
+            configs: [],
+            privateBuffers: [],
+            sharedBuffers: [],
+        });
+        app.carCargoStore.hydrate([]);
     }
 }
 
