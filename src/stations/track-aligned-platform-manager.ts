@@ -5,8 +5,15 @@ import {
 } from '@ue-too/board';
 import type { Point } from '@ue-too/math';
 
+import type { ShiftTemplateManager } from '@/timetable/shift-template-manager';
+import type { ShiftTemplate } from '@/timetable/types';
 import { GenericEntityManager } from '@/utils';
 
+import { nextStopPositionId } from './stop-position-utils';
+import {
+    type PlatformMigrationMap,
+    splitLegacyDualSpinePlatform,
+} from './track-aligned-platform-migration';
 import type {
     AnySerializedTrackAlignedPlatformData,
     LegacySerializedTrackAlignedPlatform,
@@ -15,23 +22,30 @@ import type {
     TrackAlignedPlatform,
 } from './track-aligned-platform-types';
 import { isLegacySerializedPlatform } from './track-aligned-platform-types';
-import {
-    splitLegacyDualSpinePlatform,
-    type PlatformMigrationMap,
-} from './track-aligned-platform-migration';
-import { nextStopPositionId } from './stop-position-utils';
 import type { TrackDirection } from './types';
-import type { ShiftTemplateManager } from '@/timetable/shift-template-manager';
-import type { ShiftTemplate } from '@/timetable/types';
 
 export class TrackAlignedPlatformManager {
     private _manager: GenericEntityManager<TrackAlignedPlatform>;
     private _changeObservable: Observable<[]> = new SynchronousObservable<[]>();
+    private _onBeforeDestroy:
+        | ((id: number, platform: TrackAlignedPlatform) => void)
+        | null = null;
 
     constructor(initialCount = 10) {
         this._manager = new GenericEntityManager<TrackAlignedPlatform>(
             initialCount
         );
+    }
+
+    /**
+     * Register a callback that runs before a platform is destroyed.
+     * The platform entity is still alive when the callback fires, so callers
+     * can safely read `platform.stationId` to build a `PlatformHandle`.
+     */
+    setOnBeforeDestroy(
+        cb: (id: number, platform: TrackAlignedPlatform) => void
+    ): void {
+        this._onBeforeDestroy = cb;
     }
 
     /** Subscribe to notifications when platforms are created or destroyed. */
@@ -76,6 +90,10 @@ export class TrackAlignedPlatformManager {
     }
 
     destroyPlatform(id: number): void {
+        const platform = this._manager.getEntity(id);
+        if (platform && this._onBeforeDestroy) {
+            this._onBeforeDestroy(id, platform);
+        }
         this._manager.destroyEntity(id);
         this._changeObservable.notify();
     }
@@ -84,9 +102,12 @@ export class TrackAlignedPlatformManager {
         const toDestroy = this._manager
             .getLivingEntitiesWithIndex()
             .filter(({ entity }) => entity.stationId === stationId)
-            .map(({ index }) => index);
-        for (const id of toDestroy) {
-            this._manager.destroyEntity(id);
+            .map(({ index, entity }) => ({ index, entity }));
+        for (const { index, entity } of toDestroy) {
+            if (this._onBeforeDestroy) {
+                this._onBeforeDestroy(index, entity);
+            }
+            this._manager.destroyEntity(index);
         }
         if (toDestroy.length > 0) this._changeObservable.notify();
     }
@@ -126,7 +147,11 @@ export class TrackAlignedPlatformManager {
 
     addStopPosition(
         platformId: number,
-        input: { trackSegmentId: number; direction: TrackDirection; tValue: number },
+        input: {
+            trackSegmentId: number;
+            direction: TrackDirection;
+            tValue: number;
+        }
     ): number {
         const platform = this._getPlatformOrThrow(platformId);
         this._validateStop(platform, input);
@@ -139,13 +164,17 @@ export class TrackAlignedPlatformManager {
     updateStopPosition(
         platformId: number,
         stopId: number,
-        patch: { trackSegmentId?: number; direction?: TrackDirection; tValue?: number },
+        patch: {
+            trackSegmentId?: number;
+            direction?: TrackDirection;
+            tValue?: number;
+        }
     ): void {
         const platform = this._getPlatformOrThrow(platformId);
-        const stop = platform.stopPositions.find((s) => s.id === stopId);
+        const stop = platform.stopPositions.find(s => s.id === stopId);
         if (!stop) {
             throw new Error(
-                `TrackAlignedPlatformManager.updateStopPosition: stop ${stopId} not found on platform ${platformId}`,
+                `TrackAlignedPlatformManager.updateStopPosition: stop ${stopId} not found on platform ${platformId}`
             );
         }
         const next = {
@@ -163,7 +192,9 @@ export class TrackAlignedPlatformManager {
     removeStopPosition(platformId: number, stopId: number): void {
         const platform = this._getPlatformOrThrow(platformId);
         const before = platform.stopPositions.length;
-        platform.stopPositions = platform.stopPositions.filter((s) => s.id !== stopId);
+        platform.stopPositions = platform.stopPositions.filter(
+            s => s.id !== stopId
+        );
         if (platform.stopPositions.length !== before) {
             this._changeObservable.notify();
         }
@@ -173,7 +204,7 @@ export class TrackAlignedPlatformManager {
         const platform = this._manager.getEntity(platformId);
         if (!platform) {
             throw new Error(
-                `TrackAlignedPlatformManager: platform ${platformId} not found`,
+                `TrackAlignedPlatformManager: platform ${platformId} not found`
             );
         }
         return platform;
@@ -181,19 +212,21 @@ export class TrackAlignedPlatformManager {
 
     private _validateStop(
         platform: TrackAlignedPlatform,
-        input: { trackSegmentId: number; tValue: number },
+        input: { trackSegmentId: number; tValue: number }
     ): void {
-        const entry = platform.spine.find((e) => e.trackSegment === input.trackSegmentId);
+        const entry = platform.spine.find(
+            e => e.trackSegment === input.trackSegmentId
+        );
         if (!entry) {
             throw new Error(
-                `TrackAlignedPlatformManager: trackSegmentId ${input.trackSegmentId} is not on platform ${platform.id}`,
+                `TrackAlignedPlatformManager: trackSegmentId ${input.trackSegmentId} is not on platform ${platform.id}`
             );
         }
         const lo = Math.min(entry.tStart, entry.tEnd);
         const hi = Math.max(entry.tStart, entry.tEnd);
         if (input.tValue < lo || input.tValue > hi) {
             throw new Error(
-                `TrackAlignedPlatformManager: tValue ${input.tValue} is outside spine entry range [${lo}, ${hi}] for segment ${input.trackSegmentId}`,
+                `TrackAlignedPlatformManager: tValue ${input.tValue} is outside spine entry range [${lo}, ${hi}] for segment ${input.trackSegmentId}`
             );
         }
     }
@@ -201,7 +234,7 @@ export class TrackAlignedPlatformManager {
     findShiftsReferencingStopPosition(
         platformId: number,
         stopPositionId: number,
-        shiftTemplateManager: ShiftTemplateManager,
+        shiftTemplateManager: ShiftTemplateManager
     ): ShiftTemplate[] {
         const result: ShiftTemplate[] = [];
         for (const template of shiftTemplateManager.getAllTemplates()) {
@@ -296,15 +329,21 @@ export class TrackAlignedPlatformManager {
      */
     static deserializeAny(
         data: AnySerializedTrackAlignedPlatformData,
-        getMidline: (legacy: LegacySerializedTrackAlignedPlatform) => Point[],
-    ): { manager: TrackAlignedPlatformManager; migrationMap: PlatformMigrationMap; splitIds: Map<number, [number, number]> } {
+        getMidline: (legacy: LegacySerializedTrackAlignedPlatform) => Point[]
+    ): {
+        manager: TrackAlignedPlatformManager;
+        migrationMap: PlatformMigrationMap;
+        splitIds: Map<number, [number, number]>;
+    } {
         const migrationMap: PlatformMigrationMap = new Map();
         const splitIds: Map<number, [number, number]> = new Map();
 
         // Pre-compute the maximum id so assigned new ids do not collide with
         // existing ones.
         let maxId = data.platforms.reduce((max, p) => Math.max(max, p.id), -1);
-        const manager = new TrackAlignedPlatformManager(Math.max(maxId + 1, 10));
+        const manager = new TrackAlignedPlatformManager(
+            Math.max(maxId + 1, 10)
+        );
 
         const nextId = () => ++maxId;
 
@@ -316,7 +355,10 @@ export class TrackAlignedPlatformManager {
                     stationId: p.stationId,
                     spine: p.spine.map(e => ({ ...e })),
                     offset: p.offset,
-                    outerVertices: p.outerVertices.map(v => ({ x: v.x, y: v.y })),
+                    outerVertices: p.outerVertices.map(v => ({
+                        x: v.x,
+                        y: v.y,
+                    })),
                     stopPositions: p.stopPositions.map((sp, i) => ({
                         id: typeof sp.id === 'number' ? sp.id : i,
                         trackSegmentId: sp.trackSegmentId,
@@ -332,7 +374,10 @@ export class TrackAlignedPlatformManager {
                 // Legacy single-spine: flatten outerVertices and keep the id.
                 const verts =
                     p.outerVertices.kind === 'single'
-                        ? p.outerVertices.vertices.map(v => ({ x: v.x, y: v.y }))
+                        ? p.outerVertices.vertices.map(v => ({
+                              x: v.x,
+                              y: v.y,
+                          }))
                         : [];
                 manager._manager.createEntityWithId(p.id, {
                     id: p.id,
@@ -353,7 +398,7 @@ export class TrackAlignedPlatformManager {
             // Legacy dual-spine: split into two platforms.
             const { faceA, faceB, stopIndexMap } = splitLegacyDualSpinePlatform(
                 p,
-                () => getMidline(p),
+                () => getMidline(p)
             );
             const idA = nextId();
             const idB = nextId();
@@ -361,7 +406,14 @@ export class TrackAlignedPlatformManager {
             manager._manager.createEntityWithId(idB, { ...faceB, id: idB });
             splitIds.set(p.id, [idA, idB]);
 
-            const entries = new Map<number, { newPlatformId: number; newStopIndex: number; newStopId: number }>();
+            const entries = new Map<
+                number,
+                {
+                    newPlatformId: number;
+                    newStopIndex: number;
+                    newStopId: number;
+                }
+            >();
             for (let i = 0; i < stopIndexMap.length; i++) {
                 const mapEntry = stopIndexMap[i];
                 entries.set(i, {

@@ -673,15 +673,6 @@ export const initApp = async (
         );
     });
 
-    stationManager.setOnDestroyStation(stationId => {
-        const platforms =
-            trackAlignedPlatformManager.getPlatformsByStation(stationId);
-        for (const { id } of platforms) {
-            trackAlignedPlatformRenderSystem.removePlatform(id);
-            trackAlignedPlatformManager.destroyPlatform(id);
-        }
-    });
-
     const trainManager = new TrainManager();
     const carStockManager = new CarStockManager();
     const formationManager = new FormationManager(carStockManager);
@@ -834,6 +825,46 @@ export const initApp = async (
         getSimTime: () => timeManager.currentTime / 1000,
     });
     const sourceSinkTicker = new SourceSinkTicker(platformBufferStore);
+
+    // Platform/station destruction → resource cleanup.
+    // Must be registered after platformBufferStore and transferManager exist.
+    stationManager.setOnDestroyStation(stationId => {
+        const station = stationManager.getStation(stationId);
+        if (station) {
+            // Island platforms belong directly to the station entity.
+            for (const platform of station.platforms) {
+                const handle: PlatformHandle = {
+                    kind: 'island',
+                    stationId,
+                    platformId: platform.id,
+                };
+                transferManager.endAllAtPlatform(handle);
+                platformBufferStore.destroyPlatform(handle);
+            }
+            // Track-aligned platform IDs are listed in station.trackAlignedPlatforms;
+            // the actual entities are still alive here because destroyPlatform on
+            // trackAlignedPlatformManager fires _onBeforeDestroy first, which
+            // will handle resource cleanup. We only need the render removal +
+            // entity destruction here.
+        }
+        const tapPlatforms =
+            trackAlignedPlatformManager.getPlatformsByStation(stationId);
+        for (const { id } of tapPlatforms) {
+            trackAlignedPlatformRenderSystem.removePlatform(id);
+            trackAlignedPlatformManager.destroyPlatform(id);
+        }
+    });
+
+    // Track-aligned platform destroyed individually (not via station cascade).
+    trackAlignedPlatformManager.setOnBeforeDestroy((id, platform) => {
+        const handle: PlatformHandle = {
+            kind: 'trackAligned',
+            stationId: platform.stationId,
+            platformId: id,
+        };
+        transferManager.endAllAtPlatform(handle);
+        platformBufferStore.destroyPlatform(handle);
+    });
 
     stationPresenceDetector.subscribe(event => {
         if (event.type === 'arrived') {

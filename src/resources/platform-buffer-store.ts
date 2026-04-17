@@ -106,6 +106,15 @@ export class PlatformBufferStore {
         return actual;
     }
 
+    destroyPlatform(handle: PlatformHandle): void {
+        const key = encodePlatformKey(handle);
+        this._configs.delete(key);
+        this._privateBuffers.delete(key);
+        this._knownHandles.delete(key);
+        // Intentionally does NOT touch _sharedBuffers (keyed by stationId) —
+        // a single platform going away shouldn't empty the station's shared pool.
+    }
+
     getAllConfiguredPlatforms(): readonly PlatformHandle[] {
         // Include platforms that have had any mutation (config OR buffer).
         const out: PlatformHandle[] = [];

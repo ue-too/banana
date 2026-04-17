@@ -235,6 +235,10 @@ export async function deserializeSceneData(
         }
     }
 
+    // Clear any in-flight transfers before hydrating — stale TransferManager
+    // state from a previous scene load must not bleed into the freshly-loaded one.
+    app.transferManager.clear();
+
     // Hydrate resource stores last (depends on hydrated platforms/stations).
     if (data.resources) {
         app.platformBufferStore.hydrate(data.resources.buffers);

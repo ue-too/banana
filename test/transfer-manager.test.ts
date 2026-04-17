@@ -169,4 +169,12 @@ describe('TransferManager', () => {
         manager.update(1);
         expect(manager.getTransfer(1)).toBeNull();
     });
+
+    it('clear() empties _active', () => {
+        const { manager } = makeDeps(['car-0']);
+        manager.begin(1, platform);
+        expect(manager.getTransfer(1)).not.toBeNull();
+        manager.clear();
+        expect(manager.getTransfer(1)).toBeNull();
+    });
 });

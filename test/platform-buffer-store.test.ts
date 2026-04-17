@@ -147,4 +147,29 @@ describe('PlatformBufferStore', () => {
         }
         expect(store.getEffectiveBuffer(pA)).toEqual({ goods: 5 });
     });
+
+    it('destroyPlatform purges config, private buffer, and known-handle for the key', () => {
+        const store = new PlatformBufferStore();
+        store.setBufferMode(pA, 'private');
+        store.setRole(pA, 'goods', 'source');
+        store.add(pA, 'goods', 10);
+        store.destroyPlatform(pA);
+
+        // No spurious entries after destruction.
+        expect(store.serialize().configs).toEqual([]);
+        expect(store.serialize().privateBuffers).toEqual([]);
+        expect(store.getAllConfiguredPlatforms()).toEqual([]);
+        // Role query for a destroyed platform returns the default.
+        expect(store.getRole(pA, 'goods')).toBe('neither');
+    });
+
+    it('destroyPlatform does NOT purge the station-shared buffer', () => {
+        const store = new PlatformBufferStore();
+        store.setBufferMode(pA, 'sharedWithStation');
+        store.setBufferMode(pB, 'sharedWithStation'); // same station
+        store.add(pA, 'goods', 5);
+        store.destroyPlatform(pA);
+        // pB (still alive, same station) should still see the shared pool.
+        expect(store.getEffectiveBuffer(pB)).toEqual({ goods: 5 });
+    });
 });

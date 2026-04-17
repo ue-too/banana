@@ -56,6 +56,10 @@ export class TransferManager {
         }
     }
 
+    clear(): void {
+        this._active.clear();
+    }
+
     getTransfer(trainId: number): TransferState | null {
         return this._active.get(trainId) ?? null;
     }
