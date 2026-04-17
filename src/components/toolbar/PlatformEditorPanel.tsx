@@ -154,6 +154,7 @@ function PlatformResourcesSection({
                         </span>
                         <select
                             className="bg-background rounded border px-1 py-0.5"
+                            aria-label={`${t('panel.platform.resources.role')} — ${t(rt.displayNameKey)}`}
                             value={store.getRole(handle, rt.id)}
                             onChange={e => {
                                 store.setRole(
