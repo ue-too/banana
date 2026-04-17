@@ -114,4 +114,27 @@ describe('PlatformBufferStore', () => {
         expect(store.remove(pA, 'goods', Number.NaN)).toBe(0);
         expect(store.getEffectiveBuffer(pA)).toEqual({ goods: 5 });
     });
+
+    it('getEffectiveBuffer does not pollute internal state on read', () => {
+        const store = new PlatformBufferStore();
+        store.getEffectiveBuffer(pA); // pure read
+        // Nothing was configured, nothing was added — serialize should be empty.
+        const snap = store.serialize();
+        expect(snap.configs).toEqual([]);
+        expect(snap.privateBuffers).toEqual([]);
+        expect(snap.sharedBuffers).toEqual([]);
+        expect(store.getAllConfiguredPlatforms()).toEqual([]);
+    });
+
+    it('getEffectiveBuffer returns a frozen snapshot', () => {
+        const store = new PlatformBufferStore();
+        store.add(pA, 'goods', 5);
+        const buf = store.getEffectiveBuffer(pA) as any;
+        expect(Object.isFrozen(buf)).toBe(true);
+        // Mutation attempts on the snapshot must not affect store state.
+        try {
+            buf['goods'] = 999;
+        } catch { /* strict mode throws, non-strict silently ignores */ }
+        expect(store.getEffectiveBuffer(pA)).toEqual({ goods: 5 });
+    });
 });

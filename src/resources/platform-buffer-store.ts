@@ -76,7 +76,7 @@ export class PlatformBufferStore {
     }
 
     getEffectiveBuffer(handle: PlatformHandle): Readonly<Buffer> {
-        return this._resolveBuffer(handle);
+        return Object.freeze({ ...this._resolveBuffer(handle, false) });
     }
 
     add(handle: PlatformHandle, type: ResourceTypeId, amount: number): number {
@@ -151,7 +151,6 @@ export class PlatformBufferStore {
 
     private _resolveBuffer(handle: PlatformHandle, createIfMissing = true): Buffer {
         const key = encodePlatformKey(handle);
-        this._knownHandles.set(key, handle);
         const config = this._configs.get(key);
         if (config?.bufferMode === 'sharedWithStation') {
             let buf = this._sharedBuffers.get(handle.stationId);
@@ -160,6 +159,7 @@ export class PlatformBufferStore {
                 buf = {};
                 this._sharedBuffers.set(handle.stationId, buf);
             }
+            this._knownHandles.set(key, handle);
             return buf;
         }
         let buf = this._privateBuffers.get(key);
@@ -168,6 +168,7 @@ export class PlatformBufferStore {
             buf = {};
             this._privateBuffers.set(key, buf);
         }
+        this._knownHandles.set(key, handle);
         return buf;
     }
 
