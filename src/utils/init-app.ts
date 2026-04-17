@@ -847,6 +847,8 @@ export const initApp = async (
             transferManager.end(event.trainId);
         }
     });
+    trainRenderSystem.setTransferManager(transferManager);
+    trainRenderSystem.setSourceSinkTicker(sourceSinkTicker);
 
     // Collision prevention system
     const crossingMap = new CrossingMap();
