@@ -1,4 +1,5 @@
 import { Observable, SynchronousObservable } from '@ue-too/board';
+
 import { Car, type CarType, generateCarId } from './cars';
 
 export type CarStockEntry = { id: string; car: Car };
@@ -16,6 +17,7 @@ export class CarStockManager {
     private _observable: Observable<[string, { type: CarStockChangeType }]> =
         new SynchronousObservable<[string, { type: CarStockChangeType }]>();
     private _snapshot: readonly CarStockEntry[] = [];
+    private _onBeforeRemove: ((car: Car) => void) | null = null;
 
     /** All cars currently in stock. */
     getAvailableCars(): readonly CarStockEntry[] {
@@ -39,8 +41,20 @@ export class CarStockManager {
     }
 
     /** Create a new car with default parameters and add it to stock. */
-    createCar(bogieOffsets: number[] = [20], edgeToBogie: number = 2.5, bogieToEdge: number = 2.5, type?: CarType): Car {
-        const car = new Car(generateCarId(), bogieOffsets, edgeToBogie, bogieToEdge, undefined, type);
+    createCar(
+        bogieOffsets: number[] = [20],
+        edgeToBogie: number = 2.5,
+        bogieToEdge: number = 2.5,
+        type?: CarType
+    ): Car {
+        const car = new Car(
+            generateCarId(),
+            bogieOffsets,
+            edgeToBogie,
+            bogieToEdge,
+            undefined,
+            type
+        );
         this.addCar(car);
         return car;
     }
@@ -57,12 +71,22 @@ export class CarStockManager {
     }
 
     /**
+     * Register a callback fired just before any car is removed from stock.
+     * Use this to clean up external stores keyed by car ID (e.g. CarCargoStore).
+     * The callback receives the car being removed.
+     */
+    setOnBeforeRemove(cb: (car: Car) => void): void {
+        this._onBeforeRemove = cb;
+    }
+
+    /**
      * Remove a car from stock (e.g. when assigning to a formation).
      * Returns the removed car, or null if not found.
      */
     removeCar(id: string): Car | null {
         const car = this._cars.get(id);
         if (car === undefined) return null;
+        this._onBeforeRemove?.(car);
         this._cars.delete(id);
         this._observable.notify(id, { type: 'remove' });
         this._notify();
@@ -106,12 +130,17 @@ export class CarStockManager {
     }
 
     /** Subscribe to typed change events. Returns unsubscribe function. */
-    subscribeToChanges(listener: (id: string, type: CarStockChangeType) => void): () => void {
+    subscribeToChanges(
+        listener: (id: string, type: CarStockChangeType) => void
+    ): () => void {
         return this._observable.subscribe((id, { type }) => listener(id, type));
     }
 
     private _notify(): void {
-        this._snapshot = Array.from(this._cars.entries()).map(([id, car]) => ({ id, car }));
+        this._snapshot = Array.from(this._cars.entries()).map(([id, car]) => ({
+            id,
+            car,
+        }));
         for (const fn of this._listeners) fn();
     }
 }

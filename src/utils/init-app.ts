@@ -950,6 +950,12 @@ export const initApp = async (
         }
     });
 
+    // When a car is permanently removed from stock (deleted from the depot),
+    // purge its cargo store entry to prevent a slow memory leak.
+    carStockManager.setOnBeforeRemove(car => {
+        carCargoStore.destroyCar(car.id);
+    });
+
     const kmtInputStateMachine = createKmtInputStateMachineExpansion(
         layoutSubStateMachine,
         trainStateMachine,
