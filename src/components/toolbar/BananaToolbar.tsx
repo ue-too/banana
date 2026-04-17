@@ -1274,6 +1274,8 @@ export function BananaToolbar({
                         camera={app.camera}
                         stationPresenceDetector={app.stationPresenceDetector}
                         stationManager={app.stationManager}
+                        carCargoStore={app.carCargoStore}
+                        transferManager={app.transferManager}
                         onClose={() => setPanel('trainPanel', false)}
                     />
                 )}
