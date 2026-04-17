@@ -101,14 +101,16 @@ export class TransferManager {
     private _unloadCar(
         carId: string,
         platform: PlatformHandle,
-        bufferSnapshot: Readonly<Buffer>,
+        _bufferSnapshot: Readonly<Buffer>,
         budget: number
     ): number {
         const cargo = this._deps.carCargoStore.getCargo(carId);
         for (const type of Object.keys(cargo.contents) as ResourceTypeId[]) {
             if (budget <= 0) break;
-            // Skip types the platform already supplies — avoids an unload/reload cycle.
-            if ((bufferSnapshot[type] ?? 0) > 0) continue;
+            // Only unload types this platform is a SINK for (or neutral).
+            // Skip types the platform SOURCES — those belong at the source.
+            const role = this._deps.platformBufferStore.getRole(platform, type);
+            if (role === 'source') continue;
             const have = cargo.contents[type] ?? 0;
             if (have <= 0) continue;
             const amount = Math.min(have, budget);
@@ -131,6 +133,11 @@ export class TransferManager {
     ): number {
         for (const type of Object.keys(bufferSnapshot) as ResourceTypeId[]) {
             if (budget <= 0) break;
+            // Only load types this platform SOURCES (or neutral).
+            // Skip types the platform is a SINK for — those are being drained here,
+            // not supplied.
+            const role = this._deps.platformBufferStore.getRole(platform, type);
+            if (role === 'sink') continue;
             const available = bufferSnapshot[type] ?? 0;
             if (available <= 0) continue;
             const wanted = Math.min(available, budget);

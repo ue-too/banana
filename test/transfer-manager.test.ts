@@ -143,6 +143,8 @@ describe('TransferManager', () => {
 
     it('respects car capacity across multiple cars (no overflow)', () => {
         const { cargo, buffer, manager } = makeDeps(['car-0']);
+        // Mark platform as a source so the car only loads (no unload/reload cycle).
+        buffer.setRole(platform, 'goods', 'source');
         buffer.add(platform, 'goods', 1000);
         manager.begin(1, platform);
         // Run enough ticks to try to overflow: 100 sec * 5/sec = 500 attempted
@@ -176,5 +178,27 @@ describe('TransferManager', () => {
         expect(manager.getTransfer(1)).not.toBeNull();
         manager.clear();
         expect(manager.getTransfer(1)).toBeNull();
+    });
+
+    it('does not unload a type the platform is a source for', () => {
+        const { cargo, buffer, manager } = makeDeps(['car-0']);
+        // Car arrives with goods at a platform that is a source for goods.
+        // Those goods should stay on the car (don't dump them at the source).
+        buffer.setRole(platform, 'goods', 'source');
+        cargo.add('car-0', 'goods', 20);
+        manager.begin(1, platform);
+        manager.update(1);
+        expect(cargo.getCargo('car-0').contents['goods']).toBe(20);
+    });
+
+    it('does not load a type the platform is a sink for', () => {
+        const { cargo, buffer, manager } = makeDeps(['car-0']);
+        // Platform is a sink for goods; it has some residual goods in the buffer.
+        // The car (empty) should NOT pick those up — the sink is draining, not supplying.
+        buffer.setRole(platform, 'goods', 'sink');
+        buffer.add(platform, 'goods', 50);
+        manager.begin(1, platform);
+        manager.update(1);
+        expect(cargo.getTotalLoad('car-0')).toBe(0);
     });
 });

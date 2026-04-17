@@ -63,11 +63,10 @@ describe('resource transport loop (integration)', () => {
         // Travel (no platform, only the ticker keeps generating).
         for (let i = 0; i < 10; i++) ticker.update(1);
 
-        // Visit sink: dwell long enough for both cars to fully empty.
-        // Each car can only unload once every ~6 ticks because the sink-rate ticker
-        // (1 unit/sec) must drain the 5-unit drop before the next unload can begin.
+        // Visit sink: dwell 20 simulated seconds (matches source dwell).
+        // Role-aware transfer unloads at the transfer rate directly, so 20 ticks is plenty.
         arrive(dst);
-        for (let i = 0; i < 200; i++) {
+        for (let i = 0; i < 20; i++) {
             manager.update(1);
             ticker.update(1);
         }
