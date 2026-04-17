@@ -75,6 +75,7 @@ import { TrackRenderSystem } from '@/trains/tracks/render-system';
 import type { TrackSegmentWithCollision } from '@/trains/tracks/types';
 import { intersectionSatisfiesVerticalClearance } from '@/trains/tracks/utils';
 import { TrainManager } from '@/trains/train-manager';
+import { StationPresenceDetector } from '@/trains/station-presence-detector';
 import { TrainRenderSystem } from '@/trains/train-render-system';
 import { WorldRenderSystem } from '@/world-render-system';
 
@@ -310,6 +311,7 @@ export type BananaAppComponents = BaseAppComponents & {
     blockSignalManager: BlockSignalManager;
     signalStateEngine: SignalStateEngine;
     signalRenderSystem: SignalRenderSystem;
+    stationPresenceDetector: StationPresenceDetector;
     /** The stats.js DOM element for toggling visibility. */
     statsDom: HTMLDivElement;
     /** Add a train at the given segment and t. For stress testing. */
@@ -800,6 +802,15 @@ export const initApp = async (
     timetableManager.signalStateEngine = signalStateEngine;
     timetableManager.trackAlignedPlatformManager = trackAlignedPlatformManager;
 
+    // Station presence detection
+    const stationPresenceDetector = new StationPresenceDetector(
+        stationManager,
+        trackAlignedPlatformManager,
+        trackGraph,
+    );
+    trainRenderSystem.setStationPresenceDetector(stationPresenceDetector);
+    trackAlignedPlatformManager.onChange(() => stationPresenceDetector.rebuildIndex());
+
     // Collision prevention system
     const crossingMap = new CrossingMap();
     const collisionGuard = new CollisionGuard(trackGraph, crossingMap);
@@ -1002,6 +1013,7 @@ export const initApp = async (
         blockSignalManager,
         signalStateEngine,
         signalRenderSystem,
+        stationPresenceDetector,
         statsDom: stats.dom,
         addTrainAtPosition,
         addStressTestTrains,

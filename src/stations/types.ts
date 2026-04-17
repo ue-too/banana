@@ -6,6 +6,8 @@ export type TrackDirection = 'tangent' | 'reverseTangent';
 
 /** Defines where a train stops on a particular platform. */
 export type StopPosition = {
+  /** Unique within the owning platform's `stopPositions` array. */
+  id: number;
   trackSegmentId: number;
   direction: TrackDirection;
   tValue: number;
@@ -48,7 +50,13 @@ export type Station = {
 // Serialization
 // ---------------------------------------------------------------------------
 
-export type SerializedStopPosition = StopPosition;
+export type SerializedStopPosition = {
+  /** Optional — older saves predate the id field; deserialize back-fills it. */
+  id?: number;
+  trackSegmentId: number;
+  direction: TrackDirection;
+  tValue: number;
+};
 
 export type SerializedPlatform = {
   id: number;

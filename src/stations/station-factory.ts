@@ -124,8 +124,8 @@ export function createIslandStation(
         offset: platformOffset,
         side: -1,
         stopPositions: [
-            { trackSegmentId: seg1, direction: 'tangent', tValue: 0.5 },
-            { trackSegmentId: seg1, direction: 'reverseTangent', tValue: 0.5 },
+            { id: 0, trackSegmentId: seg1, direction: 'tangent', tValue: 0.5 },
+            { id: 1, trackSegmentId: seg1, direction: 'reverseTangent', tValue: 0.5 },
         ],
     };
 
@@ -137,8 +137,8 @@ export function createIslandStation(
         offset: platformOffset,
         side: 1,
         stopPositions: [
-            { trackSegmentId: seg2, direction: 'tangent', tValue: 0.5 },
-            { trackSegmentId: seg2, direction: 'reverseTangent', tValue: 0.5 },
+            { id: 0, trackSegmentId: seg2, direction: 'tangent', tValue: 0.5 },
+            { id: 1, trackSegmentId: seg2, direction: 'reverseTangent', tValue: 0.5 },
         ],
     };
 

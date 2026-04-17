@@ -24,11 +24,17 @@ import { PointCal } from '@ue-too/math';
 import type { TrackGraph } from '@/trains/tracks/track';
 import type { TrackJointWithElevation } from '@/trains/tracks/types';
 
+import { computePlatformOffset } from './platform-offset';
+import {
+    computeAnchorPoint,
+    computeStopPositions,
+    sampleSpineEdge,
+    validateSpine,
+} from './spine-utils';
+import { computeDualSpineMidline } from './track-aligned-platform-migration';
 import type { StationManager } from './station-manager';
 import type { TrackAlignedPlatformManager } from './track-aligned-platform-manager';
 import type { TrackAlignedPlatformRenderSystem } from './track-aligned-platform-render-system';
-import { computePlatformOffset } from './platform-offset';
-import { validateSpine, computeAnchorPoint, sampleSpineEdge, computeStopPositions } from './spine-utils';
 import type { SpineEntry } from './track-aligned-platform-types';
 
 // ---------------------------------------------------------------------------
@@ -46,7 +52,9 @@ export const DUAL_SPINE_PLACEMENT_STATES = [
     'DRAW_END_CAP_2',
 ] as const;
 
-export type DualSpineStates = CreateStateType<typeof DUAL_SPINE_PLACEMENT_STATES>;
+export type DualSpineStates = CreateStateType<
+    typeof DUAL_SPINE_PLACEMENT_STATES
+>;
 
 export type DualSpineEvents = {
     leftPointerUp: { x: number; y: number };
@@ -155,7 +163,7 @@ export class DualSpinePlacementEngine
         stationManager: StationManager,
         platformManager: TrackAlignedPlatformManager,
         platformRenderSystem: TrackAlignedPlatformRenderSystem,
-        onHint?: (key: string) => void,
+        onHint?: (key: string) => void
     ) {
         super(canvas);
         this._trackGraph = trackGraph;
@@ -218,7 +226,9 @@ export class DualSpinePlacementEngine
             return;
         }
 
-        const segment = this._trackGraph.getTrackSegmentWithJoints(projection.curve);
+        const segment = this._trackGraph.getTrackSegmentWithJoints(
+            projection.curve
+        );
         if (segment === null) {
             this._platformRenderSystem.hidePreview();
             return;
@@ -231,21 +241,33 @@ export class DualSpinePlacementEngine
         const side: 1 | -1 = cross >= 0 ? 1 : -1;
 
         const offset = computePlatformOffset(segment.gauge, segment.bedWidth);
-        this._platformRenderSystem.showTrackHighlight(projection.curve, projection.atT, side, offset);
+        this._platformRenderSystem.showTrackHighlight(
+            projection.curve,
+            projection.atT,
+            side,
+            offset
+        );
     }
 
     pickSpineAStart(position: Point): boolean {
         const projection = this._trackGraph.projectPointNearTrack(position, 5);
         if (projection === null) return false;
 
-        const segment = this._trackGraph.getTrackSegmentWithJoints(projection.curve);
+        const segment = this._trackGraph.getTrackSegmentWithJoints(
+            projection.curve
+        );
         if (segment === null) return false;
 
         // Validate that the start point is within reasonable distance of the station.
         if (this._activeStationId !== null) {
-            const station = this._stationManager.getStation(this._activeStationId);
+            const station = this._stationManager.getStation(
+                this._activeStationId
+            );
             if (station !== null) {
-                const dist = PointCal.distanceBetweenPoints(position, station.position);
+                const dist = PointCal.distanceBetweenPoints(
+                    position,
+                    station.position
+                );
                 if (dist > 500) return false;
             }
         }
@@ -274,7 +296,12 @@ export class DualSpinePlacementEngine
         // Compute start anchor.
         const curve = this._trackGraph.getTrackSegmentCurve(projection.curve);
         if (curve !== null) {
-            this._spineAStartAnchor = computeAnchorPoint(startEntry, 'start', offset, () => curve);
+            this._spineAStartAnchor = computeAnchorPoint(
+                startEntry,
+                'start',
+                offset,
+                () => curve
+            );
         }
 
         this._updatePlacementPreview();
@@ -313,7 +340,13 @@ export class DualSpinePlacementEngine
                 },
             ];
         } else {
-            const built = this._buildSpinePath(startSeg, startT, side, projection.curve, projection.atT);
+            const built = this._buildSpinePath(
+                startSeg,
+                startT,
+                side,
+                projection.curve,
+                projection.atT
+            );
             if (built === null) {
                 this._updatePlacementPreview();
                 return false;
@@ -324,7 +357,9 @@ export class DualSpinePlacementEngine
         // Compute tentative end anchor at the exact projection point.
         let tentativeEndAnchor: Point | null = null;
         const lastEntry = tentativeSpine[tentativeSpine.length - 1];
-        const endCurve = this._trackGraph.getTrackSegmentCurve(projection.curve);
+        const endCurve = this._trackGraph.getTrackSegmentCurve(
+            projection.curve
+        );
         if (endCurve !== null) {
             const endPointEntry: SpineEntry = {
                 trackSegment: projection.curve,
@@ -336,20 +371,25 @@ export class DualSpinePlacementEngine
                 endPointEntry,
                 'start',
                 this._spineAOffset,
-                () => endCurve,
+                () => endCurve
             );
         }
 
         // Show preview with tentative spine A (without committing state).
         const getCurve = (segmentId: number) => {
             const curve = this._trackGraph.getTrackSegmentCurve(segmentId);
-            if (curve === null) throw new Error(`Missing curve for segment ${segmentId}`);
+            if (curve === null)
+                throw new Error(`Missing curve for segment ${segmentId}`);
             return curve;
         };
 
         let spineAPoints: Point[];
         try {
-            spineAPoints = sampleSpineEdge(tentativeSpine, this._spineAOffset, getCurve);
+            spineAPoints = sampleSpineEdge(
+                tentativeSpine,
+                this._spineAOffset,
+                getCurve
+            );
         } catch {
             spineAPoints = [];
         }
@@ -362,7 +402,7 @@ export class DualSpinePlacementEngine
             this._spineAStartAnchor,
             tentativeEndAnchor,
             null,
-            null,
+            null
         );
 
         return true;
@@ -393,23 +433,29 @@ export class DualSpinePlacementEngine
                 },
             ];
         } else {
-            const built = this._buildSpinePath(startSeg, startT, side, projection.curve, projection.atT);
+            const built = this._buildSpinePath(
+                startSeg,
+                startT,
+                side,
+                projection.curve,
+                projection.atT
+            );
             if (built === null) return false;
             finalSpine = built;
         }
 
         const validationResult = validateSpine(
             finalSpine,
-            (id) => {
+            id => {
                 const seg = this._trackGraph.getTrackSegmentWithJoints(id);
                 if (seg === null) throw new Error(`Missing segment ${id}`);
                 return seg;
             },
-            (id) => {
+            id => {
                 const joint = this._trackGraph.getJoint(id);
                 if (joint === null) throw new Error(`Missing joint ${id}`);
                 return joint as { connections: Map<number, number> };
-            },
+            }
         );
 
         if (!validationResult.valid) return false;
@@ -418,7 +464,9 @@ export class DualSpinePlacementEngine
 
         // Compute end anchor at the exact projection point.
         const lastEntry = finalSpine[finalSpine.length - 1];
-        const endCurve = this._trackGraph.getTrackSegmentCurve(projection.curve);
+        const endCurve = this._trackGraph.getTrackSegmentCurve(
+            projection.curve
+        );
         if (endCurve !== null) {
             const endPointEntry: SpineEntry = {
                 trackSegment: projection.curve,
@@ -426,7 +474,12 @@ export class DualSpinePlacementEngine
                 tEnd: projection.atT,
                 side: lastEntry.side,
             };
-            this._spineAEndAnchor = computeAnchorPoint(endPointEntry, 'start', this._spineAOffset, () => endCurve);
+            this._spineAEndAnchor = computeAnchorPoint(
+                endPointEntry,
+                'start',
+                this._spineAOffset,
+                () => endCurve
+            );
         }
 
         this._hasSpineAEnd = true;
@@ -439,18 +492,26 @@ export class DualSpinePlacementEngine
         const projection = this._trackGraph.projectPointNearTrack(position, 5);
         if (projection === null) return false;
 
-        const segment = this._trackGraph.getTrackSegmentWithJoints(projection.curve);
+        const segment = this._trackGraph.getTrackSegmentWithJoints(
+            projection.curve
+        );
         if (segment === null) return false;
 
         // Elevation check: spine B must be at the same elevation as spine A.
         if (this._spineA.length > 0) {
             const segA = this._spineA[0];
-            const segAFull = this._trackGraph.getTrackSegmentWithJoints(segA.trackSegment);
+            const segAFull = this._trackGraph.getTrackSegmentWithJoints(
+                segA.trackSegment
+            );
             if (segAFull !== null) {
                 const jointA = this._trackGraph.getJoint(segAFull.t0Joint);
                 const jointB = this._trackGraph.getJoint(segment.t0Joint);
                 if (jointA !== null && jointB !== null) {
-                    if ((jointA as TrackJointWithElevation).elevation !== (jointB as TrackJointWithElevation).elevation) return false;
+                    if (
+                        (jointA as TrackJointWithElevation).elevation !==
+                        (jointB as TrackJointWithElevation).elevation
+                    )
+                        return false;
                 }
             }
         }
@@ -475,7 +536,12 @@ export class DualSpinePlacementEngine
         // Compute start anchor.
         const curve = this._trackGraph.getTrackSegmentCurve(projection.curve);
         if (curve !== null) {
-            this._spineBStartAnchor = computeAnchorPoint(startEntry, 'start', this._spineAOffset, () => curve);
+            this._spineBStartAnchor = computeAnchorPoint(
+                startEntry,
+                'start',
+                this._spineAOffset,
+                () => curve
+            );
         }
 
         this._updatePlacementPreview();
@@ -514,7 +580,13 @@ export class DualSpinePlacementEngine
                 },
             ];
         } else {
-            const built = this._buildSpinePath(startSeg, startT, side, projection.curve, projection.atT);
+            const built = this._buildSpinePath(
+                startSeg,
+                startT,
+                side,
+                projection.curve,
+                projection.atT
+            );
             if (built === null) {
                 this._updatePlacementPreview();
                 return false;
@@ -525,7 +597,9 @@ export class DualSpinePlacementEngine
         // Compute tentative end anchor at the exact projection point.
         let tentativeEndAnchor: Point | null = null;
         const lastEntry = tentativeSpine[tentativeSpine.length - 1];
-        const endCurve = this._trackGraph.getTrackSegmentCurve(projection.curve);
+        const endCurve = this._trackGraph.getTrackSegmentCurve(
+            projection.curve
+        );
         if (endCurve !== null) {
             const endPointEntry: SpineEntry = {
                 trackSegment: projection.curve,
@@ -537,14 +611,15 @@ export class DualSpinePlacementEngine
                 endPointEntry,
                 'start',
                 this._spineAOffset,
-                () => endCurve,
+                () => endCurve
             );
         }
 
         // Show preview with confirmed spine A + tentative spine B.
         const getCurve = (segmentId: number) => {
             const curve = this._trackGraph.getTrackSegmentCurve(segmentId);
-            if (curve === null) throw new Error(`Missing curve for segment ${segmentId}`);
+            if (curve === null)
+                throw new Error(`Missing curve for segment ${segmentId}`);
             return curve;
         };
 
@@ -552,9 +627,17 @@ export class DualSpinePlacementEngine
         let spineBPoints: Point[];
         try {
             if (this._spineA.length > 0) {
-                spineAPoints = sampleSpineEdge(this._spineA, this._spineAOffset, getCurve);
+                spineAPoints = sampleSpineEdge(
+                    this._spineA,
+                    this._spineAOffset,
+                    getCurve
+                );
             }
-            spineBPoints = sampleSpineEdge(tentativeSpine, this._spineAOffset, getCurve);
+            spineBPoints = sampleSpineEdge(
+                tentativeSpine,
+                this._spineAOffset,
+                getCurve
+            );
         } catch {
             spineBPoints = [];
         }
@@ -567,7 +650,7 @@ export class DualSpinePlacementEngine
             this._spineAStartAnchor,
             this._spineAEndAnchor,
             this._spineBStartAnchor,
-            tentativeEndAnchor,
+            tentativeEndAnchor
         );
 
         return true;
@@ -598,23 +681,29 @@ export class DualSpinePlacementEngine
                 },
             ];
         } else {
-            const built = this._buildSpinePath(startSeg, startT, side, projection.curve, projection.atT);
+            const built = this._buildSpinePath(
+                startSeg,
+                startT,
+                side,
+                projection.curve,
+                projection.atT
+            );
             if (built === null) return false;
             finalSpine = built;
         }
 
         const validationResult = validateSpine(
             finalSpine,
-            (id) => {
+            id => {
                 const seg = this._trackGraph.getTrackSegmentWithJoints(id);
                 if (seg === null) throw new Error(`Missing segment ${id}`);
                 return seg;
             },
-            (id) => {
+            id => {
                 const joint = this._trackGraph.getJoint(id);
                 if (joint === null) throw new Error(`Missing joint ${id}`);
                 return joint as { connections: Map<number, number> };
-            },
+            }
         );
 
         if (!validationResult.valid) return false;
@@ -623,7 +712,9 @@ export class DualSpinePlacementEngine
 
         // Compute end anchor at the exact projection point.
         const lastEntry = finalSpine[finalSpine.length - 1];
-        const endCurve = this._trackGraph.getTrackSegmentCurve(projection.curve);
+        const endCurve = this._trackGraph.getTrackSegmentCurve(
+            projection.curve
+        );
         if (endCurve !== null) {
             const endPointEntry: SpineEntry = {
                 trackSegment: projection.curve,
@@ -631,7 +722,12 @@ export class DualSpinePlacementEngine
                 tEnd: projection.atT,
                 side: lastEntry.side,
             };
-            this._spineBEndAnchor = computeAnchorPoint(endPointEntry, 'start', this._spineAOffset, () => endCurve);
+            this._spineBEndAnchor = computeAnchorPoint(
+                endPointEntry,
+                'start',
+                this._spineAOffset,
+                () => endCurve
+            );
         }
 
         this._hasSpineBEnd = true;
@@ -651,24 +747,42 @@ export class DualSpinePlacementEngine
             this._spineAEndAnchor === null ||
             this._spineBStartAnchor === null ||
             this._spineBEndAnchor === null
-        ) return;
+        )
+            return;
 
         const getCurve = (segmentId: number) => {
             const curve = this._trackGraph.getTrackSegmentCurve(segmentId);
-            if (curve === null) throw new Error(`Missing curve for segment ${segmentId}`);
+            if (curve === null)
+                throw new Error(`Missing curve for segment ${segmentId}`);
             return curve;
         };
 
         let spineAPoints: Point[] = [];
         let spineBPoints: Point[] = [];
         try {
-            spineAPoints = sampleSpineEdge(this._spineA, this._spineAOffset, getCurve);
-            spineBPoints = sampleSpineEdge(this._spineB, this._spineAOffset, getCurve);
-        } catch { /* ignore */ }
+            spineAPoints = sampleSpineEdge(
+                this._spineA,
+                this._spineAOffset,
+                getCurve
+            );
+            spineBPoints = sampleSpineEdge(
+                this._spineB,
+                this._spineAOffset,
+                getCurve
+            );
+        } catch {
+            /* ignore */
+        }
 
         // Determine which B anchor is closer to cursor → highlight that pairing.
-        const distToEnd = PointCal.distanceBetweenPoints(position, this._spineBEndAnchor);
-        const distToStart = PointCal.distanceBetweenPoints(position, this._spineBStartAnchor);
+        const distToEnd = PointCal.distanceBetweenPoints(
+            position,
+            this._spineBEndAnchor
+        );
+        const distToStart = PointCal.distanceBetweenPoints(
+            position,
+            this._spineBStartAnchor
+        );
         const cursorNearBEnd = distToEnd <= distToStart;
 
         this._platformRenderSystem.showCapPairingPreview(
@@ -678,15 +792,22 @@ export class DualSpinePlacementEngine
             this._spineAEndAnchor,
             this._spineBStartAnchor,
             this._spineBEndAnchor,
-            cursorNearBEnd,
+            cursorNearBEnd
         );
     }
 
     pickCapPairing(position: Point): boolean {
-        if (this._spineBStartAnchor === null || this._spineBEndAnchor === null) return false;
+        if (this._spineBStartAnchor === null || this._spineBEndAnchor === null)
+            return false;
 
-        const distToEnd = PointCal.distanceBetweenPoints(position, this._spineBEndAnchor);
-        const distToStart = PointCal.distanceBetweenPoints(position, this._spineBStartAnchor);
+        const distToEnd = PointCal.distanceBetweenPoints(
+            position,
+            this._spineBEndAnchor
+        );
+        const distToStart = PointCal.distanceBetweenPoints(
+            position,
+            this._spineBStartAnchor
+        );
 
         if (distToStart < distToEnd) {
             // User wants A_end ↔ B_start — reverse spine B so B_start becomes B_end.
@@ -701,23 +822,26 @@ export class DualSpinePlacementEngine
 
     updateCapHover(position: Point, cap: 'A' | 'B'): void {
         // Determine the starting anchor, closing anchor, and vertices for this cap.
-        const startAnchor = cap === 'A' ? this._spineAEndAnchor : this._spineBStartAnchor;
-        const closingAnchor = cap === 'A' ? this._spineBEndAnchor : this._spineAStartAnchor;
+        const startAnchor =
+            cap === 'A' ? this._spineAEndAnchor : this._spineBStartAnchor;
+        const closingAnchor =
+            cap === 'A' ? this._spineBEndAnchor : this._spineAStartAnchor;
         const vertices = cap === 'A' ? this._capA : this._capB;
 
-        const lastPoint = vertices.length > 0
-            ? vertices[vertices.length - 1]
-            : startAnchor;
+        const lastPoint =
+            vertices.length > 0 ? vertices[vertices.length - 1] : startAnchor;
 
-        const isNearClosing = closingAnchor !== null &&
-            PointCal.distanceBetweenPoints(position, closingAnchor) <= CLOSING_SNAP_RADIUS;
+        const isNearClosing =
+            closingAnchor !== null &&
+            PointCal.distanceBetweenPoints(position, closingAnchor) <=
+                CLOSING_SNAP_RADIUS;
 
         this._updatePlacementPreview();
         this._platformRenderSystem.showCapDrawingHover(
             lastPoint,
             isNearClosing && closingAnchor !== null ? closingAnchor : position,
             closingAnchor,
-            isNearClosing,
+            isNearClosing
         );
     }
 
@@ -733,7 +857,10 @@ export class DualSpinePlacementEngine
      */
     isNearCapAClosingAnchor(position: Point): boolean {
         if (this._spineBEndAnchor === null) return false;
-        return PointCal.distanceBetweenPoints(position, this._spineBEndAnchor) <= CLOSING_SNAP_RADIUS;
+        return (
+            PointCal.distanceBetweenPoints(position, this._spineBEndAnchor) <=
+            CLOSING_SNAP_RADIUS
+        );
     }
 
     confirmCapA(): void {
@@ -754,7 +881,10 @@ export class DualSpinePlacementEngine
      */
     isNearCapBClosingAnchor(position: Point): boolean {
         if (this._spineAStartAnchor === null) return false;
-        return PointCal.distanceBetweenPoints(position, this._spineAStartAnchor) <= CLOSING_SNAP_RADIUS;
+        return (
+            PointCal.distanceBetweenPoints(position, this._spineAStartAnchor) <=
+            CLOSING_SNAP_RADIUS
+        );
     }
 
     finalize(): void {
@@ -779,31 +909,42 @@ export class DualSpinePlacementEngine
 
         const getCurve = (segmentId: number) => {
             const curve = this._trackGraph.getTrackSegmentCurve(segmentId);
-            if (curve === null) throw new Error(`Missing curve for segment ${segmentId}`);
+            if (curve === null)
+                throw new Error(`Missing curve for segment ${segmentId}`);
             return curve;
         };
 
-        const platformId = this._platformManager.createPlatform({
-            stationId: this._activeStationId,
-            spineA: [...this._spineA],
-            spineB: [...this._spineB],
-            offset: this._spineAOffset,
-            outerVertices: {
-                kind: 'dual',
-                capA: [...this._capA],
-                capB: [...this._capB],
-            },
-            stopPositions: [
-                ...computeStopPositions(this._spineA, getCurve),
-                ...computeStopPositions(this._spineB, getCurve),
-            ],
-        });
+        const midline = computeDualSpineMidline(
+            this._spineA,
+            this._spineB,
+            this._spineAOffset,
+            getCurve,
+        );
 
-        station.trackAlignedPlatforms.push(platformId);
+        const platformIdA = this._platformManager.createPlatform({
+            stationId: this._activeStationId,
+            spine: [...this._spineA],
+            offset: this._spineAOffset,
+            outerVertices: [...midline],
+            stopPositions: computeStopPositions(this._spineA, getCurve),
+        });
+        station.trackAlignedPlatforms.push(platformIdA);
+
+        const platformIdB = this._platformManager.createPlatform({
+            stationId: this._activeStationId,
+            spine: [...this._spineB],
+            offset: this._spineAOffset,
+            outerVertices: [...midline],
+            stopPositions: computeStopPositions(this._spineB, getCurve),
+        });
+        station.trackAlignedPlatforms.push(platformIdB);
 
         // When the first platform is added, reposition the station to the
-        // spine midpoint so the station label sits on the platform.
-        if (station.trackAlignedPlatforms.length === 1 && station.platforms.length === 0) {
+        // spine A midpoint so the station label sits on the platform.
+        if (
+            station.trackAlignedPlatforms.length === 2 &&
+            station.platforms.length === 0
+        ) {
             const stops = computeStopPositions(this._spineA, getCurve);
             if (stops.length > 0) {
                 const curve = getCurve(stops[0].trackSegmentId);
@@ -812,10 +953,11 @@ export class DualSpinePlacementEngine
         }
 
         const elevation = station.elevation;
-        this._platformRenderSystem.addPlatform(platformId, elevation);
+        this._platformRenderSystem.addPlatform(platformIdA, elevation);
+        this._platformRenderSystem.addPlatform(platformIdB, elevation);
 
         // Notify after the station's trackAlignedPlatforms array is updated
-        // so subscribers (e.g. debug overlay) see the new platform.
+        // so subscribers (e.g. debug overlay) see the new platforms.
         this._platformManager.notifyChange();
 
         this._platformRenderSystem.hidePreview();
@@ -849,7 +991,7 @@ export class DualSpinePlacementEngine
             this._camera.position,
             this._camera.zoomLevel,
             this._camera.rotation,
-            false,
+            false
         );
     }
 
@@ -858,7 +1000,7 @@ export class DualSpinePlacementEngine
             position,
             this._camera.position,
             this._camera.zoomLevel,
-            this._camera.rotation,
+            this._camera.rotation
         );
         const pointInCanvas = convertFromViewPort2Canvas(pointInViewPort, {
             x: this.canvas.width / 2,
@@ -874,7 +1016,8 @@ export class DualSpinePlacementEngine
     private _updatePlacementPreview(): void {
         const getCurve = (segmentId: number) => {
             const curve = this._trackGraph.getTrackSegmentCurve(segmentId);
-            if (curve === null) throw new Error(`Missing curve for segment ${segmentId}`);
+            if (curve === null)
+                throw new Error(`Missing curve for segment ${segmentId}`);
             return curve;
         };
 
@@ -883,10 +1026,18 @@ export class DualSpinePlacementEngine
 
         try {
             if (this._spineA.length > 0) {
-                spineAPoints = sampleSpineEdge(this._spineA, this._spineAOffset, getCurve);
+                spineAPoints = sampleSpineEdge(
+                    this._spineA,
+                    this._spineAOffset,
+                    getCurve
+                );
             }
             if (this._spineB.length > 0) {
-                spineBPoints = sampleSpineEdge(this._spineB, this._spineAOffset, getCurve);
+                spineBPoints = sampleSpineEdge(
+                    this._spineB,
+                    this._spineAOffset,
+                    getCurve
+                );
             }
         } catch {
             // Ignore sampling errors — just show what we can.
@@ -900,7 +1051,7 @@ export class DualSpinePlacementEngine
             this._spineAStartAnchor,
             this._spineAEndAnchor,
             this._spineBStartAnchor,
-            this._spineBEndAnchor,
+            this._spineBEndAnchor
         );
     }
 
@@ -915,17 +1066,30 @@ export class DualSpinePlacementEngine
             this._spineAEndAnchor === null ||
             this._spineBStartAnchor === null ||
             this._spineBEndAnchor === null
-        ) return;
+        )
+            return;
 
         // Pairing 1: A_end↔B_end, B_start↔A_start (default, no reversal).
         const dist1 =
-            PointCal.distanceBetweenPoints(this._spineAEndAnchor, this._spineBEndAnchor) +
-            PointCal.distanceBetweenPoints(this._spineBStartAnchor, this._spineAStartAnchor);
+            PointCal.distanceBetweenPoints(
+                this._spineAEndAnchor,
+                this._spineBEndAnchor
+            ) +
+            PointCal.distanceBetweenPoints(
+                this._spineBStartAnchor,
+                this._spineAStartAnchor
+            );
 
         // Pairing 2: A_end↔B_start, B_end↔A_start (requires reversal).
         const dist2 =
-            PointCal.distanceBetweenPoints(this._spineAEndAnchor, this._spineBStartAnchor) +
-            PointCal.distanceBetweenPoints(this._spineBEndAnchor, this._spineAStartAnchor);
+            PointCal.distanceBetweenPoints(
+                this._spineAEndAnchor,
+                this._spineBStartAnchor
+            ) +
+            PointCal.distanceBetweenPoints(
+                this._spineBEndAnchor,
+                this._spineAStartAnchor
+            );
 
         if (dist2 < dist1) {
             // Pairing 2 is shorter — reverse spine B so B_start becomes B_end.
@@ -942,7 +1106,7 @@ export class DualSpinePlacementEngine
      */
     private _reverseSpineB(): void {
         this._spineB = this._spineB
-            .map((e) => ({
+            .map(e => ({
                 ...e,
                 tStart: e.tEnd,
                 tEnd: e.tStart,
@@ -982,7 +1146,7 @@ export class DualSpinePlacementEngine
         startT: number,
         side: 1 | -1,
         endSeg: number,
-        endT: number,
+        endT: number
     ): SpineEntry[] | null {
         type QueueEntry = { segId: number; path: number[] };
         const visited = new Set<number>();
@@ -1008,8 +1172,14 @@ export class DualSpinePlacementEngine
                 if (joint.connections.size > 2) continue;
 
                 for (const [, connectedSegId] of joint.connections) {
-                    if (!visited.has(connectedSegId) && connectedSegId !== segId) {
-                        queue.push({ segId: connectedSegId, path: [...path, connectedSegId] });
+                    if (
+                        !visited.has(connectedSegId) &&
+                        connectedSegId !== segId
+                    ) {
+                        queue.push({
+                            segId: connectedSegId,
+                            path: [...path, connectedSegId],
+                        });
                     }
                 }
             }
@@ -1033,7 +1203,7 @@ export class DualSpinePlacementEngine
         path: number[],
         startT: number,
         side: 1 | -1,
-        endT: number,
+        endT: number
     ): SpineEntry[] {
         const entries: SpineEntry[] = [];
         let currentSide = side;
@@ -1056,7 +1226,8 @@ export class DualSpinePlacementEngine
                 // First segment: determine exit direction toward next segment.
                 if (segment !== null) {
                     const nextSegId = path[i + 1];
-                    const nextSeg = this._trackGraph.getTrackSegmentWithJoints(nextSegId);
+                    const nextSeg =
+                        this._trackGraph.getTrackSegmentWithJoints(nextSegId);
                     if (nextSeg !== null) {
                         const exitT = this._sharedJointT(segment, nextSeg);
                         tStart = startT;
@@ -1073,7 +1244,8 @@ export class DualSpinePlacementEngine
             } else {
                 // Non-first segment: determine entry t and check for side flip.
                 const prevSegId = path[i - 1];
-                const prevSeg = this._trackGraph.getTrackSegmentWithJoints(prevSegId);
+                const prevSeg =
+                    this._trackGraph.getTrackSegmentWithJoints(prevSegId);
 
                 let entryT = 0;
 
@@ -1081,8 +1253,10 @@ export class DualSpinePlacementEngine
                     entryT = this._sharedJointT(segment, prevSeg);
 
                     // Compare tangent directions at the junction to decide side flip.
-                    const prevCurve = this._trackGraph.getTrackSegmentCurve(prevSegId);
-                    const thisCurve = this._trackGraph.getTrackSegmentCurve(segId);
+                    const prevCurve =
+                        this._trackGraph.getTrackSegmentCurve(prevSegId);
+                    const thisCurve =
+                        this._trackGraph.getTrackSegmentCurve(segId);
                     if (prevCurve !== null && thisCurve !== null) {
                         const prevExitT = this._sharedJointT(prevSeg, segment);
                         const prevTangent = prevCurve.derivative(prevExitT);
@@ -1103,7 +1277,10 @@ export class DualSpinePlacementEngine
                     // Middle segment: determine exit toward next segment.
                     if (segment !== null) {
                         const nextSegId = path[i + 1];
-                        const nextSeg = this._trackGraph.getTrackSegmentWithJoints(nextSegId);
+                        const nextSeg =
+                            this._trackGraph.getTrackSegmentWithJoints(
+                                nextSegId
+                            );
                         if (nextSeg !== null) {
                             tStart = entryT;
                             tEnd = this._sharedJointT(segment, nextSeg);
@@ -1135,7 +1312,7 @@ export class DualSpinePlacementEngine
      */
     private _sharedJointT(
         seg: { t0Joint: number; t1Joint: number },
-        other: { t0Joint: number; t1Joint: number },
+        other: { t0Joint: number; t1Joint: number }
     ): 0 | 1 {
         const otherJoints = new Set([other.t0Joint, other.t1Joint]);
         if (otherJoints.has(seg.t0Joint)) return 0;
@@ -1179,30 +1356,36 @@ class DualSpinePickSpineAStartState extends TemplateState<
     > = {
         pointerMove: {
             action: (context, event) => {
-                const worldPos = context.convert2WorldPosition({ x: event.x, y: event.y });
+                const worldPos = context.convert2WorldPosition({
+                    x: event.x,
+                    y: event.y,
+                });
                 context.hoverUpdate(worldPos);
             },
             defaultTargetState: 'PICK_SPINE_A_START',
         },
         leftPointerUp: {
             action: (context, event) => {
-                const worldPos = context.convert2WorldPosition({ x: event.x, y: event.y });
+                const worldPos = context.convert2WorldPosition({
+                    x: event.x,
+                    y: event.y,
+                });
                 context.pickSpineAStart(worldPos);
             },
             defaultTargetState: 'PICK_SPINE_A_START',
         },
         escapeKey: {
-            action: (context) => context.cancel(),
+            action: context => context.cancel(),
             defaultTargetState: 'IDLE',
         },
         endPlacement: {
-            action: (context) => context.cancel(),
+            action: context => context.cancel(),
             defaultTargetState: 'IDLE',
         },
     };
 
     protected _guards: Guard<DualSpineContext, string> = {
-        started: (context) => context.hasSpineAStart,
+        started: context => context.hasSpineAStart,
     };
 
     protected _eventGuards: Partial<
@@ -1234,30 +1417,36 @@ class DualSpinePickSpineAEndState extends TemplateState<
     > = {
         pointerMove: {
             action: (context, event) => {
-                const worldPos = context.convert2WorldPosition({ x: event.x, y: event.y });
+                const worldPos = context.convert2WorldPosition({
+                    x: event.x,
+                    y: event.y,
+                });
                 context.updateSpineAEnd(worldPos);
             },
             defaultTargetState: 'PICK_SPINE_A_END',
         },
         leftPointerUp: {
             action: (context, event) => {
-                const worldPos = context.convert2WorldPosition({ x: event.x, y: event.y });
+                const worldPos = context.convert2WorldPosition({
+                    x: event.x,
+                    y: event.y,
+                });
                 context.confirmSpineAEnd(worldPos);
             },
             defaultTargetState: 'PICK_SPINE_A_START',
         },
         escapeKey: {
-            action: (context) => context.cancel(),
+            action: context => context.cancel(),
             defaultTargetState: 'PICK_SPINE_A_START',
         },
         endPlacement: {
-            action: (context) => context.cancel(),
+            action: context => context.cancel(),
             defaultTargetState: 'IDLE',
         },
     };
 
     protected _guards: Guard<DualSpineContext, string> = {
-        confirmed: (context) => context.hasSpineAEnd,
+        confirmed: context => context.hasSpineAEnd,
     };
 
     protected _eventGuards: Partial<
@@ -1289,30 +1478,36 @@ class DualSpinePickSpineBStartState extends TemplateState<
     > = {
         pointerMove: {
             action: (context, event) => {
-                const worldPos = context.convert2WorldPosition({ x: event.x, y: event.y });
+                const worldPos = context.convert2WorldPosition({
+                    x: event.x,
+                    y: event.y,
+                });
                 context.hoverUpdate(worldPos);
             },
             defaultTargetState: 'PICK_SPINE_B_START',
         },
         leftPointerUp: {
             action: (context, event) => {
-                const worldPos = context.convert2WorldPosition({ x: event.x, y: event.y });
+                const worldPos = context.convert2WorldPosition({
+                    x: event.x,
+                    y: event.y,
+                });
                 context.pickSpineBStart(worldPos);
             },
             defaultTargetState: 'PICK_SPINE_B_START',
         },
         escapeKey: {
-            action: (context) => context.cancel(),
+            action: context => context.cancel(),
             defaultTargetState: 'PICK_SPINE_A_START',
         },
         endPlacement: {
-            action: (context) => context.cancel(),
+            action: context => context.cancel(),
             defaultTargetState: 'IDLE',
         },
     };
 
     protected _guards: Guard<DualSpineContext, string> = {
-        started: (context) => context.hasSpineBStart,
+        started: context => context.hasSpineBStart,
     };
 
     protected _eventGuards: Partial<
@@ -1344,30 +1539,36 @@ class DualSpinePickSpineBEndState extends TemplateState<
     > = {
         pointerMove: {
             action: (context, event) => {
-                const worldPos = context.convert2WorldPosition({ x: event.x, y: event.y });
+                const worldPos = context.convert2WorldPosition({
+                    x: event.x,
+                    y: event.y,
+                });
                 context.updateSpineBEnd(worldPos);
             },
             defaultTargetState: 'PICK_SPINE_B_END',
         },
         leftPointerUp: {
             action: (context, event) => {
-                const worldPos = context.convert2WorldPosition({ x: event.x, y: event.y });
+                const worldPos = context.convert2WorldPosition({
+                    x: event.x,
+                    y: event.y,
+                });
                 context.confirmSpineBEnd(worldPos);
             },
             defaultTargetState: 'PICK_SPINE_B_START',
         },
         escapeKey: {
-            action: (context) => context.cancel(),
+            action: context => context.cancel(),
             defaultTargetState: 'PICK_SPINE_B_START',
         },
         endPlacement: {
-            action: (context) => context.cancel(),
+            action: context => context.cancel(),
             defaultTargetState: 'IDLE',
         },
     };
 
     protected _guards: Guard<DualSpineContext, string> = {
-        confirmed: (context) => context.hasSpineBEnd,
+        confirmed: context => context.hasSpineBEnd,
     };
 
     protected _eventGuards: Partial<
@@ -1405,30 +1606,36 @@ class DualSpinePickCapPairingState extends TemplateState<
     > = {
         pointerMove: {
             action: (context, event) => {
-                const worldPos = context.convert2WorldPosition({ x: event.x, y: event.y });
+                const worldPos = context.convert2WorldPosition({
+                    x: event.x,
+                    y: event.y,
+                });
                 context.updateCapPairingHover(worldPos);
             },
             defaultTargetState: 'PICK_CAP_PAIRING',
         },
         leftPointerUp: {
             action: (context, event) => {
-                const worldPos = context.convert2WorldPosition({ x: event.x, y: event.y });
+                const worldPos = context.convert2WorldPosition({
+                    x: event.x,
+                    y: event.y,
+                });
                 context.pickCapPairing(worldPos);
             },
             defaultTargetState: 'PICK_CAP_PAIRING',
         },
         escapeKey: {
-            action: (context) => context.cancel(),
+            action: context => context.cancel(),
             defaultTargetState: 'PICK_SPINE_A_START',
         },
         endPlacement: {
-            action: (context) => context.cancel(),
+            action: context => context.cancel(),
             defaultTargetState: 'IDLE',
         },
     };
 
     protected _guards: Guard<DualSpineContext, string> = {
-        paired: (context) => context.hasCapPairing,
+        paired: context => context.hasCapPairing,
     };
 
     protected _eventGuards: Partial<
@@ -1460,14 +1667,20 @@ class DualSpineDrawEndCap1State extends TemplateState<
     > = {
         pointerMove: {
             action: (context, event) => {
-                const worldPos = context.convert2WorldPosition({ x: event.x, y: event.y });
+                const worldPos = context.convert2WorldPosition({
+                    x: event.x,
+                    y: event.y,
+                });
                 context.updateCapHover(worldPos, 'A');
             },
             defaultTargetState: 'DRAW_END_CAP_1',
         },
         leftPointerUp: {
             action: (context, event) => {
-                const worldPos = context.convert2WorldPosition({ x: event.x, y: event.y });
+                const worldPos = context.convert2WorldPosition({
+                    x: event.x,
+                    y: event.y,
+                });
                 if (context.isNearCapAClosingAnchor(worldPos)) {
                     context.confirmCapA();
                 } else {
@@ -1477,17 +1690,17 @@ class DualSpineDrawEndCap1State extends TemplateState<
             defaultTargetState: 'DRAW_END_CAP_1',
         },
         escapeKey: {
-            action: (context) => context.cancel(),
+            action: context => context.cancel(),
             defaultTargetState: 'PICK_SPINE_A_START',
         },
         endPlacement: {
-            action: (context) => context.cancel(),
+            action: context => context.cancel(),
             defaultTargetState: 'IDLE',
         },
     };
 
     protected _guards: Guard<DualSpineContext, string> = {
-        capAClosed: (context) => context.isCapAClosed,
+        capAClosed: context => context.isCapAClosed,
     };
 
     protected _eventGuards: Partial<
@@ -1519,14 +1732,20 @@ class DualSpineDrawEndCap2State extends TemplateState<
     > = {
         pointerMove: {
             action: (context, event) => {
-                const worldPos = context.convert2WorldPosition({ x: event.x, y: event.y });
+                const worldPos = context.convert2WorldPosition({
+                    x: event.x,
+                    y: event.y,
+                });
                 context.updateCapHover(worldPos, 'B');
             },
             defaultTargetState: 'DRAW_END_CAP_2',
         },
         leftPointerUp: {
             action: (context, event) => {
-                const worldPos = context.convert2WorldPosition({ x: event.x, y: event.y });
+                const worldPos = context.convert2WorldPosition({
+                    x: event.x,
+                    y: event.y,
+                });
                 if (context.isNearCapBClosingAnchor(worldPos)) {
                     context.finalize();
                 } else {
@@ -1536,17 +1755,17 @@ class DualSpineDrawEndCap2State extends TemplateState<
             defaultTargetState: 'DRAW_END_CAP_2',
         },
         escapeKey: {
-            action: (context) => context.cancel(),
+            action: context => context.cancel(),
             defaultTargetState: 'PICK_SPINE_A_START',
         },
         endPlacement: {
-            action: (context) => context.cancel(),
+            action: context => context.cancel(),
             defaultTargetState: 'IDLE',
         },
     };
 
     protected _guards: Guard<DualSpineContext, string> = {
-        finalized: (context) => context.isFinalized,
+        finalized: context => context.isFinalized,
     };
 
     protected _eventGuards: Partial<
@@ -1577,9 +1796,13 @@ export type DualSpinePlacementStateMachine = StateMachine<
 >;
 
 export function createDualSpinePlacementStateMachine(
-    context: DualSpineContext,
+    context: DualSpineContext
 ): DualSpinePlacementStateMachine {
-    return new TemplateStateMachine<DualSpineEvents, DualSpineContext, DualSpineStates>(
+    return new TemplateStateMachine<
+        DualSpineEvents,
+        DualSpineContext,
+        DualSpineStates
+    >(
         {
             IDLE: new DualSpineIdleState(),
             PICK_SPINE_A_START: new DualSpinePickSpineAStartState(),
@@ -1591,6 +1814,6 @@ export function createDualSpinePlacementStateMachine(
             DRAW_END_CAP_2: new DualSpineDrawEndCap2State(),
         },
         'IDLE',
-        context,
+        context
     );
 }

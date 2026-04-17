@@ -1,24 +1,40 @@
 import { useCallback, useEffect, useState } from 'react';
-import { Download, Plus, Trash2, Upload, X } from '@/assets/icons';
 import { useTranslation } from 'react-i18next';
 
+import { Download, Plus, Trash2, Upload, X } from '@/assets/icons';
 import { Button } from '@/components/ui/button';
 import { DraggablePanel } from '@/components/ui/draggable-panel';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import {
+    Select,
+    SelectContent,
+    SelectItem,
+    SelectTrigger,
+    SelectValue,
+} from '@/components/ui/select';
 import { Separator } from '@/components/ui/separator';
-
-const NONE = '__none__';
 import { useBananaApp } from '@/contexts/pixi';
-import { TimetableManager } from '@/timetable/timetable-manager';
-import { downloadJson, uploadJson } from './utils';
 import type { StationManager } from '@/stations/station-manager';
 import type { TrackAlignedPlatformManager } from '@/stations/track-aligned-platform-manager';
+import {
+    MS_PER_DAY,
+    MS_PER_HOUR,
+    MS_PER_MINUTE,
+} from '@/timetable/schedule-clock';
+import { weekdaysMask } from '@/timetable/shift-template-manager';
+import { TimetableManager } from '@/timetable/timetable-manager';
+import type {
+    Route,
+    SerializedTimetableData,
+    ShiftAssignment,
+    ShiftTemplate,
+} from '@/timetable/types';
+import { DayOfWeek, type ScheduledStop } from '@/timetable/types';
 import type { FormationManager } from '@/trains/formation-manager';
 import type { TrackGraph } from '@/trains/tracks/track';
-import type { Route, ShiftTemplate, ShiftAssignment, SerializedTimetableData } from '@/timetable/types';
-import { DayOfWeek, type ScheduledStop } from '@/timetable/types';
-import { MS_PER_HOUR, MS_PER_MINUTE, MS_PER_DAY } from '@/timetable/schedule-clock';
-import { weekdaysMask } from '@/timetable/shift-template-manager';
+
+import { downloadJson, uploadJson } from './utils';
+
+const NONE = '__none__';
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -59,7 +75,7 @@ type PlatformOption = {
 function buildPlatformOptions(
     stationId: number,
     stationManager: StationManager,
-    trackAlignedPlatformManager: TrackAlignedPlatformManager,
+    trackAlignedPlatformManager: TrackAlignedPlatformManager
 ): PlatformOption[] {
     const station = stationManager.getStation(stationId);
     if (station === null) return [];
@@ -75,7 +91,7 @@ function buildPlatformOptions(
     for (const tapId of station.trackAlignedPlatforms) {
         const tap = trackAlignedPlatformManager.getPlatform(tapId);
         if (tap === null) continue;
-        const segments = tap.spineA.map((e) => e.trackSegment).join(',');
+        const segments = tap.spine.map(e => e.trackSegment).join(',');
         options.push({
             value: `trackAligned:${tapId}`,
             label: `T${tapId} (S${segments})`,
@@ -87,10 +103,49 @@ function buildPlatformOptions(
 }
 
 /** Parse an encoded platform value back into kind + id. */
-function parsePlatformValue(value: string): { kind: 'island' | 'trackAligned'; platformId: number } | null {
+function parsePlatformValue(
+    value: string
+): { kind: 'island' | 'trackAligned'; platformId: number } | null {
     const m = value.match(/^(island|trackAligned):(\d+)$/);
     if (!m) return null;
-    return { kind: m[1] as 'island' | 'trackAligned', platformId: parseInt(m[2], 10) };
+    return {
+        kind: m[1] as 'island' | 'trackAligned',
+        platformId: parseInt(m[2], 10),
+    };
+}
+
+/** Build a list of stop position options for a given platform. */
+function buildStopPositionOptions(
+    platformValue: string,
+    stationId: number,
+    stationManager: StationManager,
+    trackAlignedPlatformManager: TrackAlignedPlatformManager
+): { id: number; label: string }[] {
+    const parsed = parsePlatformValue(platformValue);
+    if (!parsed) return [];
+
+    const platformLabel =
+        parsed.kind === 'trackAligned'
+            ? `T${parsed.platformId}`
+            : `P${parsed.platformId}`;
+
+    if (parsed.kind === 'trackAligned') {
+        const tap = trackAlignedPlatformManager.getPlatform(parsed.platformId);
+        if (!tap) return [];
+        return tap.stopPositions.map((sp, i) => ({
+            id: sp.id,
+            label: `${platformLabel}[${i}]`,
+        }));
+    }
+
+    const station = stationManager.getStation(stationId);
+    if (!station) return [];
+    const platform = station.platforms.find(p => p.id === parsed.platformId);
+    if (!platform) return [];
+    return platform.stopPositions.map((sp, i) => ({
+        id: sp.id,
+        label: `${platformLabel}[${i}]`,
+    }));
 }
 
 type Tab = 'routes' | 'shifts' | 'assign';
@@ -108,7 +163,7 @@ function RouteSection({
 }) {
     const { t } = useTranslation();
     const [routes, setRoutes] = useState<Route[]>(() =>
-        timetableManager.routeManager.getAllRoutes(),
+        timetableManager.routeManager.getAllRoutes()
     );
     const [adding, setAdding] = useState(false);
     const [name, setName] = useState('');
@@ -124,8 +179,8 @@ function RouteSection({
         if (!name.trim() || !jointsStr.trim()) return;
         const nums = jointsStr
             .split(',')
-            .map((s) => parseInt(s.trim(), 10))
-            .filter((n) => !isNaN(n));
+            .map(s => parseInt(s.trim(), 10))
+            .filter(n => !isNaN(n));
         if (nums.length < 2) return;
 
         // Auto-infer direction for each joint.  For the first joint we simply
@@ -137,7 +192,9 @@ function RouteSection({
             const jointNumber = nums[i];
             const joint = trackGraph.getJoint(jointNumber);
             if (!joint) {
-                alert(`Joint ${jointNumber} does not exist in the track graph.`);
+                alert(
+                    `Joint ${jointNumber} does not exist in the track graph.`
+                );
                 return;
             }
 
@@ -154,7 +211,9 @@ function RouteSection({
             } else if (joint.direction.reverseTangent.has(nextJointNumber)) {
                 direction = 'reverseTangent';
             } else {
-                alert(`Joint ${jointNumber} is not connected to joint ${nextJointNumber}.`);
+                alert(
+                    `Joint ${jointNumber} is not connected to joint ${nextJointNumber}.`
+                );
                 return;
             }
 
@@ -169,7 +228,7 @@ function RouteSection({
                       : null;
                 if (arrivalSide === direction) {
                     alert(
-                        `Invalid route at joint ${jointNumber}: arrival (from ${prevJointNumber}) and departure (to ${nextJointNumber}) are on the same side.`,
+                        `Invalid route at joint ${jointNumber}: arrival (from ${prevJointNumber}) and departure (to ${nextJointNumber}) are on the same side.`
                     );
                     return;
                 }
@@ -197,9 +256,13 @@ function RouteSection({
                 <Button
                     variant="ghost"
                     size="icon-xs"
-                    onClick={() => setAdding((v) => !v)}
+                    onClick={() => setAdding(v => !v)}
                 >
-                    {adding ? <X className="size-3" /> : <Plus className="size-3" />}
+                    {adding ? (
+                        <X className="size-3" />
+                    ) : (
+                        <Plus className="size-3" />
+                    )}
                 </Button>
             </div>
 
@@ -210,13 +273,13 @@ function RouteSection({
                         className="bg-background text-foreground w-full rounded border px-1.5 py-0.5 text-xs outline-none"
                         placeholder={t('routeName')}
                         value={name}
-                        onChange={(e) => setName(e.target.value)}
+                        onChange={e => setName(e.target.value)}
                     />
                     <input
                         className="bg-background text-foreground w-full rounded border px-1.5 py-0.5 text-xs outline-none"
                         placeholder={t('jointSequence')}
                         value={jointsStr}
-                        onChange={(e) => setJointsStr(e.target.value)}
+                        onChange={e => setJointsStr(e.target.value)}
                     />
                     <Button
                         variant="default"
@@ -236,13 +299,15 @@ function RouteSection({
             )}
 
             <div className="flex max-h-40 flex-col gap-0.5 overflow-y-auto">
-                {routes.map((r) => (
+                {routes.map(r => (
                     <div
                         key={r.id}
                         className="bg-muted/50 flex items-center justify-between rounded px-2 py-1"
                     >
                         <div className="flex flex-col">
-                            <span className="text-xs font-medium">{r.name}</span>
+                            <span className="text-xs font-medium">
+                                {r.name}
+                            </span>
                             <span className="text-muted-foreground text-[10px]">
                                 {t('jointCount', { count: r.joints.length })}
                             </span>
@@ -250,7 +315,9 @@ function RouteSection({
                         <Button
                             variant="ghost"
                             size="icon-xs"
-                            onClick={() => timetableManager.routeManager.removeRoute(r.id)}
+                            onClick={() =>
+                                timetableManager.routeManager.removeRoute(r.id)
+                            }
                             title={t('removeRoute')}
                         >
                             <Trash2 className="size-3" />
@@ -277,15 +344,33 @@ function ShiftSection({
 }) {
     const { t } = useTranslation();
     const [shifts, setShifts] = useState<ShiftTemplate[]>(() =>
-        timetableManager.shiftTemplateManager.getAllTemplates(),
+        timetableManager.shiftTemplateManager.getAllTemplates()
     );
     const [adding, setAdding] = useState(false);
     const [shiftName, setShiftName] = useState('');
     const [stopsInput, setStopsInput] = useState<
-        { stationId: string; platformValue: string; arrive: string; depart: string }[]
+        {
+            stationId: string;
+            platformValue: string;
+            stopPositionId: string;
+            arrive: string;
+            depart: string;
+        }[]
     >([
-        { stationId: '', platformValue: '', arrive: '', depart: '' },
-        { stationId: '', platformValue: '', arrive: '', depart: '' },
+        {
+            stationId: '',
+            platformValue: '',
+            stopPositionId: '',
+            arrive: '',
+            depart: '',
+        },
+        {
+            stationId: '',
+            platformValue: '',
+            stopPositionId: '',
+            arrive: '',
+            depart: '',
+        },
     ]);
     const [routeIds, setRouteIds] = useState<string[]>(['']);
 
@@ -299,27 +384,38 @@ function ShiftSection({
     }, [timetableManager]);
 
     const addStop = () => {
-        setStopsInput((prev) => [
+        setStopsInput(prev => [
             ...prev,
-            { stationId: '', platformValue: '', arrive: '', depart: '' },
+            {
+                stationId: '',
+                platformValue: '',
+                stopPositionId: '',
+                arrive: '',
+                depart: '',
+            },
         ]);
-        setRouteIds((prev) => [...prev, '']);
+        setRouteIds(prev => [...prev, '']);
     };
 
     const removeStop = (index: number) => {
         if (stopsInput.length <= 2) return;
-        setStopsInput((prev) => prev.filter((_, i) => i !== index));
+        setStopsInput(prev => prev.filter((_, i) => i !== index));
         const legIdx = Math.min(index, routeIds.length - 1);
-        setRouteIds((prev) => prev.filter((_, i) => i !== legIdx));
+        setRouteIds(prev => prev.filter((_, i) => i !== legIdx));
     };
 
     const updateStop = (
         index: number,
-        field: 'stationId' | 'platformValue' | 'arrive' | 'depart',
-        value: string,
+        field:
+            | 'stationId'
+            | 'platformValue'
+            | 'stopPositionId'
+            | 'arrive'
+            | 'depart',
+        value: string
     ) => {
-        setStopsInput((prev) =>
-            prev.map((s, i) => (i === index ? { ...s, [field]: value } : s)),
+        setStopsInput(prev =>
+            prev.map((s, i) => (i === index ? { ...s, [field]: value } : s))
         );
     };
 
@@ -335,7 +431,9 @@ function ShiftSection({
                     ? null
                     : (() => {
                           const t = parseTimeString(s.arrive);
-                          return t !== null ? DayOfWeek.Monday * MS_PER_DAY + t : null;
+                          return t !== null
+                              ? DayOfWeek.Monday * MS_PER_DAY + t
+                              : null;
                       })();
 
             const departMs =
@@ -343,20 +441,24 @@ function ShiftSection({
                     ? null
                     : (() => {
                           const t = parseTimeString(s.depart);
-                          return t !== null ? DayOfWeek.Monday * MS_PER_DAY + t : null;
+                          return t !== null
+                              ? DayOfWeek.Monday * MS_PER_DAY + t
+                              : null;
                       })();
+
+            const spId = parseInt(s.stopPositionId, 10);
 
             return {
                 stationId: isNaN(stationId) ? 0 : stationId,
-                platformKind: parsed?.kind ?? 'island' as const,
+                platformKind: parsed?.kind ?? ('island' as const),
                 platformId: parsed?.platformId ?? 0,
-                stopPositionIndex: 0,
+                stopPositionId: isNaN(spId) ? -1 : spId,
                 arrivalTime: arriveMs,
                 departureTime: departMs,
             };
         });
 
-        const legs = routeIds.slice(0, stopsInput.length - 1).map((rid) => ({
+        const legs = routeIds.slice(0, stopsInput.length - 1).map(rid => ({
             routeId: rid,
         }));
 
@@ -372,8 +474,20 @@ function ShiftSection({
             timetableManager.shiftTemplateManager.addTemplate(template);
             setShiftName('');
             setStopsInput([
-                { stationId: '', platformValue: '', arrive: '', depart: '' },
-                { stationId: '', platformValue: '', arrive: '', depart: '' },
+                {
+                    stationId: '',
+                    platformValue: '',
+                    stopPositionId: '',
+                    arrive: '',
+                    depart: '',
+                },
+                {
+                    stationId: '',
+                    platformValue: '',
+                    stopPositionId: '',
+                    arrive: '',
+                    depart: '',
+                },
             ]);
             setRouteIds(['']);
             setAdding(false);
@@ -389,9 +503,13 @@ function ShiftSection({
                 <Button
                     variant="ghost"
                     size="icon-xs"
-                    onClick={() => setAdding((v) => !v)}
+                    onClick={() => setAdding(v => !v)}
                 >
-                    {adding ? <X className="size-3" /> : <Plus className="size-3" />}
+                    {adding ? (
+                        <X className="size-3" />
+                    ) : (
+                        <Plus className="size-3" />
+                    )}
                 </Button>
             </div>
 
@@ -402,117 +520,226 @@ function ShiftSection({
                         className="bg-background text-foreground w-full rounded border px-1.5 py-0.5 text-xs outline-none"
                         placeholder={t('shiftName')}
                         value={shiftName}
-                        onChange={(e) => setShiftName(e.target.value)}
+                        onChange={e => setShiftName(e.target.value)}
                     />
 
-                    <span className="text-muted-foreground text-[10px]">{t('stops')}:</span>
+                    <span className="text-muted-foreground text-[10px]">
+                        {t('stops')}:
+                    </span>
                     {stopsInput.map((stop, i) => {
                         const stationIdNum = parseInt(stop.stationId, 10);
                         const platformOptions = !isNaN(stationIdNum)
-                            ? buildPlatformOptions(stationIdNum, stationManager, trackAlignedPlatformManager)
+                            ? buildPlatformOptions(
+                                  stationIdNum,
+                                  stationManager,
+                                  trackAlignedPlatformManager
+                              )
                             : [];
                         return (
-                        <div key={i} className="flex flex-col gap-0.5">
-                            <div className="flex items-center gap-1">
-                                <Select
-                                    value={stop.stationId || NONE}
-                                    onValueChange={(val) => {
-                                        updateStop(i, 'stationId', val === NONE ? '' : val);
-                                        updateStop(i, 'platformValue', '');
-                                    }}
-                                >
-                                    <SelectTrigger size="sm" className="flex-1">
-                                        <SelectValue />
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                        <SelectItem value={NONE}>{t('stationPlaceholder')}</SelectItem>
-                                        {stations.map(({ id, station }) => (
-                                            <SelectItem key={id} value={String(id)}>
-                                                {station.name || `Station ${id}`}
-                                            </SelectItem>
-                                        ))}
-                                    </SelectContent>
-                                </Select>
-                                {stopsInput.length > 2 && (
-                                    <Button
-                                        variant="ghost"
-                                        size="icon-xs"
-                                        onClick={() => removeStop(i)}
+                            <div key={i} className="flex flex-col gap-0.5">
+                                <div className="flex items-center gap-1">
+                                    <Select
+                                        value={stop.stationId || NONE}
+                                        onValueChange={val => {
+                                            updateStop(
+                                                i,
+                                                'stationId',
+                                                val === NONE ? '' : val
+                                            );
+                                            updateStop(i, 'platformValue', '');
+                                            updateStop(
+                                                i,
+                                                'stopPositionId',
+                                                ''
+                                            );
+                                        }}
                                     >
-                                        <X className="size-3" />
-                                    </Button>
-                                )}
-                            </div>
-                            {platformOptions.length > 0 && (
-                                <Select
-                                    value={stop.platformValue || NONE}
-                                    onValueChange={(val) =>
-                                        updateStop(i, 'platformValue', val === NONE ? '' : val)
-                                    }
-                                >
-                                    <SelectTrigger size="sm" className="text-[10px]">
-                                        <SelectValue />
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                        <SelectItem value={NONE}>{t('platformPlaceholder')}</SelectItem>
-                                        {platformOptions.map((opt) => (
-                                            <SelectItem key={opt.value} value={opt.value}>
-                                                {opt.label}
+                                        <SelectTrigger
+                                            size="sm"
+                                            className="flex-1"
+                                        >
+                                            <SelectValue />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                            <SelectItem value={NONE}>
+                                                {t('stationPlaceholder')}
                                             </SelectItem>
-                                        ))}
-                                    </SelectContent>
-                                </Select>
-                            )}
-                            <div className="flex gap-1">
-                                {i > 0 && (
-                                    <input
-                                        className="bg-background text-foreground w-16 rounded border px-1 py-0.5 text-[10px] outline-none"
-                                        placeholder={t('arrivalTime')}
-                                        value={stop.arrive}
-                                        onChange={(e) =>
-                                            updateStop(i, 'arrive', e.target.value)
+                                            {stations.map(({ id, station }) => (
+                                                <SelectItem
+                                                    key={id}
+                                                    value={String(id)}
+                                                >
+                                                    {station.name ||
+                                                        `Station ${id}`}
+                                                </SelectItem>
+                                            ))}
+                                        </SelectContent>
+                                    </Select>
+                                    {stopsInput.length > 2 && (
+                                        <Button
+                                            variant="ghost"
+                                            size="icon-xs"
+                                            onClick={() => removeStop(i)}
+                                        >
+                                            <X className="size-3" />
+                                        </Button>
+                                    )}
+                                </div>
+                                {platformOptions.length > 0 && (
+                                    <Select
+                                        value={stop.platformValue || NONE}
+                                        onValueChange={val => {
+                                            updateStop(
+                                                i,
+                                                'platformValue',
+                                                val === NONE ? '' : val
+                                            );
+                                            updateStop(
+                                                i,
+                                                'stopPositionId',
+                                                ''
+                                            );
+                                        }}
+                                    >
+                                        <SelectTrigger
+                                            size="sm"
+                                            className="text-[10px]"
+                                        >
+                                            <SelectValue />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                            <SelectItem value={NONE}>
+                                                {t('platformPlaceholder')}
+                                            </SelectItem>
+                                            {platformOptions.map(opt => (
+                                                <SelectItem
+                                                    key={opt.value}
+                                                    value={opt.value}
+                                                >
+                                                    {opt.label}
+                                                </SelectItem>
+                                            ))}
+                                        </SelectContent>
+                                    </Select>
+                                )}
+                                {(() => {
+                                    const spOptions = stop.platformValue
+                                        ? buildStopPositionOptions(
+                                              stop.platformValue,
+                                              stationIdNum,
+                                              stationManager,
+                                              trackAlignedPlatformManager
+                                          )
+                                        : [];
+                                    return spOptions.length > 0 ? (
+                                        <Select
+                                            value={
+                                                stop.stopPositionId || NONE
+                                            }
+                                            onValueChange={val =>
+                                                updateStop(
+                                                    i,
+                                                    'stopPositionId',
+                                                    val === NONE ? '' : val
+                                                )
+                                            }
+                                        >
+                                            <SelectTrigger
+                                                size="sm"
+                                                className="text-[10px]"
+                                            >
+                                                <SelectValue />
+                                            </SelectTrigger>
+                                            <SelectContent>
+                                                <SelectItem value={NONE}>
+                                                    {t(
+                                                        'stopPositionPlaceholder'
+                                                    )}
+                                                </SelectItem>
+                                                {spOptions.map(opt => (
+                                                    <SelectItem
+                                                        key={opt.id}
+                                                        value={String(
+                                                            opt.id
+                                                        )}
+                                                    >
+                                                        {opt.label}
+                                                    </SelectItem>
+                                                ))}
+                                            </SelectContent>
+                                        </Select>
+                                    ) : null;
+                                })()}
+                                <div className="flex gap-1">
+                                    {i > 0 && (
+                                        <input
+                                            className="bg-background text-foreground w-16 rounded border px-1 py-0.5 text-[10px] outline-none"
+                                            placeholder={t('arrivalTime')}
+                                            value={stop.arrive}
+                                            onChange={e =>
+                                                updateStop(
+                                                    i,
+                                                    'arrive',
+                                                    e.target.value
+                                                )
+                                            }
+                                        />
+                                    )}
+                                    {i < stopsInput.length - 1 && (
+                                        <input
+                                            className="bg-background text-foreground w-16 rounded border px-1 py-0.5 text-[10px] outline-none"
+                                            placeholder={t('departureTime')}
+                                            value={stop.depart}
+                                            onChange={e =>
+                                                updateStop(
+                                                    i,
+                                                    'depart',
+                                                    e.target.value
+                                                )
+                                            }
+                                        />
+                                    )}
+                                </div>
+                                {i < stopsInput.length - 1 && (
+                                    <Select
+                                        value={routeIds[i] || NONE}
+                                        onValueChange={val =>
+                                            setRouteIds(prev =>
+                                                prev.map((r, j) =>
+                                                    j === i
+                                                        ? val === NONE
+                                                            ? ''
+                                                            : val
+                                                        : r
+                                                )
+                                            )
                                         }
-                                    />
+                                    >
+                                        <SelectTrigger
+                                            size="sm"
+                                            className="text-[10px]"
+                                        >
+                                            <SelectValue />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                            <SelectItem value={NONE}>
+                                                {t('routePlaceholder')}
+                                            </SelectItem>
+                                            {routes.map(r => (
+                                                <SelectItem
+                                                    key={r.id}
+                                                    value={r.id}
+                                                >
+                                                    {r.name}
+                                                </SelectItem>
+                                            ))}
+                                        </SelectContent>
+                                    </Select>
                                 )}
                                 {i < stopsInput.length - 1 && (
-                                    <input
-                                        className="bg-background text-foreground w-16 rounded border px-1 py-0.5 text-[10px] outline-none"
-                                        placeholder={t('departureTime')}
-                                        value={stop.depart}
-                                        onChange={(e) =>
-                                            updateStop(i, 'depart', e.target.value)
-                                        }
-                                    />
+                                    <Separator className="my-0.5" />
                                 )}
                             </div>
-                            {i < stopsInput.length - 1 && (
-                                <Select
-                                    value={routeIds[i] || NONE}
-                                    onValueChange={(val) =>
-                                        setRouteIds((prev) =>
-                                            prev.map((r, j) =>
-                                                j === i ? (val === NONE ? '' : val) : r,
-                                            ),
-                                        )
-                                    }
-                                >
-                                    <SelectTrigger size="sm" className="text-[10px]">
-                                        <SelectValue />
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                        <SelectItem value={NONE}>{t('routePlaceholder')}</SelectItem>
-                                        {routes.map((r) => (
-                                            <SelectItem key={r.id} value={r.id}>
-                                                {r.name}
-                                            </SelectItem>
-                                        ))}
-                                    </SelectContent>
-                                </Select>
-                            )}
-                            {i < stopsInput.length - 1 && (
-                                <Separator className="my-0.5" />
-                            )}
-                        </div>
                         );
                     })}
                     <Button variant="ghost" size="xs" onClick={addStop}>
@@ -536,24 +763,30 @@ function ShiftSection({
             )}
 
             <div className="flex max-h-40 flex-col gap-0.5 overflow-y-auto">
-                {shifts.map((s) => (
+                {shifts.map(s => (
                     <div
                         key={s.id}
                         className="bg-muted/50 flex items-center justify-between rounded px-2 py-1"
                     >
                         <div className="flex flex-col">
-                            <span className="text-xs font-medium">{s.name}</span>
+                            <span className="text-xs font-medium">
+                                {s.name}
+                            </span>
                             <span className="text-muted-foreground text-[10px]">
                                 {t('stopCount', { count: s.stops.length })} ·{' '}
                                 {formatWeekMs(s.stops[0]?.departureTime)} →{' '}
-                                {formatWeekMs(s.stops[s.stops.length - 1]?.arrivalTime)}
+                                {formatWeekMs(
+                                    s.stops[s.stops.length - 1]?.arrivalTime
+                                )}
                             </span>
                         </div>
                         <Button
                             variant="ghost"
                             size="icon-xs"
                             onClick={() =>
-                                timetableManager.shiftTemplateManager.removeTemplate(s.id)
+                                timetableManager.shiftTemplateManager.removeTemplate(
+                                    s.id
+                                )
                             }
                             title={t('removeShift')}
                         >
@@ -579,7 +812,7 @@ function AssignSection({
 }) {
     const { t } = useTranslation();
     const [assignments, setAssignments] = useState<ShiftAssignment[]>(() =>
-        timetableManager.getAssignments(),
+        timetableManager.getAssignments()
     );
     const [selectedFormationId, setSelectedFormationId] = useState('');
     const [selectedShiftId, setSelectedShiftId] = useState('');
@@ -596,7 +829,11 @@ function AssignSection({
 
     const handleAssign = useCallback(() => {
         if (!selectedFormationId || !selectedShiftId) return;
-        timetableManager.assignShift(uid('assign'), selectedFormationId, selectedShiftId);
+        timetableManager.assignShift(
+            uid('assign'),
+            selectedFormationId,
+            selectedShiftId
+        );
         setAssignments(timetableManager.getAssignments());
         setSelectedFormationId('');
         setSelectedShiftId('');
@@ -607,7 +844,7 @@ function AssignSection({
             timetableManager.unassignShift(id);
             setAssignments(timetableManager.getAssignments());
         },
-        [timetableManager],
+        [timetableManager]
     );
 
     return (
@@ -617,14 +854,18 @@ function AssignSection({
             <div className="flex flex-col gap-1">
                 <Select
                     value={selectedFormationId || NONE}
-                    onValueChange={(val) => setSelectedFormationId(val === NONE ? '' : val)}
+                    onValueChange={val =>
+                        setSelectedFormationId(val === NONE ? '' : val)
+                    }
                 >
                     <SelectTrigger size="sm">
                         <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
-                        <SelectItem value={NONE}>{t('selectFormation')}</SelectItem>
-                        {formations.map((f) => (
+                        <SelectItem value={NONE}>
+                            {t('selectFormation')}
+                        </SelectItem>
+                        {formations.map(f => (
                             <SelectItem key={f.id} value={f.id}>
                                 {f.formation.name ?? f.id}
                             </SelectItem>
@@ -633,14 +874,16 @@ function AssignSection({
                 </Select>
                 <Select
                     value={selectedShiftId || NONE}
-                    onValueChange={(val) => setSelectedShiftId(val === NONE ? '' : val)}
+                    onValueChange={val =>
+                        setSelectedShiftId(val === NONE ? '' : val)
+                    }
                 >
                     <SelectTrigger size="sm">
                         <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
                         <SelectItem value={NONE}>{t('selectShift')}</SelectItem>
-                        {shifts.map((s) => (
+                        {shifts.map(s => (
                             <SelectItem key={s.id} value={s.id}>
                                 {s.name}
                             </SelectItem>
@@ -664,10 +907,11 @@ function AssignSection({
             )}
 
             <div className="flex max-h-40 flex-col gap-0.5 overflow-y-auto">
-                {assignments.map((a) => {
-                    const shift = timetableManager.shiftTemplateManager.getTemplate(
-                        a.shiftTemplateId,
-                    );
+                {assignments.map(a => {
+                    const shift =
+                        timetableManager.shiftTemplateManager.getTemplate(
+                            a.shiftTemplateId
+                        );
                     return (
                         <div
                             key={a.id}
@@ -719,9 +963,16 @@ export function TimetablePanel({ onClose }: TimetablePanelProps) {
 
     const handleImport = useCallback(() => {
         if (!app) return;
-        uploadJson((parsed) => {
+        uploadJson(parsed => {
             const obj = parsed as Record<string, unknown>;
-            if (!obj || typeof obj !== 'object' || !obj.clock || !Array.isArray(obj.routes) || !Array.isArray(obj.shiftTemplates) || !Array.isArray(obj.assignments)) {
+            if (
+                !obj ||
+                typeof obj !== 'object' ||
+                !obj.clock ||
+                !Array.isArray(obj.routes) ||
+                !Array.isArray(obj.shiftTemplates) ||
+                !Array.isArray(obj.assignments)
+            ) {
                 alert(t('invalidTimetableData'));
                 return;
             }
@@ -731,34 +982,56 @@ export function TimetablePanel({ onClose }: TimetablePanelProps) {
                 app.curveEngine.trackGraph,
                 app.trainManager,
                 app.stationManager,
+                app.trackAlignedPlatformManager
             );
             // Replace the current timetable manager and update the ref
             app.timetableManager.dispose();
-            (app as { timetableManager: TimetableManager }).timetableManager = restored;
+            (app as { timetableManager: TimetableManager }).timetableManager =
+                restored;
             app.timetableRef.current = restored;
         });
     }, [app, t]);
 
     if (!app) return null;
 
-    const { timetableManager, stationManager, trackAlignedPlatformManager, formationManager } = app;
+    const {
+        timetableManager,
+        stationManager,
+        trackAlignedPlatformManager,
+        formationManager,
+    } = app;
     const trackGraph = app.curveEngine.trackGraph;
 
     const headerActions = (
         <>
-            <Button variant="ghost" size="icon-xs" onClick={handleExport} title={t('exportTimetable')}>
+            <Button
+                variant="ghost"
+                size="icon-xs"
+                onClick={handleExport}
+                title={t('exportTimetable')}
+            >
                 <Download className="size-3" />
             </Button>
-            <Button variant="ghost" size="icon-xs" onClick={handleImport} title={t('importTimetable')}>
+            <Button
+                variant="ghost"
+                size="icon-xs"
+                onClick={handleImport}
+                title={t('importTimetable')}
+            >
                 <Upload className="size-3" />
             </Button>
         </>
     );
 
     return (
-        <DraggablePanel title={t('timetable')} onClose={onClose} className="w-72" headerActions={headerActions}>
+        <DraggablePanel
+            title={t('timetable')}
+            onClose={onClose}
+            className="w-72"
+            headerActions={headerActions}
+        >
             <div className="flex gap-0.5 pb-1">
-                {(['routes', 'shifts', 'assign'] as const).map((tabKey) => (
+                {(['routes', 'shifts', 'assign'] as const).map(tabKey => (
                     <button
                         key={tabKey}
                         className={`flex-1 rounded px-2 py-0.5 text-xs ${

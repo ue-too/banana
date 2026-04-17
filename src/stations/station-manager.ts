@@ -3,7 +3,11 @@ import type {
   Station,
   SerializedStation,
   SerializedStationData,
+  TrackDirection,
 } from './types';
+import { nextStopPositionId } from './stop-position-utils';
+import type { ShiftTemplateManager } from '@/timetable/shift-template-manager';
+import type { ShiftTemplate } from '@/timetable/types';
 
 export class StationManager {
   private _manager: GenericEntityManager<Station>;
@@ -49,6 +53,128 @@ export class StationManager {
   }
 
   // -----------------------------------------------------------------------
+  // Stop position CRUD (island platforms)
+  // -----------------------------------------------------------------------
+
+  /**
+   * Append a new stop position to an island platform.
+   *
+   * @param stationId - Owner station.
+   * @param platformId - Island platform id within the station.
+   * @param input - The stop's track segment, direction, and tValue.
+   * @returns The newly assigned stop position id.
+   * @throws If the station/platform is missing, the segment doesn't match
+   *   the platform's track, or the tValue is outside `[0, 1]`.
+   */
+  addStopPosition(
+      stationId: number,
+      platformId: number,
+      input: { trackSegmentId: number; direction: TrackDirection; tValue: number },
+  ): number {
+      const platform = this._getPlatformOrThrow(stationId, platformId);
+      this._validateStop(platform, input);
+      const id = nextStopPositionId(platform.stopPositions);
+      platform.stopPositions.push({ id, ...input });
+      return id;
+  }
+
+  /**
+   * Update an existing stop position. `tValue` and `direction` may change;
+   * `trackSegmentId` is fixed because an island platform serves a single
+   * track segment.
+   */
+  updateStopPosition(
+      stationId: number,
+      platformId: number,
+      stopId: number,
+      patch: { direction?: TrackDirection; tValue?: number },
+  ): void {
+      const platform = this._getPlatformOrThrow(stationId, platformId);
+      const stop = platform.stopPositions.find((s) => s.id === stopId);
+      if (!stop) {
+          throw new Error(
+              `StationManager.updateStopPosition: stop ${stopId} not found on platform ${platformId} of station ${stationId}`,
+          );
+      }
+      const next = {
+          trackSegmentId: stop.trackSegmentId,
+          direction: patch.direction ?? stop.direction,
+          tValue: patch.tValue ?? stop.tValue,
+      };
+      this._validateStop(platform, next);
+      stop.direction = next.direction;
+      stop.tValue = next.tValue;
+  }
+
+  /** Remove a stop position. No-op if the id is not present. */
+  removeStopPosition(
+      stationId: number,
+      platformId: number,
+      stopId: number,
+  ): void {
+      const platform = this._getPlatformOrThrow(stationId, platformId);
+      platform.stopPositions = platform.stopPositions.filter((s) => s.id !== stopId);
+  }
+
+  private _getPlatformOrThrow(stationId: number, platformId: number) {
+      const station = this._manager.getEntity(stationId);
+      if (!station) {
+          throw new Error(`StationManager: station ${stationId} not found`);
+      }
+      const platform = station.platforms.find((p) => p.id === platformId);
+      if (!platform) {
+          throw new Error(
+              `StationManager: platform ${platformId} not found on station ${stationId}`,
+          );
+      }
+      return platform;
+  }
+
+  private _validateStop(
+      platform: { track: number },
+      input: { trackSegmentId: number; tValue: number },
+  ): void {
+      if (input.trackSegmentId !== platform.track) {
+          throw new Error(
+              `StationManager: stop position trackSegmentId ${input.trackSegmentId} does not match platform.track ${platform.track}`,
+          );
+      }
+      if (input.tValue < 0 || input.tValue > 1) {
+          throw new Error(
+              `StationManager: stop position tValue ${input.tValue} is out of range [0, 1]`,
+          );
+      }
+  }
+
+  /**
+   * Return the list of shift templates whose scheduled stops reference the
+   * given stop position on an island platform. Used by the editor panel to
+   * surface a deletion guard before removing a referenced stop.
+   */
+  findShiftsReferencingStopPosition(
+      stationId: number,
+      platformId: number,
+      stopPositionId: number,
+      shiftTemplateManager: ShiftTemplateManager,
+  ): ShiftTemplate[] {
+      const result: ShiftTemplate[] = [];
+      for (const template of shiftTemplateManager.getAllTemplates()) {
+          for (const stop of template.stops) {
+              if (
+                  stop.platformKind === 'island' &&
+                  stop.stationId === stationId &&
+                  stop.platformId === platformId &&
+                  stop.stopPositionId === stopPositionId
+              ) {
+                  result.push(template);
+                  break;
+              }
+          }
+      }
+      return result;
+  }
+
+  // -----------------------------------------------------------------------
   // Serialization
   // -----------------------------------------------------------------------
 
@@ -91,7 +217,12 @@ export class StationManager {
           width: p.width,
           offset: p.offset,
           side: p.side as 1 | -1,
-          stopPositions: p.stopPositions.map((sp) => ({ ...sp })),
+          stopPositions: p.stopPositions.map((sp, i) => ({
+              id: typeof sp.id === 'number' ? sp.id : i,
+              trackSegmentId: sp.trackSegmentId,
+              direction: sp.direction,
+              tValue: sp.tValue,
+          })),
         })),
         trackSegments: [...s.trackSegments],
         joints: [...s.joints],
