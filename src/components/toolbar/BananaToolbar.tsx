@@ -92,9 +92,12 @@ import { FormationSelector } from './FormationSelector';
 import { GaugeSelector } from './GaugeSelector';
 import { LanguageSwitcher } from './LanguageSwitcher';
 import { LayoutDeletionToolbar } from './LayoutDeletionToolbar';
+import {
+    PlatformEditorPanel,
+    type PlatformTarget,
+} from './PlatformEditorPanel';
 import { ScaleRuler } from './ScaleRuler';
 import { SignalPanel } from './SignalPanel';
-import { PlatformEditorPanel, type PlatformTarget } from './PlatformEditorPanel';
 import { StationListPanel } from './StationListPanel';
 import { SunAngleControl } from './SunAngleControl';
 import { TerrainControl } from './TerrainControl';
@@ -1322,9 +1325,16 @@ export function BananaToolbar({
                     onAddDualSpinePlatform={handleStartDualSpinePlatform}
                     onEditPlatform={(stationId, platformId, platformKind) => {
                         if (platformKind === 'trackAligned') {
-                            setEditingPlatform({ kind: 'trackAligned', platformId });
+                            setEditingPlatform({
+                                kind: 'trackAligned',
+                                platformId,
+                            });
                         } else {
-                            setEditingPlatform({ kind: 'island', stationId, platformId });
+                            setEditingPlatform({
+                                kind: 'island',
+                                stationId,
+                                platformId,
+                            });
                         }
                     }}
                 />
@@ -1334,9 +1344,14 @@ export function BananaToolbar({
                 <PlatformEditorPanel
                     target={editingPlatform}
                     stationManager={app.stationManager}
-                    trackAlignedPlatformManager={app.trackAlignedPlatformManager}
-                    shiftTemplateManager={app.timetableManager.shiftTemplateManager}
+                    trackAlignedPlatformManager={
+                        app.trackAlignedPlatformManager
+                    }
+                    shiftTemplateManager={
+                        app.timetableManager.shiftTemplateManager
+                    }
                     trackGraph={app.curveEngine.trackGraph}
+                    platformBufferStore={app.platformBufferStore}
                     onClose={() => setEditingPlatform(null)}
                     onStopChange={() => app.debugOverlayRenderSystem.refresh()}
                 />
