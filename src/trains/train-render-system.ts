@@ -465,8 +465,8 @@ export class TrainRenderSystem {
         this._proximityDetector.update(placed, this._occupancyRegistry);
         this._collisionGuard?.update(placed, this._occupancyRegistry);
         this._stationPresenceDetector?.update(placed, this._occupancyRegistry);
-        this._transferManager?.update(deltaTime);
-        this._sourceSinkTicker?.update(deltaTime);
+        this._transferManager?.update(deltaTime / 1000);
+        this._sourceSinkTicker?.update(deltaTime / 1000);
 
         this._updatePreviewBogies();
         this._updatePreviewCars();
