@@ -93,4 +93,13 @@ describe('CarCargoStore', () => {
             'capacity must be a non-negative finite number'
         );
     });
+
+    it('destroyCar removes the entry', () => {
+        const store = new CarCargoStore();
+        store.add('car-0', 'iron-ore', 10);
+        store.destroyCar('car-0');
+        expect(store.serialize()).toEqual([]);
+        // Accessing after destroy lazy-creates a fresh entry (same as untouched).
+        expect(store.getTotalLoad('car-0')).toBe(0);
+    });
 });

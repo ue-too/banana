@@ -66,6 +66,10 @@ export class CarCargoStore {
         return actual;
     }
 
+    destroyCar(carId: string): void {
+        this._cargo.delete(carId);
+    }
+
     hydrate(cars: readonly SerializedCar[]): void {
         this._cargo.clear();
         for (const c of cars) {

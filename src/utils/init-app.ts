@@ -942,8 +942,12 @@ export const initApp = async (
     });
 
     // When a train is removed from the track, return its formation to the depot
+    // and purge its cars from the cargo store.
     trainManager.setOnBeforeRemove(train => {
         formationManager.addFormation(train.formation);
+        for (const car of train.cars) {
+            carCargoStore.destroyCar(car.id);
+        }
     });
 
     const kmtInputStateMachine = createKmtInputStateMachineExpansion(
