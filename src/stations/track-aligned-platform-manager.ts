@@ -139,7 +139,7 @@ export class TrackAlignedPlatformManager {
     updateStopPosition(
         platformId: number,
         stopId: number,
-        patch: { direction?: TrackDirection; tValue?: number },
+        patch: { trackSegmentId?: number; direction?: TrackDirection; tValue?: number },
     ): void {
         const platform = this._getPlatformOrThrow(platformId);
         const stop = platform.stopPositions.find((s) => s.id === stopId);
@@ -149,11 +149,12 @@ export class TrackAlignedPlatformManager {
             );
         }
         const next = {
-            trackSegmentId: stop.trackSegmentId,
+            trackSegmentId: patch.trackSegmentId ?? stop.trackSegmentId,
             direction: patch.direction ?? stop.direction,
             tValue: patch.tValue ?? stop.tValue,
         };
         this._validateStop(platform, next);
+        stop.trackSegmentId = next.trackSegmentId;
         stop.direction = next.direction;
         stop.tValue = next.tValue;
         this._changeObservable.notify();

@@ -134,6 +134,7 @@ export function PlatformEditorPanel({
             const resolved = normalizedToStop(spine, normalized, getCurve);
             if (target.kind === 'trackAligned') {
                 trackAlignedPlatformManager.updateStopPosition(target.platformId, stopId, {
+                    trackSegmentId: resolved.trackSegmentId,
                     tValue: resolved.tValue,
                 });
             } else {
