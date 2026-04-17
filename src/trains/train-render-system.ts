@@ -9,6 +9,7 @@ import type { CarImageRegistry } from './car-image-registry';
 import { OccupancyRegistry } from './occupancy-registry';
 import { ProximityDetector } from './proximity-detector';
 import type { CollisionGuard } from './collision-guard';
+import { StationPresenceDetector } from './station-presence-detector';
 
 const BOGIE_RADIUS = 1.067 / 2;
 
@@ -369,6 +370,7 @@ export class TrainRenderSystem {
   private _occupancyRegistry: OccupancyRegistry = new OccupancyRegistry();
   private _proximityDetector: ProximityDetector = new ProximityDetector();
   private _collisionGuard: CollisionGuard | null = null;
+  private _stationPresenceDetector: StationPresenceDetector | null = null;
 
   /** Cached procedural car body texture; created lazily when texture renderer is available. */
   private _carTexture: Texture | null = null;
@@ -422,6 +424,7 @@ export class TrainRenderSystem {
     this._occupancyRegistry.updateFromTrains(placed);
     this._proximityDetector.update(placed, this._occupancyRegistry);
     this._collisionGuard?.update(placed, this._occupancyRegistry);
+    this._stationPresenceDetector?.update(placed, this._occupancyRegistry);
 
     this._updatePreviewBogies();
     this._updatePreviewCars();
@@ -433,6 +436,16 @@ export class TrainRenderSystem {
 
     this._lastTrainIds.clear();
     for (const { id } of placed) this._lastTrainIds.add(id);
+  }
+
+  /** Set the station presence detector. Called during app init. */
+  setStationPresenceDetector(detector: StationPresenceDetector): void {
+    this._stationPresenceDetector = detector;
+  }
+
+  /** The station presence detector, updated each frame. */
+  get stationPresenceDetector(): StationPresenceDetector | null {
+    return this._stationPresenceDetector;
   }
 
   /** The centralized occupancy registry, updated each frame. */
