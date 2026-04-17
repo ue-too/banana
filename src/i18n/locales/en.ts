@@ -321,6 +321,25 @@ const en = {
         importTimetable: 'Import Timetable',
         invalidTimetableData: 'Invalid timetable data: {{error}}',
 
+        // Resource Types
+        'resource.passenger': 'Passengers',
+        'resource.ironOre': 'Iron ore',
+        'resource.goods': 'Goods',
+
+        // Resource Panel (on train)
+        'panel.resources.title': 'Cargo',
+        'panel.resources.capacity': 'Capacity',
+        'panel.resources.empty': 'Empty',
+        'panel.resources.transferring': 'Transferring…',
+
+        // Platform Resource Panel
+        'panel.platform.resources.title': 'Resources',
+        'panel.platform.resources.bufferShared': 'Share buffer with station',
+        'panel.platform.resources.role': 'Role',
+        'panel.platform.resources.roleSource': 'Source',
+        'panel.platform.resources.roleSink': 'Sink',
+        'panel.platform.resources.roleNeither': '—',
+
         // Formation Editor
         formations: 'Formations',
         onTrack: 'On track',

@@ -311,6 +311,25 @@ const zhTW = {
         importTimetable: '匯入時刻表',
         invalidTimetableData: '無效的時刻表資料：{{error}}',
 
+        // Resource Types
+        'resource.passenger': '乘客',
+        'resource.ironOre': '鐵礦',
+        'resource.goods': '貨物',
+
+        // Resource Panel (on train)
+        'panel.resources.title': '載貨',
+        'panel.resources.capacity': '容量',
+        'panel.resources.empty': '空載',
+        'panel.resources.transferring': '搬運中…',
+
+        // Platform Resource Panel
+        'panel.platform.resources.title': '資源',
+        'panel.platform.resources.bufferShared': '與車站共用緩衝',
+        'panel.platform.resources.role': '角色',
+        'panel.platform.resources.roleSource': '產出',
+        'panel.platform.resources.roleSink': '消耗',
+        'panel.platform.resources.roleNeither': '—',
+
         // Formation Editor
         formations: '編組',
         onTrack: '在軌道上',
