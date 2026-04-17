@@ -6,7 +6,7 @@ type SerializedCar = { carId: string; capacity: number; contents: ResourceCounts
 export class CarCargoStore {
     private _cargo: Map<string, CarCargo> = new Map();
 
-    getCargo(carId: string): CarCargo {
+    getCargo(carId: string): Readonly<CarCargo> {
         let entry = this._cargo.get(carId);
         if (!entry) {
             entry = { capacity: DEFAULT_CAR_CAPACITY, contents: {} };
@@ -24,7 +24,9 @@ export class CarCargoStore {
     }
 
     setCapacity(carId: string, capacity: number): void {
-        if (capacity < 0) throw new Error('capacity cannot be negative');
+        if (!Number.isFinite(capacity) || capacity < 0) {
+            throw new Error('capacity must be a non-negative finite number');
+        }
         const entry = this.getCargo(carId);
         entry.capacity = capacity;
         // If current load exceeds new capacity, we leave it alone — resource tests
@@ -32,7 +34,7 @@ export class CarCargoStore {
     }
 
     add(carId: string, type: ResourceTypeId, amount: number): number {
-        if (amount <= 0) return 0;
+        if (!Number.isFinite(amount) || amount <= 0) return 0;
         const entry = this.getCargo(carId);
         const room = entry.capacity - this._sum(entry.contents);
         const actual = Math.min(amount, Math.max(0, room));
@@ -43,7 +45,7 @@ export class CarCargoStore {
     }
 
     remove(carId: string, type: ResourceTypeId, amount: number): number {
-        if (amount <= 0) return 0;
+        if (!Number.isFinite(amount) || amount <= 0) return 0;
         const entry = this._cargo.get(carId);
         if (!entry) return 0;
         const have = entry.contents[type] ?? 0;

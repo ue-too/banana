@@ -72,4 +72,24 @@ describe('CarCargoStore', () => {
             contents: { 'iron-ore': 7 },
         });
     });
+
+    it('add() rejects NaN and returns 0 without mutating state', () => {
+        const store = new CarCargoStore();
+        expect(store.add('car-0', 'iron-ore', Number.NaN)).toBe(0);
+        expect(store.getTotalLoad('car-0')).toBe(0);
+    });
+
+    it('remove() rejects NaN and returns 0', () => {
+        const store = new CarCargoStore();
+        store.add('car-0', 'iron-ore', 5);
+        expect(store.remove('car-0', 'iron-ore', Number.NaN)).toBe(0);
+        expect(store.getTotalLoad('car-0')).toBe(5);
+    });
+
+    it('setCapacity() throws on NaN', () => {
+        const store = new CarCargoStore();
+        expect(() => store.setCapacity('car-0', Number.NaN)).toThrow(
+            'capacity must be a non-negative finite number',
+        );
+    });
 });
