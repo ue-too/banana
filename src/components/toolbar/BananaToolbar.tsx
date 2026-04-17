@@ -1269,6 +1269,8 @@ export function BananaToolbar({
                         stopFollowing={app.stopFollowing}
                         isFollowing={app.isFollowing}
                         camera={app.camera}
+                        stationPresenceDetector={app.stationPresenceDetector}
+                        stationManager={app.stationManager}
                         onClose={() => setPanel('trainPanel', false)}
                     />
                 )}

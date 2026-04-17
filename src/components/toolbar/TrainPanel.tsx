@@ -8,6 +8,8 @@ import { DraggablePanel } from '@/components/ui/draggable-panel';
 import { Separator } from '@/components/ui/separator';
 import { cn } from '@/lib/utils';
 import type { ThrottleSteps } from '@/trains/formation';
+import type { StationManager } from '@/stations/station-manager';
+import type { StationPresenceDetector } from '@/trains/station-presence-detector';
 import type { TrainManager } from '@/trains/train-manager';
 import type { FocusAnimationParams } from '@/utils/init-app';
 
@@ -25,6 +27,8 @@ type TrainPanelProps = {
     stopFollowing: () => void;
     isFollowing: () => boolean;
     camera: BoardCamera;
+    stationPresenceDetector: StationPresenceDetector;
+    stationManager: StationManager;
 };
 
 export function TrainPanel({
@@ -35,6 +39,8 @@ export function TrainPanel({
     isFollowing,
     onClose,
     camera,
+    stationPresenceDetector,
+    stationManager,
 }: TrainPanelProps) {
     const { t } = useTranslation();
     const [following, setFollowing] = useState(isFollowing());
@@ -42,9 +48,10 @@ export function TrainPanel({
     const selectedTrain = trainManager.getSelectedTrain();
     const selectedIndex = trainManager.selectedIndex;
 
-    // Poll train throttle/speed at animation-frame rate
+    // Poll train throttle/speed/station at animation-frame rate
     const [throttle, setThrottle] = useState<ThrottleSteps>('N');
     const [speed, setSpeed] = useState(0);
+    const [stationName, setStationName] = useState<string | null>(null);
     const rafRef = useRef<number>(0);
 
     useEffect(() => {
@@ -52,11 +59,18 @@ export function TrainPanel({
         const tick = () => {
             setThrottle(selectedTrain.throttleStep);
             setSpeed(selectedTrain.speed);
+            const presence = stationPresenceDetector.getPresenceForTrain(selectedIndex);
+            if (presence) {
+                const station = stationManager.getStation(presence.stationId);
+                setStationName(station?.name ?? null);
+            } else {
+                setStationName(null);
+            }
             rafRef.current = requestAnimationFrame(tick);
         };
         rafRef.current = requestAnimationFrame(tick);
         return () => cancelAnimationFrame(rafRef.current);
-    }, [selectedTrain]);
+    }, [selectedTrain, selectedIndex, stationPresenceDetector, stationManager]);
 
     const handleThrottleChange = useCallback(
         (step: ThrottleSteps) => {
@@ -125,6 +139,13 @@ export function TrainPanel({
                             speed={speed}
                             onThrottleChange={handleThrottleChange}
                         />
+                        {stationName && (
+                            <div className="bg-muted/50 rounded px-2 py-1 text-center text-xs">
+                                <span className="text-muted-foreground">
+                                    {t('atStation', { name: stationName })}
+                                </span>
+                            </div>
+                        )}
                         <Separator />
                         <div className="flex flex-wrap gap-1">
                             <ToolbarButton

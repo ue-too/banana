@@ -135,6 +135,7 @@ const zhTW = {
         neutral: '空檔',
         switchDirection: '切換方向',
         removeSelectedTrain: '移除選取的列車',
+        atStation: '位於：{{name}}',
         focusOnSelectedTrain: '聚焦選取的列車',
         followSelectedTrain: '跟隨選取的列車',
         stopFollowing: '停止跟隨',

@@ -141,6 +141,7 @@ const en = {
         neutral: 'Neutral',
         switchDirection: 'Switch Direction',
         removeSelectedTrain: 'Remove Selected Train',
+        atStation: 'At: {{name}}',
         focusOnSelectedTrain: 'Focus on Selected Train',
         followSelectedTrain: 'Follow Selected Train',
         stopFollowing: 'Stop Following',
