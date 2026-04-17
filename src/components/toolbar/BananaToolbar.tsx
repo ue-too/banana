@@ -94,6 +94,7 @@ import { LanguageSwitcher } from './LanguageSwitcher';
 import { LayoutDeletionToolbar } from './LayoutDeletionToolbar';
 import { ScaleRuler } from './ScaleRuler';
 import { SignalPanel } from './SignalPanel';
+import { PlatformEditorPanel, type PlatformTarget } from './PlatformEditorPanel';
 import { StationListPanel } from './StationListPanel';
 import { SunAngleControl } from './SunAngleControl';
 import { TerrainControl } from './TerrainControl';
@@ -218,6 +219,8 @@ export function BananaToolbar({
     const [stressStartY, setStressStartY] = useState(0);
     const [carTemplates, setCarTemplates] = useState<CarTemplate[]>([]);
     const [libraryDialogOpen, setLibraryDialogOpen] = useState(false);
+    const [editingPlatform, setEditingPlatform] =
+        useState<PlatformTarget | null>(null);
 
     const selectedBuildingRef = useRef<number | null>(null);
 
@@ -1315,6 +1318,25 @@ export function BananaToolbar({
                     }
                     onAddSingleSpinePlatform={handleStartSingleSpinePlatform}
                     onAddDualSpinePlatform={handleStartDualSpinePlatform}
+                    onEditPlatform={(stationId, platformId, platformKind) => {
+                        if (platformKind === 'trackAligned') {
+                            setEditingPlatform({ kind: 'trackAligned', platformId });
+                        } else {
+                            setEditingPlatform({ kind: 'island', stationId, platformId });
+                        }
+                    }}
+                />
+            )}
+
+            {editingPlatform && (
+                <PlatformEditorPanel
+                    target={editingPlatform}
+                    stationManager={app.stationManager}
+                    trackAlignedPlatformManager={app.trackAlignedPlatformManager}
+                    shiftTemplateManager={app.timetableManager.shiftTemplateManager}
+                    trackGraph={app.curveEngine.trackGraph}
+                    onClose={() => setEditingPlatform(null)}
+                    onStopChange={() => app.debugOverlayRenderSystem.refresh()}
                 />
             )}
 
