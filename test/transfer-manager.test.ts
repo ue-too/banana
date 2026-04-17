@@ -1,17 +1,22 @@
-import { describe, it, expect } from 'bun:test';
+import { describe, expect, it } from 'bun:test';
+
 import { CarCargoStore } from '@/resources/car-cargo-store';
 import { PlatformBufferStore } from '@/resources/platform-buffer-store';
 import { TransferManager } from '@/resources/transfer-manager';
 import {
     DEFAULT_CAR_CAPACITY,
-    TRANSFER_RATE_UNITS_PER_CAR_PER_SEC,
     type PlatformHandle,
+    TRANSFER_RATE_UNITS_PER_CAR_PER_SEC,
 } from '@/resources/types';
 
-const platform: PlatformHandle = { kind: 'island', stationId: 1, platformId: 0 };
+const platform: PlatformHandle = {
+    kind: 'island',
+    stationId: 1,
+    platformId: 0,
+};
 
 function makeTrain(carIds: string[]): { cars: { id: string }[] } {
-    return { cars: carIds.map((id) => ({ id })) };
+    return { cars: carIds.map(id => ({ id })) };
 }
 
 function makeDeps(carIds: string[]): {
@@ -25,7 +30,7 @@ function makeDeps(carIds: string[]): {
     const manager = new TransferManager({
         carCargoStore: cargo,
         platformBufferStore: buffer,
-        getTrainById: (id) => (id === 1 ? (train as any) : null),
+        getTrainById: id => (id === 1 ? (train as any) : null),
         getSimTime: () => 0,
     });
     return { cargo, buffer, manager };
@@ -58,7 +63,7 @@ describe('TransferManager', () => {
 
     it('within one tick, unloads then loads — remaining budget fills from buffer', () => {
         const { cargo, buffer, manager } = makeDeps(['car-0']);
-        cargo.add('car-0', 'iron-ore', 2);     // small cargo, drains fast
+        cargo.add('car-0', 'iron-ore', 2); // small cargo, drains fast
         buffer.add(platform, 'goods', 100);
         manager.begin(1, platform);
         manager.update(1); // budget = 5; unload 2 iron-ore, load 3 goods
@@ -115,7 +120,10 @@ describe('TransferManager', () => {
         const manager = new TransferManager({
             carCargoStore: cargo,
             platformBufferStore: buffer,
-            getTrainById: (id) => (trainAlive && id === 1 ? ({ cars: [{ id: 'car-0' }] } as any) : null),
+            getTrainById: id =>
+                trainAlive && id === 1
+                    ? ({ cars: [{ id: 'car-0' }] } as any)
+                    : null,
             getSimTime: () => 0,
         });
         buffer.add(platform, 'goods', 100);
@@ -140,5 +148,25 @@ describe('TransferManager', () => {
         // Run enough ticks to try to overflow: 100 sec * 5/sec = 500 attempted
         for (let i = 0; i < 100; i++) manager.update(1);
         expect(cargo.getTotalLoad('car-0')).toBe(DEFAULT_CAR_CAPACITY);
+    });
+
+    it('auto-evicts dead train entries from _active after update', () => {
+        const cargo = new CarCargoStore();
+        const buffer = new PlatformBufferStore();
+        let trainAlive = true;
+        const manager = new TransferManager({
+            carCargoStore: cargo,
+            platformBufferStore: buffer,
+            getTrainById: id =>
+                trainAlive && id === 1
+                    ? ({ cars: [{ id: 'car-0' }] } as any)
+                    : null,
+            getSimTime: () => 0,
+        });
+        manager.begin(1, platform);
+        expect(manager.getTransfer(1)).not.toBeNull();
+        trainAlive = false;
+        manager.update(1);
+        expect(manager.getTransfer(1)).toBeNull();
     });
 });

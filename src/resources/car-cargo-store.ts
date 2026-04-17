@@ -1,7 +1,11 @@
 import type { CarCargo, ResourceCounts, ResourceTypeId } from './types';
 import { DEFAULT_CAR_CAPACITY } from './types';
 
-type SerializedCar = { carId: string; capacity: number; contents: ResourceCounts };
+type SerializedCar = {
+    carId: string;
+    capacity: number;
+    contents: ResourceCounts;
+};
 
 export class CarCargoStore {
     private _cargo: Map<string, CarCargo> = new Map();

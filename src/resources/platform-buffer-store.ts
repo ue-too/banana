@@ -51,13 +51,16 @@ export class PlatformBufferStore {
 
     setBufferMode(
         handle: PlatformHandle,
-        mode: 'private' | 'sharedWithStation',
+        mode: 'private' | 'sharedWithStation'
     ): void {
         const config = this.getConfig(handle);
         config.bufferMode = mode;
     }
 
-    getRole(handle: PlatformHandle, type: ResourceTypeId): PlatformRole | 'neither' {
+    getRole(
+        handle: PlatformHandle,
+        type: ResourceTypeId
+    ): PlatformRole | 'neither' {
         const config = this._configs.get(encodePlatformKey(handle));
         return config?.roles[type] ?? 'neither';
     }
@@ -65,7 +68,7 @@ export class PlatformBufferStore {
     setRole(
         handle: PlatformHandle,
         type: ResourceTypeId,
-        role: PlatformRole | 'neither',
+        role: PlatformRole | 'neither'
     ): void {
         const config = this.getConfig(handle);
         if (role === 'neither') {
@@ -86,7 +89,11 @@ export class PlatformBufferStore {
         return amount;
     }
 
-    remove(handle: PlatformHandle, type: ResourceTypeId, amount: number): number {
+    remove(
+        handle: PlatformHandle,
+        type: ResourceTypeId,
+        amount: number
+    ): number {
         if (!Number.isFinite(amount) || amount <= 0) return 0;
         const buf = this._resolveBuffer(handle, false);
         const have = buf[type] ?? 0;
@@ -149,7 +156,10 @@ export class PlatformBufferStore {
 
     // -------- internals --------
 
-    private _resolveBuffer(handle: PlatformHandle, createIfMissing = true): Buffer {
+    private _resolveBuffer(
+        handle: PlatformHandle,
+        createIfMissing = true
+    ): Buffer {
         const key = encodePlatformKey(handle);
         const config = this._configs.get(key);
         if (config?.bufferMode === 'sharedWithStation') {

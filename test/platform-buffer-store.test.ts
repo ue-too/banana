@@ -1,10 +1,15 @@
-import { describe, it, expect } from 'bun:test';
+import { describe, expect, it } from 'bun:test';
+
 import { PlatformBufferStore } from '@/resources/platform-buffer-store';
 import type { PlatformHandle } from '@/resources/types';
 
 const pA: PlatformHandle = { kind: 'island', stationId: 1, platformId: 0 };
 const pB: PlatformHandle = { kind: 'island', stationId: 1, platformId: 1 };
-const pC: PlatformHandle = { kind: 'trackAligned', stationId: 2, platformId: 9 };
+const pC: PlatformHandle = {
+    kind: 'trackAligned',
+    stationId: 2,
+    platformId: 9,
+};
 
 describe('PlatformBufferStore', () => {
     it('returns an empty buffer for an untouched platform', () => {
@@ -82,7 +87,10 @@ describe('PlatformBufferStore', () => {
         store.add(pA, 'goods', 1);
         store.setBufferMode(pB, 'sharedWithStation');
         store.setRole(pC, 'iron-ore', 'sink');
-        const keys = store.getAllConfiguredPlatforms().map((h) => h.platformId).sort();
+        const keys = store
+            .getAllConfiguredPlatforms()
+            .map(h => h.platformId)
+            .sort();
         expect(keys).toEqual([0, 1, 9]);
     });
 
@@ -134,7 +142,9 @@ describe('PlatformBufferStore', () => {
         // Mutation attempts on the snapshot must not affect store state.
         try {
             buf['goods'] = 999;
-        } catch { /* strict mode throws, non-strict silently ignores */ }
+        } catch {
+            /* strict mode throws, non-strict silently ignores */
+        }
         expect(store.getEffectiveBuffer(pA)).toEqual({ goods: 5 });
     });
 });

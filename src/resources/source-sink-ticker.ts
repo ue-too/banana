@@ -11,9 +11,17 @@ export class SourceSinkTicker {
             // Object.entries skips absent keys — that IS the 'neither' branch.
             for (const [resourceType, role] of Object.entries(config.roles)) {
                 if (role === 'source') {
-                    this._bufferStore.add(handle, resourceType, SOURCE_RATE * dt);
+                    this._bufferStore.add(
+                        handle,
+                        resourceType,
+                        SOURCE_RATE * dt
+                    );
                 } else if (role === 'sink') {
-                    this._bufferStore.remove(handle, resourceType, SINK_RATE * dt);
+                    this._bufferStore.remove(
+                        handle,
+                        resourceType,
+                        SINK_RATE * dt
+                    );
                 }
             }
         }

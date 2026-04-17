@@ -1,4 +1,5 @@
-import { describe, it, expect } from 'bun:test';
+import { describe, expect, it } from 'bun:test';
+
 import { CarCargoStore } from '@/resources/car-cargo-store';
 import { DEFAULT_CAR_CAPACITY } from '@/resources/types';
 
@@ -23,7 +24,7 @@ describe('CarCargoStore', () => {
     it('clamps add() at capacity and returns the actual amount added', () => {
         const store = new CarCargoStore();
         expect(store.add('car-0', 'iron-ore', DEFAULT_CAR_CAPACITY + 30)).toBe(
-            DEFAULT_CAR_CAPACITY,
+            DEFAULT_CAR_CAPACITY
         );
         expect(store.getTotalLoad('car-0')).toBe(DEFAULT_CAR_CAPACITY);
         // Adding more returns 0.
@@ -89,7 +90,7 @@ describe('CarCargoStore', () => {
     it('setCapacity() throws on NaN', () => {
         const store = new CarCargoStore();
         expect(() => store.setCapacity('car-0', Number.NaN)).toThrow(
-            'capacity must be a non-negative finite number',
+            'capacity must be a non-negative finite number'
         );
     });
 });

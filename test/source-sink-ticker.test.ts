@@ -1,4 +1,5 @@
-import { describe, it, expect } from 'bun:test';
+import { describe, expect, it } from 'bun:test';
+
 import { PlatformBufferStore } from '@/resources/platform-buffer-store';
 import { SourceSinkTicker } from '@/resources/source-sink-ticker';
 import { SINK_RATE, SOURCE_RATE } from '@/resources/types';
