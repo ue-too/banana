@@ -248,6 +248,25 @@ const ja = {
         invalidFileMissingBogieOffsets:
             '無効なファイル：bogieOffsets がありません。',
 
+        // Resource Types
+        'resource.passenger': '乗客',
+        'resource.ironOre': '鉄鉱石',
+        'resource.goods': '貨物',
+
+        // Resource Panel (on train)
+        'panel.resources.title': '積載',
+        'panel.resources.capacity': '容量',
+        'panel.resources.empty': '空',
+        'panel.resources.transferring': '搬送中…',
+
+        // Platform Resource Panel
+        'panel.platform.resources.title': 'リソース',
+        'panel.platform.resources.bufferShared': '駅で共有',
+        'panel.platform.resources.role': 'ロール',
+        'panel.platform.resources.roleSource': '供給',
+        'panel.platform.resources.roleSink': '需要',
+        'panel.platform.resources.roleNeither': '—',
+
         // Formation Editor
         formations: '編成',
         onTrack: '線路上',

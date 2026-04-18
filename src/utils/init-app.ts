@@ -15,6 +15,13 @@ import Stats from 'stats.js';
 import { BuildingManager, BuildingRenderSystem } from '@/buildings';
 import i18n from '@/i18n';
 import {
+    CarCargoStore,
+    PlatformBufferStore,
+    type PlatformHandle,
+    SourceSinkTicker,
+    TransferManager,
+} from '@/resources';
+import {
     BlockSignalManager,
     SignalRenderSystem,
     SignalStateEngine,
@@ -39,9 +46,9 @@ import { TerrainData } from '@/terrain/terrain-data';
 import { TerrainRenderSystem } from '@/terrain/terrain-render-system';
 import { TimeManager } from '@/time';
 import { ScheduleClock, TimetableManager } from '@/timetable';
-import { CollisionGuard, CrossingMap } from '@/trains/collision-guard';
 import { CarImageRegistry } from '@/trains/car-image-registry';
 import { CarStockManager } from '@/trains/car-stock-manager';
+import { CollisionGuard, CrossingMap } from '@/trains/collision-guard';
 import { Train, type TrainPosition } from '@/trains/formation';
 import { FormationManager } from '@/trains/formation-manager';
 import { CatenaryLayoutEngine } from '@/trains/input-state-machine/catenary-layout-engine';
@@ -62,6 +69,7 @@ import {
     TrainPlacementStateMachine,
 } from '@/trains/input-state-machine/train-kmt-state-machine';
 import { createLayoutStateMachine } from '@/trains/input-state-machine/utils';
+import { StationPresenceDetector } from '@/trains/station-presence-detector';
 import { DebugOverlayRenderSystem } from '@/trains/tracks/debug-overlay-render-system';
 import { JointDirectionPreferenceMap } from '@/trains/tracks/joint-direction-preference-map';
 import { JointDirectionRenderSystem } from '@/trains/tracks/joint-direction-render-system';
@@ -75,7 +83,6 @@ import { TrackRenderSystem } from '@/trains/tracks/render-system';
 import type { TrackSegmentWithCollision } from '@/trains/tracks/types';
 import { intersectionSatisfiesVerticalClearance } from '@/trains/tracks/utils';
 import { TrainManager } from '@/trains/train-manager';
-import { StationPresenceDetector } from '@/trains/station-presence-detector';
 import { TrainRenderSystem } from '@/trains/train-render-system';
 import { WorldRenderSystem } from '@/world-render-system';
 
@@ -312,6 +319,10 @@ export type BananaAppComponents = BaseAppComponents & {
     signalStateEngine: SignalStateEngine;
     signalRenderSystem: SignalRenderSystem;
     stationPresenceDetector: StationPresenceDetector;
+    carCargoStore: CarCargoStore;
+    platformBufferStore: PlatformBufferStore;
+    transferManager: TransferManager;
+    sourceSinkTicker: SourceSinkTicker;
     /** The stats.js DOM element for toggling visibility. */
     statsDom: HTMLDivElement;
     /** Add a train at the given segment and t. For stress testing. */
@@ -662,15 +673,6 @@ export const initApp = async (
         );
     });
 
-    stationManager.setOnDestroyStation(stationId => {
-        const platforms =
-            trackAlignedPlatformManager.getPlatformsByStation(stationId);
-        for (const { id } of platforms) {
-            trackAlignedPlatformRenderSystem.removePlatform(id);
-            trackAlignedPlatformManager.destroyPlatform(id);
-        }
-    });
-
     const trainManager = new TrainManager();
     const carStockManager = new CarStockManager();
     const formationManager = new FormationManager(carStockManager);
@@ -806,10 +808,82 @@ export const initApp = async (
     const stationPresenceDetector = new StationPresenceDetector(
         stationManager,
         trackAlignedPlatformManager,
-        trackGraph,
+        trackGraph
     );
     trainRenderSystem.setStationPresenceDetector(stationPresenceDetector);
-    trackAlignedPlatformManager.onChange(() => stationPresenceDetector.rebuildIndex());
+    trackAlignedPlatformManager.onChange(() =>
+        stationPresenceDetector.rebuildIndex()
+    );
+    stationManager.onChange(() => stationPresenceDetector.rebuildIndex());
+
+    const carCargoStore = new CarCargoStore();
+    const platformBufferStore = new PlatformBufferStore();
+    const transferManager = new TransferManager({
+        carCargoStore,
+        platformBufferStore,
+        getTrainById: id => trainManager.getTrainById(id),
+        // TimeManager.currentTime is epoch ms; convert to seconds for sim time.
+        getSimTime: () => timeManager.currentTime / 1000,
+    });
+    const sourceSinkTicker = new SourceSinkTicker(platformBufferStore);
+
+    // Platform/station destruction → resource cleanup.
+    // Must be registered after platformBufferStore and transferManager exist.
+    stationManager.setOnDestroyStation(stationId => {
+        const station = stationManager.getStation(stationId);
+        if (station) {
+            // Island platforms belong directly to the station entity.
+            for (const platform of station.platforms) {
+                const handle: PlatformHandle = {
+                    kind: 'island',
+                    stationId,
+                    platformId: platform.id,
+                };
+                transferManager.endAllAtPlatform(handle);
+                platformBufferStore.destroyPlatform(handle);
+            }
+            // Track-aligned platform IDs are listed in station.trackAlignedPlatforms;
+            // the actual entities are still alive here because destroyPlatform on
+            // trackAlignedPlatformManager fires _onBeforeDestroy first, which
+            // will handle resource cleanup. We only need the render removal +
+            // entity destruction here.
+        }
+        const tapPlatforms =
+            trackAlignedPlatformManager.getPlatformsByStation(stationId);
+        for (const { id } of tapPlatforms) {
+            trackAlignedPlatformRenderSystem.removePlatform(id);
+            trackAlignedPlatformManager.destroyPlatform(id);
+        }
+    });
+
+    // Track-aligned platform destroyed individually (not via station cascade).
+    trackAlignedPlatformManager.setOnBeforeDestroy((id, platform) => {
+        const handle: PlatformHandle = {
+            kind: 'trackAligned',
+            stationId: platform.stationId,
+            platformId: id,
+        };
+        transferManager.endAllAtPlatform(handle);
+        platformBufferStore.destroyPlatform(handle);
+    });
+
+    const unsubscribeResourceTransfer = stationPresenceDetector.subscribe(
+        event => {
+            if (event.type === 'arrived') {
+                const handle: PlatformHandle = {
+                    kind: event.presence.platformKind,
+                    stationId: event.presence.stationId,
+                    platformId: event.presence.platformId,
+                };
+                transferManager.begin(event.trainId, handle);
+            } else {
+                transferManager.end(event.trainId);
+            }
+        }
+    );
+    baseComponents.cleanups.push(() => unsubscribeResourceTransfer());
+    trainRenderSystem.setTransferManager(transferManager);
+    trainRenderSystem.setSourceSinkTicker(sourceSinkTicker);
 
     // Collision prevention system
     const crossingMap = new CrossingMap();
@@ -818,23 +892,36 @@ export const initApp = async (
 
     const trackCurveManager = trackGraph.trackCurveManager;
 
-    function addSegmentCrossings(curveNumber: number, segment: TrackSegmentWithCollision) {
+    function addSegmentCrossings(
+        curveNumber: number,
+        segment: TrackSegmentWithCollision
+    ) {
         for (const col of segment.collision) {
             // Resolve the other segment's number by matching the BCurve reference
             for (const otherNum of trackCurveManager.livingEntities) {
                 if (otherNum === curveNumber) continue;
-                const otherSeg = trackCurveManager.getTrackSegmentWithJoints(otherNum);
-                if (!otherSeg || otherSeg.curve !== col.anotherCurve.curve) continue;
+                const otherSeg =
+                    trackCurveManager.getTrackSegmentWithJoints(otherNum);
+                if (!otherSeg || otherSeg.curve !== col.anotherCurve.curve)
+                    continue;
 
                 // Skip crossings with vertical clearance (different elevations)
-                if (intersectionSatisfiesVerticalClearance(
-                    col.selfT,
-                    segment,
-                    col.anotherCurve.tVal,
-                    otherSeg,
-                )) continue;
+                if (
+                    intersectionSatisfiesVerticalClearance(
+                        col.selfT,
+                        segment,
+                        col.anotherCurve.tVal,
+                        otherSeg
+                    )
+                )
+                    continue;
 
-                crossingMap.addCrossing(curveNumber, col.selfT, otherNum, col.anotherCurve.tVal);
+                crossingMap.addCrossing(
+                    curveNumber,
+                    col.selfT,
+                    otherNum,
+                    col.anotherCurve.tVal
+                );
                 break;
             }
         }
@@ -851,13 +938,23 @@ export const initApp = async (
         addSegmentCrossings(curveNumber, segment);
     });
 
-    trackCurveManager.onRemoveTrackSegment((curveNumber) => {
+    trackCurveManager.onRemoveTrackSegment(curveNumber => {
         crossingMap.removeSegment(curveNumber);
     });
 
     // When a train is removed from the track, return its formation to the depot
+    // and purge its cars from the cargo store.
     trainManager.setOnBeforeRemove(train => {
         formationManager.addFormation(train.formation);
+        for (const car of train.cars) {
+            carCargoStore.destroyCar(car.id);
+        }
+    });
+
+    // When a car is permanently removed from stock (deleted from the depot),
+    // purge its cargo store entry to prevent a slow memory leak.
+    carStockManager.setOnBeforeRemove(car => {
+        carCargoStore.destroyCar(car.id);
     });
 
     const kmtInputStateMachine = createKmtInputStateMachineExpansion(
@@ -1014,6 +1111,10 @@ export const initApp = async (
         signalStateEngine,
         signalRenderSystem,
         stationPresenceDetector,
+        carCargoStore,
+        platformBufferStore,
+        transferManager,
+        sourceSinkTicker,
         statsDom: stats.dom,
         addTrainAtPosition,
         addStressTestTrains,

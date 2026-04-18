@@ -1,9 +1,12 @@
 import { Observable, SynchronousObservable } from '@ue-too/board';
+
 import type { StationManager } from '@/stations/station-manager';
 import type { TrackAlignedPlatformManager } from '@/stations/track-aligned-platform-manager';
+
+import { type ThrottleSteps, isStoppedCommand } from './formation';
+import type { OccupancyRegistry } from './occupancy-registry';
 import type { TrackGraph } from './tracks/track';
 import type { PlacedTrainEntry } from './train-manager';
-import type { OccupancyRegistry } from './occupancy-registry';
 
 // ---------------------------------------------------------------------------
 // Types
@@ -43,7 +46,7 @@ export type StationPresenceEvent =
  */
 export function buildStopIndex(
     stationManager: StationManager,
-    trackAlignedPlatformManager: TrackAlignedPlatformManager,
+    trackAlignedPlatformManager: TrackAlignedPlatformManager
 ): Map<number, StopIndexEntry[]> {
     const index = new Map<number, StopIndexEntry[]>();
 
@@ -110,7 +113,7 @@ export function findNearestStop(
     trainT: number,
     segmentId: number,
     getCurve: (segmentId: number) => CurveLike,
-    threshold: number,
+    threshold: number
 ): StationPresence | null {
     const curve = getCurve(segmentId);
     const trainArc = curve.lengthAtT(trainT);
@@ -143,6 +146,17 @@ export function findNearestStop(
 const DEFAULT_THRESHOLD = 5;
 
 /**
+ * Returns true only when the train is genuinely stopped: speed is exactly zero
+ * and the throttle is neutral or a brake notch (not a power notch).
+ */
+function isTrainStoppedAtPlatform(train: {
+    speed: number;
+    throttleStep: ThrottleSteps;
+}): boolean {
+    return train.speed === 0 && isStoppedCommand(train.throttleStep);
+}
+
+/**
  * Continuously tracks which trains are near a station stop position.
  *
  * Call `update()` each frame after trains have moved and the occupancy
@@ -164,7 +178,7 @@ export class StationPresenceDetector {
         stationManager: StationManager,
         trackAlignedPlatformManager: TrackAlignedPlatformManager,
         trackGraph: TrackGraph,
-        threshold: number = DEFAULT_THRESHOLD,
+        threshold: number = DEFAULT_THRESHOLD
     ) {
         this._stationManager = stationManager;
         this._trackAlignedPlatformManager = trackAlignedPlatformManager;
@@ -177,7 +191,7 @@ export class StationPresenceDetector {
     rebuildIndex(): void {
         this._stopIndex = buildStopIndex(
             this._stationManager,
-            this._trackAlignedPlatformManager,
+            this._trackAlignedPlatformManager
         );
     }
 
@@ -187,7 +201,7 @@ export class StationPresenceDetector {
      */
     update(
         trains: readonly PlacedTrainEntry[],
-        occupancyRegistry: OccupancyRegistry,
+        occupancyRegistry: OccupancyRegistry
     ): void {
         const getCurve = (segmentId: number) => {
             const curve = this._trackGraph.getTrackSegmentCurve(segmentId);
@@ -204,6 +218,9 @@ export class StationPresenceDetector {
             const pos = train.position;
             if (pos === null) continue;
 
+            // Only genuinely stopped trains can be "at" a station.
+            if (!isTrainStoppedAtPlatform(train)) continue;
+
             const entries = this._stopIndex.get(pos.trackSegment);
             if (!entries || entries.length === 0) continue;
 
@@ -212,7 +229,7 @@ export class StationPresenceDetector {
                 pos.tValue,
                 pos.trackSegment,
                 getCurve,
-                this._threshold,
+                this._threshold
             );
 
             if (match) {

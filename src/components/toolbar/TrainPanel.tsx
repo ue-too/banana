@@ -1,14 +1,19 @@
 import { BoardCamera } from '@ue-too/board';
 import type { Point } from '@ue-too/math';
-import { ArrowLeftRight, Crosshair, Focus, Trash2 } from '@/assets/icons';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
+import { ArrowLeftRight, Crosshair, Focus, Trash2 } from '@/assets/icons';
 import { DraggablePanel } from '@/components/ui/draggable-panel';
 import { Separator } from '@/components/ui/separator';
 import { cn } from '@/lib/utils';
-import type { ThrottleSteps } from '@/trains/formation';
+import {
+    type CarCargoStore,
+    RESOURCE_TYPES,
+    type TransferManager,
+} from '@/resources';
 import type { StationManager } from '@/stations/station-manager';
+import type { ThrottleSteps } from '@/trains/formation';
 import type { StationPresenceDetector } from '@/trains/station-presence-detector';
 import type { TrainManager } from '@/trains/train-manager';
 import type { FocusAnimationParams } from '@/utils/init-app';
@@ -29,7 +34,87 @@ type TrainPanelProps = {
     camera: BoardCamera;
     stationPresenceDetector: StationPresenceDetector;
     stationManager: StationManager;
+    carCargoStore: CarCargoStore;
+    transferManager: TransferManager;
 };
+
+type TrainCargoSectionProps = {
+    trainId: number;
+    carIds: readonly string[];
+    carCargoStore: CarCargoStore;
+    transferManager: TransferManager;
+};
+
+function TrainCargoSection({
+    trainId,
+    carIds,
+    carCargoStore,
+    transferManager,
+}: TrainCargoSectionProps) {
+    const { t } = useTranslation();
+    const [, setTick] = useState(0);
+    useEffect(() => {
+        const id = setInterval(() => setTick(x => x + 1), 250);
+        return () => clearInterval(id);
+    }, []);
+
+    const transfer = transferManager.getTransfer(trainId);
+
+    return (
+        <section className="flex flex-col gap-2 p-2">
+            <h4 className="text-sm font-semibold">
+                {t('panel.resources.title')}
+            </h4>
+            {transfer && (
+                <p className="text-muted-foreground text-xs">
+                    {t('panel.resources.transferring')}
+                </p>
+            )}
+            <ul className="flex flex-col gap-2">
+                {carIds.map((carId, i) => {
+                    const cargo = carCargoStore.getCargo(carId);
+                    const total = carCargoStore.getTotalLoad(carId);
+                    return (
+                        <li
+                            key={carId}
+                            className="flex flex-col gap-0.5 text-sm"
+                        >
+                            <header className="flex justify-between">
+                                <span>#{i + 1}</span>
+                                <span className="tabular-nums">
+                                    {Math.floor(total)} / {cargo.capacity}
+                                </span>
+                            </header>
+                            {total === 0 ? (
+                                <em className="text-muted-foreground text-xs">
+                                    {t('panel.resources.empty')}
+                                </em>
+                            ) : (
+                                <ul className="flex flex-col gap-0.5 pl-3">
+                                    {RESOURCE_TYPES.filter(
+                                        rt => (cargo.contents[rt.id] ?? 0) > 0
+                                    ).map(rt => (
+                                        <li
+                                            key={rt.id}
+                                            className="flex justify-between text-xs"
+                                        >
+                                            <span>{t(rt.displayNameKey)}</span>
+                                            <span className="tabular-nums">
+                                                {Math.floor(
+                                                    cargo.contents[rt.id] ?? 0
+                                                )}
+                                            </span>
+                                        </li>
+                                    ))}
+                                </ul>
+                            )}
+                        </li>
+                    );
+                })}
+            </ul>
+        </section>
+    );
+}
 
 export function TrainPanel({
     trainManager,
@@ -41,6 +126,8 @@ export function TrainPanel({
     camera,
     stationPresenceDetector,
     stationManager,
+    carCargoStore,
+    transferManager,
 }: TrainPanelProps) {
     const { t } = useTranslation();
     const [following, setFollowing] = useState(isFollowing());
@@ -59,7 +146,8 @@ export function TrainPanel({
         const tick = () => {
             setThrottle(selectedTrain.throttleStep);
             setSpeed(selectedTrain.speed);
-            const presence = stationPresenceDetector.getPresenceForTrain(selectedIndex);
+            const presence =
+                stationPresenceDetector.getPresenceForTrain(selectedIndex);
             if (presence) {
                 const station = stationManager.getStation(presence.stationId);
                 setStationName(station?.name ?? null);
@@ -98,7 +186,9 @@ export function TrainPanel({
                                         key={entry.id}
                                         type="button"
                                         onClick={() =>
-                                            trainManager.setSelectedIndex(entry.id)
+                                            trainManager.setSelectedIndex(
+                                                entry.id
+                                            )
                                         }
                                         className={cn(
                                             'flex w-full items-center gap-2 rounded-md px-2 py-1 text-left text-xs transition-colors',
@@ -210,6 +300,13 @@ export function TrainPanel({
                                 <Trash2 />
                             </ToolbarButton>
                         </div>
+                        <Separator />
+                        <TrainCargoSection
+                            trainId={selectedIndex}
+                            carIds={selectedTrain.cars.map(c => c.id)}
+                            carCargoStore={carCargoStore}
+                            transferManager={transferManager}
+                        />
                     </>
                 )}
 
