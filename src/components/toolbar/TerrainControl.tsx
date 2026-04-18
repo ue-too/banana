@@ -1,6 +1,6 @@
-import { Mountain, Snowflake } from '@/assets/icons';
 import { useTranslation } from 'react-i18next';
 
+import { Mountain, Snowflake } from '@/assets/icons';
 import {
     Tooltip,
     TooltipContent,

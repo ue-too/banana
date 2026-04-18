@@ -73,7 +73,7 @@ export class CatenaryLayoutIdleForSourceState extends TemplateState<
             defaultTargetState: 'IDLE_FOR_SOURCE',
         },
         endCatenary: {
-            action: (context) => {
+            action: context => {
                 context.cancelPreview();
             },
             defaultTargetState: 'IDLE_FOR_SOURCE',
@@ -81,7 +81,7 @@ export class CatenaryLayoutIdleForSourceState extends TemplateState<
     };
 
     protected _guards: Guard<CatenaryLayoutContext, string> = {
-        hasPreview: (context) => context.hasPreview,
+        hasPreview: context => context.hasPreview,
     };
 
     protected _eventGuards: Partial<
@@ -129,19 +129,19 @@ export class CatenaryLayoutPreviewingState extends TemplateState<
             defaultTargetState: 'PREVIEWING',
         },
         F: {
-            action: (context) => {
+            action: context => {
                 context.flipSide();
             },
             defaultTargetState: 'PREVIEWING',
         },
         escapeKey: {
-            action: (context) => {
+            action: context => {
                 context.cancelPreview();
             },
             defaultTargetState: 'IDLE_FOR_SOURCE',
         },
         endCatenary: {
-            action: (context) => {
+            action: context => {
                 context.cancelPreview();
             },
             defaultTargetState: 'IDLE_FOR_SOURCE',
@@ -149,7 +149,7 @@ export class CatenaryLayoutPreviewingState extends TemplateState<
     };
 
     protected _guards: Guard<CatenaryLayoutContext, string> = {
-        hasPreview: (context) => context.hasPreview,
+        hasPreview: context => context.hasPreview,
     };
 
     protected _eventGuards: Partial<

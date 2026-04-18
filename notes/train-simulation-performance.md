@@ -7,13 +7,13 @@
 
 ## Per-frame Costs
 
-| Work | Cost per unit | Scales with |
-|------|--------------|-------------|
-| `Train.update()` — throttle + advance | O(1) per train | # trains |
-| `getPosition()` — Bezier curve eval | O(1) per bogie | # bogies (≈ 2×cars + 1 per train) |
-| Bogie rendering + band assignment | O(1) per bogie | # bogies |
-| Car half rendering + texture lookup | O(1) per car half | 2 × # cars |
-| **`sortChildren()` — called 2× per frame** | O(n log n) per elevation band | total rendered objects |
+| Work                                       | Cost per unit                 | Scales with                       |
+| ------------------------------------------ | ----------------------------- | --------------------------------- |
+| `Train.update()` — throttle + advance      | O(1) per train                | # trains                          |
+| `getPosition()` — Bezier curve eval        | O(1) per bogie                | # bogies (≈ 2×cars + 1 per train) |
+| Bogie rendering + band assignment          | O(1) per bogie                | # bogies                          |
+| Car half rendering + texture lookup        | O(1) per car half             | 2 × # cars                        |
+| **`sortChildren()` — called 2× per frame** | O(n log n) per elevation band | total rendered objects            |
 
 ## Main Bottlenecks
 

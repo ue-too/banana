@@ -1,9 +1,10 @@
-import { describe, it, expect, beforeEach } from 'bun:test';
-import { ELEVATION } from '../src/trains/tracks/types';
+import { beforeEach, describe, expect, it } from 'bun:test';
+
 import { StationManager } from '../src/stations/station-manager';
 import type { Platform } from '../src/stations/types';
 import { ShiftTemplateManager } from '../src/timetable/shift-template-manager';
 import { DayOfWeek } from '../src/timetable/types';
+import { ELEVATION } from '../src/trains/tracks/types';
 
 function makePlatform(track: number): Platform {
     return {
@@ -14,7 +15,12 @@ function makePlatform(track: number): Platform {
         side: 1,
         stopPositions: [
             { id: 0, trackSegmentId: track, direction: 'tangent', tValue: 0.5 },
-            { id: 1, trackSegmentId: track, direction: 'reverseTangent', tValue: 0.5 },
+            {
+                id: 1,
+                trackSegmentId: track,
+                direction: 'reverseTangent',
+                tValue: 0.5,
+            },
         ],
     };
 }
@@ -60,7 +66,7 @@ describe('StationManager stop-position CRUD', () => {
                     trackSegmentId: 99,
                     direction: 'tangent',
                     tValue: 0.5,
-                }),
+                })
             ).toThrow();
         });
 
@@ -71,7 +77,7 @@ describe('StationManager stop-position CRUD', () => {
                     trackSegmentId: 10,
                     direction: 'tangent',
                     tValue: 1.5,
-                }),
+                })
             ).toThrow();
         });
     });
@@ -83,7 +89,8 @@ describe('StationManager stop-position CRUD', () => {
                 tValue: 0.8,
                 direction: 'reverseTangent',
             });
-            const updated = mgr.getStation(stationId)!.platforms[0].stopPositions[0];
+            const updated =
+                mgr.getStation(stationId)!.platforms[0].stopPositions[0];
             expect(updated.tValue).toBe(0.8);
             expect(updated.direction).toBe('reverseTangent');
             expect(updated.id).toBe(0);
@@ -92,14 +99,18 @@ describe('StationManager stop-position CRUD', () => {
         it('throws when the stop id does not exist', () => {
             const { mgr, stationId, platformId } = setupStationWithPlatform(10);
             expect(() =>
-                mgr.updateStopPosition(stationId, platformId, 999, { tValue: 0.5 }),
+                mgr.updateStopPosition(stationId, platformId, 999, {
+                    tValue: 0.5,
+                })
             ).toThrow();
         });
 
         it('throws when patch tValue is out of range', () => {
             const { mgr, stationId, platformId } = setupStationWithPlatform(10);
             expect(() =>
-                mgr.updateStopPosition(stationId, platformId, 0, { tValue: -0.1 }),
+                mgr.updateStopPosition(stationId, platformId, 0, {
+                    tValue: -0.1,
+                })
             ).toThrow();
         });
     });
@@ -127,7 +138,7 @@ describe('StationManager stop-position CRUD', () => {
         it('is a no-op when the id does not exist', () => {
             const { mgr, stationId, platformId } = setupStationWithPlatform(10);
             expect(() =>
-                mgr.removeStopPosition(stationId, platformId, 999),
+                mgr.removeStopPosition(stationId, platformId, 999)
             ).not.toThrow();
             const stops = mgr.getStation(stationId)!.platforms[0].stopPositions;
             expect(stops).toHaveLength(2);
@@ -164,7 +175,12 @@ describe('StationManager.findShiftsReferencingStopPosition', () => {
             legs: [],
         });
 
-        const refs = mgr.findShiftsReferencingStopPosition(stationId, platformId, 0, stm);
+        const refs = mgr.findShiftsReferencingStopPosition(
+            stationId,
+            platformId,
+            0,
+            stm
+        );
         expect(refs).toHaveLength(1);
         expect(refs[0].id).toBe('s1');
     });
@@ -172,7 +188,12 @@ describe('StationManager.findShiftsReferencingStopPosition', () => {
     it('returns empty when no template references the stop', () => {
         const { mgr, stationId, platformId } = setupStationWithPlatform(10);
         const stm = new ShiftTemplateManager();
-        const refs = mgr.findShiftsReferencingStopPosition(stationId, platformId, 0, stm);
+        const refs = mgr.findShiftsReferencingStopPosition(
+            stationId,
+            platformId,
+            0,
+            stm
+        );
         expect(refs).toHaveLength(0);
     });
 });

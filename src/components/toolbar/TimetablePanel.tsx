@@ -547,11 +547,7 @@ function ShiftSection({
                                                 val === NONE ? '' : val
                                             );
                                             updateStop(i, 'platformValue', '');
-                                            updateStop(
-                                                i,
-                                                'stopPositionId',
-                                                ''
-                                            );
+                                            updateStop(i, 'stopPositionId', '');
                                         }}
                                     >
                                         <SelectTrigger
@@ -594,11 +590,7 @@ function ShiftSection({
                                                 'platformValue',
                                                 val === NONE ? '' : val
                                             );
-                                            updateStop(
-                                                i,
-                                                'stopPositionId',
-                                                ''
-                                            );
+                                            updateStop(i, 'stopPositionId', '');
                                         }}
                                     >
                                         <SelectTrigger
@@ -633,9 +625,7 @@ function ShiftSection({
                                         : [];
                                     return spOptions.length > 0 ? (
                                         <Select
-                                            value={
-                                                stop.stopPositionId || NONE
-                                            }
+                                            value={stop.stopPositionId || NONE}
                                             onValueChange={val =>
                                                 updateStop(
                                                     i,
@@ -659,9 +649,7 @@ function ShiftSection({
                                                 {spOptions.map(opt => (
                                                     <SelectItem
                                                         key={opt.id}
-                                                        value={String(
-                                                            opt.id
-                                                        )}
+                                                        value={String(opt.id)}
                                                     >
                                                         {opt.label}
                                                     </SelectItem>

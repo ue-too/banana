@@ -42,10 +42,7 @@ export function NotFoundPage(): React.ReactNode {
                 {t('notFoundMessage')}
             </p>
             <div className="flex flex-col items-center gap-3 sm:flex-row sm:gap-4">
-                <Link
-                    to="/"
-                    className="transition-opacity hover:opacity-75"
-                >
+                <Link to="/" className="transition-opacity hover:opacity-75">
                     <LedMarquee
                         text={t('backToHome') + ' →'}
                         height={isCJK ? 36 : 24}
@@ -55,10 +52,7 @@ export function NotFoundPage(): React.ReactNode {
                         pulse={!reduceMotion}
                     />
                 </Link>
-                <Link
-                    to="/app"
-                    className="transition-opacity hover:opacity-75"
-                >
+                <Link to="/app" className="transition-opacity hover:opacity-75">
                     <LedMarquee
                         text={t('openSimulator') + ' →'}
                         height={isCJK ? 36 : 24}

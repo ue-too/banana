@@ -1,9 +1,10 @@
-import { describe, it, expect } from 'bun:test';
-import { ELEVATION } from '../src/trains/tracks/types';
-import { ShiftTemplateManager } from '../src/timetable/shift-template-manager';
+import { describe, expect, it } from 'bun:test';
+
 import { StationManager } from '../src/stations/station-manager';
 import { TrackAlignedPlatformManager } from '../src/stations/track-aligned-platform-manager';
+import { ShiftTemplateManager } from '../src/timetable/shift-template-manager';
 import type { SerializedShiftTemplate } from '../src/timetable/types';
+import { ELEVATION } from '../src/trains/tracks/types';
 
 function makeStationWithIslandPlatform() {
     const mgr = new StationManager();
@@ -19,8 +20,18 @@ function makeStationWithIslandPlatform() {
                 offset: 1,
                 side: 1,
                 stopPositions: [
-                    { id: 5, trackSegmentId: 100, direction: 'tangent', tValue: 0.5 },
-                    { id: 8, trackSegmentId: 100, direction: 'reverseTangent', tValue: 0.5 },
+                    {
+                        id: 5,
+                        trackSegmentId: 100,
+                        direction: 'tangent',
+                        tValue: 0.5,
+                    },
+                    {
+                        id: 8,
+                        trackSegmentId: 100,
+                        direction: 'reverseTangent',
+                        tValue: 0.5,
+                    },
                 ],
             },
         ],
@@ -40,7 +51,15 @@ describe('ShiftTemplateManager.deserialize — ScheduledStop id migration', () =
             {
                 id: 's1',
                 name: 'S1',
-                activeDays: { '0': true, '1': false, '2': false, '3': false, '4': false, '5': false, '6': false },
+                activeDays: {
+                    '0': true,
+                    '1': false,
+                    '2': false,
+                    '3': false,
+                    '4': false,
+                    '5': false,
+                    '6': false,
+                },
                 stops: [
                     {
                         stationId,
@@ -63,13 +82,17 @@ describe('ShiftTemplateManager.deserialize — ScheduledStop id migration', () =
             },
         ];
 
-        const restored = ShiftTemplateManager.deserialize(serialized, stationMgr, tapMgr);
+        const restored = ShiftTemplateManager.deserialize(
+            serialized,
+            stationMgr,
+            tapMgr
+        );
         const t = restored.getTemplate('s1')!;
         expect(t.stops[0].stopPositionId).toBe(8);
         expect(t.stops[1].stopPositionId).toBe(5);
     });
 
-    it('resolves legacy stopPositionIndex to the platform stop\'s id', () => {
+    it("resolves legacy stopPositionIndex to the platform stop's id", () => {
         const { mgr: stationMgr, stationId } = makeStationWithIslandPlatform();
         const tapMgr = new TrackAlignedPlatformManager();
 
@@ -77,7 +100,15 @@ describe('ShiftTemplateManager.deserialize — ScheduledStop id migration', () =
             {
                 id: 's1',
                 name: 'S1',
-                activeDays: { '0': true, '1': false, '2': false, '3': false, '4': false, '5': false, '6': false },
+                activeDays: {
+                    '0': true,
+                    '1': false,
+                    '2': false,
+                    '3': false,
+                    '4': false,
+                    '5': false,
+                    '6': false,
+                },
                 stops: [
                     {
                         stationId,
@@ -100,7 +131,11 @@ describe('ShiftTemplateManager.deserialize — ScheduledStop id migration', () =
             },
         ];
 
-        const restored = ShiftTemplateManager.deserialize(serialized, stationMgr, tapMgr);
+        const restored = ShiftTemplateManager.deserialize(
+            serialized,
+            stationMgr,
+            tapMgr
+        );
         const t = restored.getTemplate('s1')!;
         // Index 0 → id 5; index 1 → id 8.
         expect(t.stops[0].stopPositionId).toBe(5);
@@ -115,7 +150,15 @@ describe('ShiftTemplateManager.deserialize — ScheduledStop id migration', () =
             {
                 id: 's1',
                 name: 'S1',
-                activeDays: { '0': true, '1': false, '2': false, '3': false, '4': false, '5': false, '6': false },
+                activeDays: {
+                    '0': true,
+                    '1': false,
+                    '2': false,
+                    '3': false,
+                    '4': false,
+                    '5': false,
+                    '6': false,
+                },
                 stops: [
                     {
                         stationId,
@@ -130,7 +173,11 @@ describe('ShiftTemplateManager.deserialize — ScheduledStop id migration', () =
             },
         ];
 
-        const restored = ShiftTemplateManager.deserialize(serialized, stationMgr, tapMgr);
+        const restored = ShiftTemplateManager.deserialize(
+            serialized,
+            stationMgr,
+            tapMgr
+        );
         const t = restored.getTemplate('s1')!;
         expect(t.stops[0].stopPositionId).toBe(-1);
     });

@@ -1,17 +1,32 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { ArrowDown, ArrowUp, ArrowLeftRight, ChevronDown, ChevronUp, FlipVertical2, Layers, Link2, Merge, Pencil, Plus, Scissors, Trash2, TrainFront } from '@/assets/icons';
 import { useTranslation } from 'react-i18next';
+import { toast } from 'sonner';
 
+import {
+    ArrowDown,
+    ArrowLeftRight,
+    ArrowUp,
+    ChevronDown,
+    ChevronUp,
+    FlipVertical2,
+    Layers,
+    Link2,
+    Merge,
+    Pencil,
+    Plus,
+    Scissors,
+    TrainFront,
+    Trash2,
+} from '@/assets/icons';
 import { Button } from '@/components/ui/button';
 import { DraggablePanel } from '@/components/ui/draggable-panel';
 import { Separator } from '@/components/ui/separator';
 import type { CarStockManager } from '@/trains/car-stock-manager';
-import type { FormationManager } from '@/trains/formation-manager';
-import type { TrainManager } from '@/trains/train-manager';
-import type { Formation } from '@/trains/formation';
 import type { Car, TrainUnit } from '@/trains/cars';
+import type { Formation } from '@/trains/formation';
+import type { FormationManager } from '@/trains/formation-manager';
 import type { ProximityMatch } from '@/trains/proximity-detector';
-import { toast } from 'sonner';
+import type { TrainManager } from '@/trains/train-manager';
 import { trackEvent } from '@/utils/analytics';
 
 type FormationEditorProps = {
@@ -37,20 +52,14 @@ export function FormationEditor({
     /** For unplaced: formation id. For placed: `placed-${trainIndex}` */
     const [selectedKey, setSelectedKey] = useState<string | null>(null);
     // Which car in stock is selected to be added to a formation
-    const [selectedStockCarId, setSelectedStockCarId] = useState<
-        string | null
-    >(null);
+    const [selectedStockCarId, setSelectedStockCarId] = useState<string | null>(
+        null
+    );
 
     useEffect(() => {
-        const unsub1 = formationManager.subscribe(() =>
-            setVersion(v => v + 1)
-        );
-        const unsub2 = carStockManager.subscribe(() =>
-            setVersion(v => v + 1)
-        );
-        const unsub3 = trainManager.subscribe(() =>
-            setVersion(v => v + 1)
-        );
+        const unsub1 = formationManager.subscribe(() => setVersion(v => v + 1));
+        const unsub2 = carStockManager.subscribe(() => setVersion(v => v + 1));
+        const unsub3 = trainManager.subscribe(() => setVersion(v => v + 1));
         const unsub4 = trainManager.subscribeToProximityChanges(() =>
             setVersion(v => v + 1)
         );
@@ -222,59 +231,75 @@ export function FormationEditor({
                 {/* Placed formations (on trains) */}
                 {placedFormations.length > 0 && (
                     <div className="flex flex-col gap-1.5">
-                        <span className="text-muted-foreground flex items-center gap-1.5 text-[10px] font-medium uppercase tracking-wider">
+                        <span className="text-muted-foreground flex items-center gap-1.5 text-[10px] font-medium tracking-wider uppercase">
                             <TrainFront className="size-3" />
                             {t('onTrack')}
                         </span>
-                        {placedFormations.map(({ trainIndex, trainId, formation }) => {
-                            const key = `placed-${trainIndex}`;
-                            return (
-                                <FormationCard
-                                    key={key}
-                                    formation={formation}
-                                    trainLabel={trainIndex}
-                                    isSelected={key === selectedKey}
-                                    onSelect={() =>
-                                        setSelectedKey(
-                                            key === selectedKey ? null : key
-                                        )
-                                    }
-                                    readOnly
-                                    onDelete={() => {}}
-                                    availableCars={[]}
-                                    selectedStockCarId={null}
-                                    onSelectStockCar={() => {}}
-                                    onAppendCar={() => {}}
-                                    onPrependCar={() => {}}
-                                    onRemoveChild={() => {}}
-                                    onDecouple={
-                                        formation.flatCars().length > 1
-                                            ? (headCarIndex, tailCarIndex) => {
-                                                trainManager.decoupleTrainAtCar(
-                                                    trainId,
-                                                    headCarIndex,
-                                                    tailCarIndex,
-                                                    'head',
+                        {placedFormations.map(
+                            ({ trainIndex, trainId, formation }) => {
+                                const key = `placed-${trainIndex}`;
+                                return (
+                                    <FormationCard
+                                        key={key}
+                                        formation={formation}
+                                        trainLabel={trainIndex}
+                                        isSelected={key === selectedKey}
+                                        onSelect={() =>
+                                            setSelectedKey(
+                                                key === selectedKey ? null : key
+                                            )
+                                        }
+                                        readOnly
+                                        onDelete={() => {}}
+                                        availableCars={[]}
+                                        selectedStockCarId={null}
+                                        onSelectStockCar={() => {}}
+                                        onAppendCar={() => {}}
+                                        onPrependCar={() => {}}
+                                        onRemoveChild={() => {}}
+                                        onDecouple={
+                                            formation.flatCars().length > 1
+                                                ? (
+                                                      headCarIndex,
+                                                      tailCarIndex
+                                                  ) => {
+                                                      trainManager.decoupleTrainAtCar(
+                                                          trainId,
+                                                          headCarIndex,
+                                                          tailCarIndex,
+                                                          'head'
+                                                      );
+                                                  }
+                                                : undefined
+                                        }
+                                        couplableCandidates={trainManager.getCouplableCandidates(
+                                            trainId
+                                        )}
+                                        onCouple={match => {
+                                            const result =
+                                                trainManager.coupleTrains(
+                                                    match
+                                                );
+                                            if (
+                                                !result.success &&
+                                                result.reason ===
+                                                    'depth_exceeded'
+                                            ) {
+                                                toast.warning(
+                                                    t('couplingDepthExceeded')
                                                 );
                                             }
-                                            : undefined
-                                    }
-                                    couplableCandidates={trainManager.getCouplableCandidates(trainId)}
-                                    onCouple={(match) => {
-                                        const result = trainManager.coupleTrains(match);
-                                        if (!result.success && result.reason === 'depth_exceeded') {
-                                            toast.warning(t('couplingDepthExceeded'));
-                                        }
-                                    }}
-                                />
-                            );
-                        })}
+                                        }}
+                                    />
+                                );
+                            }
+                        )}
                     </div>
                 )}
 
                 {/* Unplaced formations (in depot) */}
                 <div className="flex flex-col gap-1.5">
-                    <span className="text-muted-foreground flex items-center gap-1.5 text-[10px] font-medium uppercase tracking-wider">
+                    <span className="text-muted-foreground flex items-center gap-1.5 text-[10px] font-medium tracking-wider uppercase">
                         <Layers className="size-3" />
                         {t('inDepot')}
                     </span>
@@ -314,7 +339,9 @@ export function FormationEditor({
                                     handleRenameFormation(id, name)
                                 }
                                 onConsolidate={() => handleConsolidate(id)}
-                                onReverseChildren={() => handleReverseChildren(id)}
+                                onReverseChildren={() =>
+                                    handleReverseChildren(id)
+                                }
                                 onSwapChildren={index =>
                                     handleSwapChildren(id, index)
                                 }
@@ -326,7 +353,10 @@ export function FormationEditor({
                                 }
                                 otherFormations={unplacedFormations
                                     .filter(f => f.id !== id)
-                                    .map(f => ({ id: f.id, formation: f.formation }))}
+                                    .map(f => ({
+                                        id: f.id,
+                                        formation: f.formation,
+                                    }))}
                                 onAppendFormation={sourceId =>
                                     handleAppendFormation(id, sourceId)
                                 }
@@ -409,13 +439,17 @@ function FormationCard({
     onPrependFormation,
 }: FormationCardProps) {
     const { t } = useTranslation();
-    const [selectedFormationId, setSelectedFormationId] = useState<string | null>(null);
+    const [selectedFormationId, setSelectedFormationId] = useState<
+        string | null
+    >(null);
     const [isEditing, setIsEditing] = useState(false);
     const [editValue, setEditValue] = useState('');
     const inputRef = useRef<HTMLInputElement>(null);
     const cars = formation.flatCars();
     // Use operational order when decouple is available so indices match flatCars()
-    const children = onDecouple ? formation.children : formation.originalChildren;
+    const children = onDecouple
+        ? formation.children
+        : formation.originalChildren;
     const hasNestedFormations = children.some(isNestedFormation);
 
     const startEditing = useCallback(() => {
@@ -441,21 +475,21 @@ function FormationCard({
                 className="flex cursor-pointer items-center justify-between px-2.5 py-1.5"
                 onClick={onSelect}
             >
-                <div className="flex items-center gap-1.5 min-w-0">
+                <div className="flex min-w-0 items-center gap-1.5">
                     {isSelected ? (
                         <ChevronUp className="text-muted-foreground size-3 shrink-0" />
                     ) : (
                         <ChevronDown className="text-muted-foreground size-3 shrink-0" />
                     )}
                     {trainLabel !== undefined && (
-                        <span className="text-muted-foreground text-[10px] shrink-0">
+                        <span className="text-muted-foreground shrink-0 text-[10px]">
                             {t('trainLabel', { number: trainLabel })}
                         </span>
                     )}
                     {isEditing ? (
                         <input
                             ref={inputRef}
-                            className="text-foreground text-xs font-mono bg-background border border-primary/40 rounded px-1 py-0 w-24 outline-none"
+                            className="text-foreground bg-background border-primary/40 w-24 rounded border px-1 py-0 font-mono text-xs outline-none"
                             value={editValue}
                             onChange={e => setEditValue(e.target.value)}
                             onBlur={commitRename}
@@ -467,8 +501,10 @@ function FormationCard({
                         />
                     ) : (
                         <span
-                            className="text-foreground text-xs font-mono truncate"
-                            title={onRename ? t('renameFormation') : formation.name}
+                            className="text-foreground truncate font-mono text-xs"
+                            title={
+                                onRename ? t('renameFormation') : formation.name
+                            }
                             onDoubleClick={e => {
                                 e.stopPropagation();
                                 startEditing();
@@ -477,42 +513,45 @@ function FormationCard({
                             {formation.name}
                         </span>
                     )}
-                    <span className="text-muted-foreground text-[10px] shrink-0">
+                    <span className="text-muted-foreground shrink-0 text-[10px]">
                         ({t('car', { count: cars.length })})
                     </span>
                     {hasNestedFormations && (
                         <span
-                            className="text-muted-foreground rounded bg-muted px-1 text-[9px] shrink-0"
+                            className="text-muted-foreground bg-muted shrink-0 rounded px-1 text-[9px]"
                             title={t('containsNestedFormations')}
                         >
                             {t('nested')}
                         </span>
                     )}
-                    {couplableCandidates != null && couplableCandidates.length > 0 && (
-                        <span
-                            className="inline-flex items-center gap-0.5 rounded bg-emerald-500/20 px-1 text-[9px] text-emerald-600 dark:text-emerald-400 shrink-0"
-                            title={t('couplable')}
-                        >
-                            <Link2 className="size-2" />
-                            {t('couplable')}
-                        </span>
-                    )}
+                    {couplableCandidates != null &&
+                        couplableCandidates.length > 0 && (
+                            <span
+                                className="inline-flex shrink-0 items-center gap-0.5 rounded bg-emerald-500/20 px-1 text-[9px] text-emerald-600 dark:text-emerald-400"
+                                title={t('couplable')}
+                            >
+                                <Link2 className="size-2" />
+                                {t('couplable')}
+                            </span>
+                        )}
                 </div>
-                <div className="flex items-center gap-0.5 shrink-0">
-                    {onCouple && couplableCandidates && couplableCandidates.length > 0 && (
-                        <Button
-                            variant="ghost"
-                            size="icon-xs"
-                            className="text-emerald-600 hover:text-emerald-700 dark:text-emerald-400 dark:hover:text-emerald-300"
-                            title={t('couple')}
-                            onClick={e => {
-                                e.stopPropagation();
-                                onCouple(couplableCandidates[0]);
-                            }}
-                        >
-                            <Link2 className="size-3" />
-                        </Button>
-                    )}
+                <div className="flex shrink-0 items-center gap-0.5">
+                    {onCouple &&
+                        couplableCandidates &&
+                        couplableCandidates.length > 0 && (
+                            <Button
+                                variant="ghost"
+                                size="icon-xs"
+                                className="text-emerald-600 hover:text-emerald-700 dark:text-emerald-400 dark:hover:text-emerald-300"
+                                title={t('couple')}
+                                onClick={e => {
+                                    e.stopPropagation();
+                                    onCouple(couplableCandidates[0]);
+                                }}
+                            >
+                                <Link2 className="size-3" />
+                            </Button>
+                        )}
                     {!readOnly && onRename && (
                         <Button
                             variant="ghost"
@@ -547,30 +586,34 @@ function FormationCard({
 
                     {/* Composition header with consolidate button */}
                     <div className="flex items-center justify-between">
-                        <span className="text-muted-foreground text-[10px] font-medium uppercase tracking-wider">
+                        <span className="text-muted-foreground text-[10px] font-medium tracking-wider uppercase">
                             {t('composition')}
                         </span>
                         <div className="flex items-center gap-0.5">
-                            {!readOnly && onReverseChildren && children.length > 1 && (
-                                <Button
-                                    variant="ghost"
-                                    size="icon-xs"
-                                    onClick={onReverseChildren}
-                                    title={t('reverseTooltip')}
-                                >
-                                    <ArrowLeftRight className="size-3" />
-                                </Button>
-                            )}
-                            {!readOnly && hasNestedFormations && onConsolidate && (
-                                <Button
-                                    variant="ghost"
-                                    size="icon-xs"
-                                    onClick={onConsolidate}
-                                    title={t('consolidateTooltip')}
-                                >
-                                    <Merge className="size-3" />
-                                </Button>
-                            )}
+                            {!readOnly &&
+                                onReverseChildren &&
+                                children.length > 1 && (
+                                    <Button
+                                        variant="ghost"
+                                        size="icon-xs"
+                                        onClick={onReverseChildren}
+                                        title={t('reverseTooltip')}
+                                    >
+                                        <ArrowLeftRight className="size-3" />
+                                    </Button>
+                                )}
+                            {!readOnly &&
+                                hasNestedFormations &&
+                                onConsolidate && (
+                                    <Button
+                                        variant="ghost"
+                                        size="icon-xs"
+                                        onClick={onConsolidate}
+                                        title={t('consolidateTooltip')}
+                                    >
+                                        <Merge className="size-3" />
+                                    </Button>
+                                )}
                         </div>
                     </div>
                     <div className="flex flex-col gap-0.5">
@@ -585,47 +628,59 @@ function FormationCard({
                             const tailCarIndex = flatCarOffset;
                             return (
                                 <div key={child.id}>
-                                    <div
-                                        className="bg-background/60 flex items-center justify-between rounded px-2 py-1"
-                                    >
+                                    <div className="bg-background/60 flex items-center justify-between rounded px-2 py-1">
                                         <div className="flex items-center gap-1.5">
-                                            <span className="text-muted-foreground text-[10px] font-mono w-4 text-center">
+                                            <span className="text-muted-foreground w-4 text-center font-mono text-[10px]">
                                                 {index + 1}
                                             </span>
-                                            <span className="text-foreground text-[11px] font-mono">
-                                                {isNested ? child.id : (child as Car).name}
+                                            <span className="text-foreground font-mono text-[11px]">
+                                                {isNested
+                                                    ? child.id
+                                                    : (child as Car).name}
                                             </span>
                                             {isNested && (
                                                 <span
-                                                    className="text-muted-foreground rounded bg-muted px-1 text-[9px]"
+                                                    className="text-muted-foreground bg-muted rounded px-1 text-[9px]"
                                                     title={t('nestedFormation')}
                                                 >
-                                                    {t('car', { count: child.flatCars().length })}
+                                                    {t('car', {
+                                                        count: child.flatCars()
+                                                            .length,
+                                                    })}
                                                 </span>
                                             )}
                                         </div>
                                         {!readOnly && (
                                             <div className="flex items-center gap-0.5">
-                                                {isNested && onReverseNestedChildren && (
-                                                    <Button
-                                                        variant="ghost"
-                                                        size="icon-xs"
-                                                        onClick={() =>
-                                                            onReverseNestedChildren(index)
-                                                        }
-                                                        title={t('reverseNestedTooltip')}
-                                                    >
-                                                        <ArrowLeftRight className="size-2.5" />
-                                                    </Button>
-                                                )}
+                                                {isNested &&
+                                                    onReverseNestedChildren && (
+                                                        <Button
+                                                            variant="ghost"
+                                                            size="icon-xs"
+                                                            onClick={() =>
+                                                                onReverseNestedChildren(
+                                                                    index
+                                                                )
+                                                            }
+                                                            title={t(
+                                                                'reverseNestedTooltip'
+                                                            )}
+                                                        >
+                                                            <ArrowLeftRight className="size-2.5" />
+                                                        </Button>
+                                                    )}
                                                 {onFlipChildDirection && (
                                                     <Button
                                                         variant="ghost"
                                                         size="icon-xs"
                                                         onClick={() =>
-                                                            onFlipChildDirection(index)
+                                                            onFlipChildDirection(
+                                                                index
+                                                            )
                                                         }
-                                                        title={t('flipChildDirectionTooltip')}
+                                                        title={t(
+                                                            'flipChildDirectionTooltip'
+                                                        )}
                                                     >
                                                         <FlipVertical2 className="size-2.5" />
                                                     </Button>
@@ -635,9 +690,13 @@ function FormationCard({
                                                         <Button
                                                             variant="ghost"
                                                             size="icon-xs"
-                                                            disabled={index === 0}
+                                                            disabled={
+                                                                index === 0
+                                                            }
                                                             onClick={() =>
-                                                                onSwapChildren(index - 1)
+                                                                onSwapChildren(
+                                                                    index - 1
+                                                                )
                                                             }
                                                         >
                                                             <ArrowUp className="size-2.5" />
@@ -645,9 +704,15 @@ function FormationCard({
                                                         <Button
                                                             variant="ghost"
                                                             size="icon-xs"
-                                                            disabled={index >= children.length - 1}
+                                                            disabled={
+                                                                index >=
+                                                                children.length -
+                                                                    1
+                                                            }
                                                             onClick={() =>
-                                                                onSwapChildren(index)
+                                                                onSwapChildren(
+                                                                    index
+                                                                )
                                                             }
                                                         >
                                                             <ArrowDown className="size-2.5" />
@@ -657,7 +722,9 @@ function FormationCard({
                                                 <Button
                                                     variant="ghost"
                                                     size="icon-xs"
-                                                    disabled={children.length <= 1}
+                                                    disabled={
+                                                        children.length <= 1
+                                                    }
                                                     onClick={() =>
                                                         onRemoveChild(index)
                                                     }
@@ -669,29 +736,35 @@ function FormationCard({
                                     </div>
                                     {/* Show nested formation's sub-children */}
                                     {isNested && (
-                                        <div className="border-l border-border ml-5 pl-2 my-0.5">
+                                        <div className="border-border my-0.5 ml-5 border-l pl-2">
                                             {child.flatCars().map(subCar => (
                                                 <div
                                                     key={subCar.id}
                                                     className="flex items-center gap-1.5 px-1 py-0.5"
                                                 >
-                                                    <span className="text-muted-foreground text-[10px] font-mono">
+                                                    <span className="text-muted-foreground font-mono text-[10px]">
                                                         {subCar.name}
                                                     </span>
                                                 </div>
                                             ))}
                                         </div>
                                     )}
-                                    {onDecouple && index < children.length - 1 && (
-                                        <button
-                                            className="group flex w-full items-center gap-1 py-0.5 px-2"
-                                            onClick={() => onDecouple(headCarIndex, tailCarIndex)}
-                                        >
-                                            <div className="bg-border group-hover:bg-destructive/50 h-px flex-1 transition-colors" />
-                                            <Scissors className="text-muted-foreground group-hover:text-destructive size-2.5 transition-colors" />
-                                            <div className="bg-border group-hover:bg-destructive/50 h-px flex-1 transition-colors" />
-                                        </button>
-                                    )}
+                                    {onDecouple &&
+                                        index < children.length - 1 && (
+                                            <button
+                                                className="group flex w-full items-center gap-1 px-2 py-0.5"
+                                                onClick={() =>
+                                                    onDecouple(
+                                                        headCarIndex,
+                                                        tailCarIndex
+                                                    )
+                                                }
+                                            >
+                                                <div className="bg-border group-hover:bg-destructive/50 h-px flex-1 transition-colors" />
+                                                <Scissors className="text-muted-foreground group-hover:text-destructive size-2.5 transition-colors" />
+                                                <div className="bg-border group-hover:bg-destructive/50 h-px flex-1 transition-colors" />
+                                            </button>
+                                        )}
                                 </div>
                             );
                         })}
@@ -701,28 +774,27 @@ function FormationCard({
                     {!readOnly && availableCars.length > 0 && (
                         <>
                             <Separator />
-                            <span className="text-muted-foreground text-[10px] font-medium uppercase tracking-wider">
+                            <span className="text-muted-foreground text-[10px] font-medium tracking-wider uppercase">
                                 {t('addFromStock')}
                             </span>
                             <div className="flex flex-col gap-0.5">
                                 {availableCars.map(entry => (
                                     <div
                                         key={entry.id}
-                                        className={`flex items-center justify-between rounded px-2 py-1 cursor-pointer transition-colors ${
+                                        className={`flex cursor-pointer items-center justify-between rounded px-2 py-1 transition-colors ${
                                             selectedStockCarId === entry.id
-                                                ? 'bg-primary/20 border border-primary/40'
+                                                ? 'bg-primary/20 border-primary/40 border'
                                                 : 'bg-background/60 hover:bg-background/80'
                                         }`}
                                         onClick={() =>
                                             onSelectStockCar(
-                                                selectedStockCarId ===
-                                                    entry.id
+                                                selectedStockCarId === entry.id
                                                     ? null
                                                     : entry.id
                                             )
                                         }
                                     >
-                                        <span className="text-foreground text-[11px] font-mono">
+                                        <span className="text-foreground font-mono text-[11px]">
                                             {entry.car.name}
                                         </span>
                                         {selectedStockCarId === entry.id && (
@@ -732,9 +804,7 @@ function FormationCard({
                                                     size="icon-xs"
                                                     onClick={e => {
                                                         e.stopPropagation();
-                                                        onPrependCar(
-                                                            entry.id
-                                                        );
+                                                        onPrependCar(entry.id);
                                                     }}
                                                 >
                                                     <ChevronUp className="size-2.5" />
@@ -744,9 +814,7 @@ function FormationCard({
                                                     size="icon-xs"
                                                     onClick={e => {
                                                         e.stopPropagation();
-                                                        onAppendCar(
-                                                            entry.id
-                                                        );
+                                                        onAppendCar(entry.id);
                                                     }}
                                                 >
                                                     <ChevronDown className="size-2.5" />
@@ -760,68 +828,87 @@ function FormationCard({
                     )}
 
                     {/* Add formation from depot */}
-                    {!readOnly && otherFormations && otherFormations.length > 0 && onAppendFormation && onPrependFormation && (
-                        <>
-                            <Separator />
-                            <span className="text-muted-foreground text-[10px] font-medium uppercase tracking-wider">
-                                {t('addFormation')}
-                            </span>
-                            <div className="flex flex-col gap-0.5">
-                                {otherFormations.map(entry => (
-                                    <div
-                                        key={entry.id}
-                                        className={`flex items-center justify-between rounded px-2 py-1 cursor-pointer transition-colors ${
-                                            selectedFormationId === entry.id
-                                                ? 'bg-primary/20 border border-primary/40'
-                                                : 'bg-background/60 hover:bg-background/80'
-                                        }`}
-                                        onClick={() =>
-                                            setSelectedFormationId(
+                    {!readOnly &&
+                        otherFormations &&
+                        otherFormations.length > 0 &&
+                        onAppendFormation &&
+                        onPrependFormation && (
+                            <>
+                                <Separator />
+                                <span className="text-muted-foreground text-[10px] font-medium tracking-wider uppercase">
+                                    {t('addFormation')}
+                                </span>
+                                <div className="flex flex-col gap-0.5">
+                                    {otherFormations.map(entry => (
+                                        <div
+                                            key={entry.id}
+                                            className={`flex cursor-pointer items-center justify-between rounded px-2 py-1 transition-colors ${
                                                 selectedFormationId === entry.id
-                                                    ? null
-                                                    : entry.id
-                                            )
-                                        }
-                                    >
-                                        <div className="flex items-center gap-1.5">
-                                            <span className="text-foreground text-[11px] font-mono">
-                                                {entry.formation.name}
-                                            </span>
-                                            <span className="text-muted-foreground text-[9px]">
-                                                ({t('car', { count: entry.formation.flatCars().length })})
-                                            </span>
-                                        </div>
-                                        {selectedFormationId === entry.id && (
-                                            <div className="flex gap-0.5">
-                                                <Button
-                                                    variant="outline"
-                                                    size="icon-xs"
-                                                    onClick={e => {
-                                                        e.stopPropagation();
-                                                        onPrependFormation(entry.id);
-                                                        setSelectedFormationId(null);
-                                                    }}
-                                                >
-                                                    <ChevronUp className="size-2.5" />
-                                                </Button>
-                                                <Button
-                                                    variant="outline"
-                                                    size="icon-xs"
-                                                    onClick={e => {
-                                                        e.stopPropagation();
-                                                        onAppendFormation(entry.id);
-                                                        setSelectedFormationId(null);
-                                                    }}
-                                                >
-                                                    <ChevronDown className="size-2.5" />
-                                                </Button>
+                                                    ? 'bg-primary/20 border-primary/40 border'
+                                                    : 'bg-background/60 hover:bg-background/80'
+                                            }`}
+                                            onClick={() =>
+                                                setSelectedFormationId(
+                                                    selectedFormationId ===
+                                                        entry.id
+                                                        ? null
+                                                        : entry.id
+                                                )
+                                            }
+                                        >
+                                            <div className="flex items-center gap-1.5">
+                                                <span className="text-foreground font-mono text-[11px]">
+                                                    {entry.formation.name}
+                                                </span>
+                                                <span className="text-muted-foreground text-[9px]">
+                                                    (
+                                                    {t('car', {
+                                                        count: entry.formation.flatCars()
+                                                            .length,
+                                                    })}
+                                                    )
+                                                </span>
                                             </div>
-                                        )}
-                                    </div>
-                                ))}
-                            </div>
-                        </>
-                    )}
+                                            {selectedFormationId ===
+                                                entry.id && (
+                                                <div className="flex gap-0.5">
+                                                    <Button
+                                                        variant="outline"
+                                                        size="icon-xs"
+                                                        onClick={e => {
+                                                            e.stopPropagation();
+                                                            onPrependFormation(
+                                                                entry.id
+                                                            );
+                                                            setSelectedFormationId(
+                                                                null
+                                                            );
+                                                        }}
+                                                    >
+                                                        <ChevronUp className="size-2.5" />
+                                                    </Button>
+                                                    <Button
+                                                        variant="outline"
+                                                        size="icon-xs"
+                                                        onClick={e => {
+                                                            e.stopPropagation();
+                                                            onAppendFormation(
+                                                                entry.id
+                                                            );
+                                                            setSelectedFormationId(
+                                                                null
+                                                            );
+                                                        }}
+                                                    >
+                                                        <ChevronDown className="size-2.5" />
+                                                    </Button>
+                                                </div>
+                                            )}
+                                        </div>
+                                    ))}
+                                </div>
+                            </>
+                        )}
                 </div>
             )}
         </div>

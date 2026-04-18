@@ -1,7 +1,15 @@
-import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react';
+import {
+    type ReactNode,
+    useCallback,
+    useEffect,
+    useRef,
+    useState,
+} from 'react';
+
 import { X } from '@/assets/icons';
-import { Button } from './button';
 import { cn } from '@/lib/utils';
+
+import { Button } from './button';
 
 const VIEWPORT_PADDING = 8;
 
@@ -124,7 +132,7 @@ export function DraggablePanel({
             <div className="bg-background/80 flex flex-col rounded-xl border shadow-lg backdrop-blur-sm">
                 {/* Draggable header */}
                 <div
-                    className="flex cursor-grab items-center justify-between px-3 py-2 active:cursor-grabbing select-none"
+                    className="flex cursor-grab items-center justify-between px-3 py-2 select-none active:cursor-grabbing"
                     onPointerDown={onPointerDown}
                     onPointerMove={onPointerMove}
                     onPointerUp={onPointerUp}

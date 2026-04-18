@@ -24,7 +24,7 @@ function CurrentIconPreview({ exportName }: { exportName: string }) {
     return (
         <C
             className={cn(
-                'size-8 shrink-0 text-foreground',
+                'text-foreground size-8 shrink-0',
                 spin && 'animate-spin'
             )}
             aria-hidden
@@ -37,13 +37,13 @@ function DesignerIconPreview({ slug }: { slug: string }) {
     return (
         <div
             className={cn(
-                'flex size-20 shrink-0 items-center justify-center rounded-lg border border-dashed border-muted-foreground/35 bg-muted/25 p-2'
+                'border-muted-foreground/35 bg-muted/25 flex size-20 shrink-0 items-center justify-center rounded-lg border border-dashed p-2'
             )}
         >
             <img
                 src={src}
                 alt=""
-                className="max-h-14 max-w-14 object-contain text-foreground"
+                className="text-foreground max-h-14 max-w-14 object-contain"
             />
         </div>
     );
@@ -96,7 +96,7 @@ function HandoffTable({
                                         key={row.designerSlug}
                                         className="border-border border-b last:border-b-0"
                                     >
-                                        <td className="text-foreground align-top px-3 py-3 font-mono text-xs">
+                                        <td className="text-foreground px-3 py-3 align-top font-mono text-xs">
                                             <div className="font-sans text-sm font-medium">
                                                 {t(`assetLabel.${row.descKey}`)}
                                             </div>
@@ -107,7 +107,7 @@ function HandoffTable({
                                         </td>
                                         <td className="px-3 py-3 align-middle">
                                             {row.currentSrc ? (
-                                                <div className="flex size-20 items-center justify-center rounded-lg border bg-muted/20 p-2">
+                                                <div className="bg-muted/20 flex size-20 items-center justify-center rounded-lg border p-2">
                                                     <img
                                                         src={row.currentSrc}
                                                         alt=""
@@ -125,7 +125,7 @@ function HandoffTable({
                                                 slug={row.designerSlug}
                                             />
                                         </td>
-                                        <td className="text-muted-foreground align-top px-3 py-3 leading-relaxed">
+                                        <td className="text-muted-foreground px-3 py-3 align-top leading-relaxed">
                                             {t(`desc.${row.descKey}`, {
                                                 appName: APP_DISPLAY_NAME,
                                             })}
@@ -138,7 +138,7 @@ function HandoffTable({
                                     key={row.exportName}
                                     className="border-border border-b last:border-b-0"
                                 >
-                                    <td className="text-foreground align-top px-3 py-3 font-mono text-xs">
+                                    <td className="text-foreground px-3 py-3 align-top font-mono text-xs">
                                         <div>{row.exportName}</div>
                                         <div className="text-muted-foreground mt-1 text-[11px]">
                                             {row.designerSlug}/
@@ -146,7 +146,7 @@ function HandoffTable({
                                         </div>
                                     </td>
                                     <td className="px-3 py-3 align-middle">
-                                        <div className="flex size-20 items-center justify-center rounded-lg border bg-muted/20">
+                                        <div className="bg-muted/20 flex size-20 items-center justify-center rounded-lg border">
                                             <CurrentIconPreview
                                                 exportName={row.exportName}
                                             />
@@ -157,7 +157,7 @@ function HandoffTable({
                                             slug={row.designerSlug}
                                         />
                                     </td>
-                                    <td className="text-muted-foreground align-top px-3 py-3 leading-relaxed">
+                                    <td className="text-muted-foreground px-3 py-3 align-top leading-relaxed">
                                         {t(`desc.${row.exportName}`, {
                                             appName: APP_DISPLAY_NAME,
                                         })}

@@ -1,4 +1,5 @@
 import type { Point } from '@ue-too/math';
+
 import { ELEVATION } from '@/trains/tracks/types';
 
 /**
@@ -16,32 +17,32 @@ export type BuildingPreset = 'small' | 'medium' | 'large' | 'l-shape';
  * @group Building System
  */
 export const BUILDING_PRESETS: Record<BuildingPreset, Point[]> = {
-  small: [
-    { x: -2.5, y: -2.5 },
-    { x: 2.5, y: -2.5 },
-    { x: 2.5, y: 2.5 },
-    { x: -2.5, y: 2.5 },
-  ],
-  medium: [
-    { x: -5, y: -5 },
-    { x: 5, y: -5 },
-    { x: 5, y: 5 },
-    { x: -5, y: 5 },
-  ],
-  large: [
-    { x: -7.5, y: -7.5 },
-    { x: 7.5, y: -7.5 },
-    { x: 7.5, y: 7.5 },
-    { x: -7.5, y: 7.5 },
-  ],
-  'l-shape': [
-    { x: -5, y: -5 },
-    { x: 5, y: -5 },
-    { x: 5, y: 0 },
-    { x: 0, y: 0 },
-    { x: 0, y: 5 },
-    { x: -5, y: 5 },
-  ],
+    small: [
+        { x: -2.5, y: -2.5 },
+        { x: 2.5, y: -2.5 },
+        { x: 2.5, y: 2.5 },
+        { x: -2.5, y: 2.5 },
+    ],
+    medium: [
+        { x: -5, y: -5 },
+        { x: 5, y: -5 },
+        { x: 5, y: 5 },
+        { x: -5, y: 5 },
+    ],
+    large: [
+        { x: -7.5, y: -7.5 },
+        { x: 7.5, y: -7.5 },
+        { x: 7.5, y: 7.5 },
+        { x: -7.5, y: 7.5 },
+    ],
+    'l-shape': [
+        { x: -5, y: -5 },
+        { x: 5, y: -5 },
+        { x: 5, y: 0 },
+        { x: 0, y: 0 },
+        { x: 0, y: 5 },
+        { x: -5, y: 5 },
+    ],
 };
 
 /**
@@ -50,11 +51,11 @@ export const BUILDING_PRESETS: Record<BuildingPreset, Point[]> = {
  * @group Building System
  */
 export type BuildingData = {
-  position: Point;
-  preset: BuildingPreset;
-  elevation: ELEVATION;
-  /** Height of the building in elevation levels (same unit as {@link ELEVATION}). */
-  height: number;
-  /** World-space vertices (preset vertices offset by position). */
-  vertices: Point[];
+    position: Point;
+    preset: BuildingPreset;
+    elevation: ELEVATION;
+    /** Height of the building in elevation levels (same unit as {@link ELEVATION}). */
+    height: number;
+    /** World-space vertices (preset vertices offset by position). */
+    vertices: Point[];
 };

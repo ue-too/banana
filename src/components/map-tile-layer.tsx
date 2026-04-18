@@ -1,10 +1,11 @@
 import { LIGHT, layers } from '@protomaps/basemaps';
 import { usePixiCanvas } from '@ue-too/board-pixi-react-integration';
-import { Info } from '@/assets/icons';
 import maplibregl from 'maplibre-gl';
 import 'maplibre-gl/dist/maplibre-gl.css';
 import { Protocol } from 'pmtiles';
 import { useEffect, useRef, useState } from 'react';
+
+import { Info } from '@/assets/icons';
 
 const USE_LOCAL_TILES = !!import.meta.env.VITE_LOCAL_TILES;
 

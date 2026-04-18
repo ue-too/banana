@@ -14,7 +14,11 @@ import type { StopPosition } from './types';
 // ---------------------------------------------------------------------------
 
 /** Per-stop entry in the migration mapping for one dual-spine platform. */
-export type StopIndexMapEntry = { face: 'A' | 'B'; newIndex: number; newId: number };
+export type StopIndexMapEntry = {
+    face: 'A' | 'B';
+    newIndex: number;
+    newId: number;
+};
 
 /**
  * Result of splitting a legacy dual-spine serialized platform into two new
@@ -79,10 +83,16 @@ export function computeDualSpineMidline(
     // short of the spine endpoint, producing a visible notch in the mesh.
     let maxLength = 0;
     for (const entry of spineA) {
-        maxLength = Math.max(maxLength, getCurve(entry.trackSegment).fullLength);
+        maxLength = Math.max(
+            maxLength,
+            getCurve(entry.trackSegment).fullLength
+        );
     }
     for (const entry of spineB) {
-        maxLength = Math.max(maxLength, getCurve(entry.trackSegment).fullLength);
+        maxLength = Math.max(
+            maxLength,
+            getCurve(entry.trackSegment).fullLength
+        );
     }
     const stepsPerSegment = Math.max(2, Math.ceil(maxLength / 2));
     const edgeA = sampleSpineEdge(spineA, offset, getCurve, stepsPerSegment);

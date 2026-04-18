@@ -11,24 +11,19 @@
  *   2. TODO — revisited joint in route fools timetable JDM (known edge case).
  *   3. TODO — currentIndex lag between onJointsPassed and walk-back query.
  */
-
-import { describe, it, expect } from 'bun:test';
 import { BCurve } from '@ue-too/curve';
+import { describe, expect, it } from 'bun:test';
 
-import type { TrackGraph } from '../src/trains/tracks/track';
-import type { TrackJoint } from '../src/trains/tracks/types';
-import {
-    Train,
-    Formation,
-    type TrainPosition,
-} from '../src/trains/formation';
+import { TimetableJointDirectionManager } from '../src/timetable/timetable-joint-direction-manager';
+import type { RouteJointStep } from '../src/timetable/types';
 import { Car, generateCarId, generateFormationId } from '../src/trains/cars';
+import { Formation, Train, type TrainPosition } from '../src/trains/formation';
 import {
     DefaultJointDirectionManager,
     type JointDirectionManager,
 } from '../src/trains/input-state-machine/train-kmt-state-machine';
-import { TimetableJointDirectionManager } from '../src/timetable/timetable-joint-direction-manager';
-import type { RouteJointStep } from '../src/timetable/types';
+import type { TrackGraph } from '../src/trains/tracks/track';
+import type { TrackJoint } from '../src/trains/tracks/types';
 
 // ---------------------------------------------------------------------------
 // Fixture track graph
@@ -108,26 +103,17 @@ function buildYTrackGraph(): TrackGraph {
         101: {
             t0Joint: 1,
             t1Joint: 2,
-            curve: straight(
-                { x: SEG_LEN, y: 0 },
-                { x: 2 * SEG_LEN, y: 5 }
-            ),
+            curve: straight({ x: SEG_LEN, y: 0 }, { x: 2 * SEG_LEN, y: 5 }),
         },
         102: {
             t0Joint: 1,
             t1Joint: 3,
-            curve: straight(
-                { x: SEG_LEN, y: 0 },
-                { x: 2 * SEG_LEN, y: -5 }
-            ),
+            curve: straight({ x: SEG_LEN, y: 0 }, { x: 2 * SEG_LEN, y: -5 }),
         },
         103: {
             t0Joint: 4,
             t1Joint: 1,
-            curve: straight(
-                { x: SEG_LEN, y: -SEG_LEN },
-                { x: SEG_LEN, y: 0 }
-            ),
+            curve: straight({ x: SEG_LEN, y: -SEG_LEN }, { x: SEG_LEN, y: 0 }),
         },
     };
 
@@ -159,8 +145,9 @@ function makeOneCarTrain(
 // because the production code doesn't expose a public invalidator; tests
 // need this to exercise multiple walk-back passes on the same train.
 function invalidateBogieCache(train: Train): void {
-    (train as unknown as { _cachedBogiePositions: null })._cachedBogiePositions =
-        null;
+    (
+        train as unknown as { _cachedBogiePositions: null }
+    )._cachedBogiePositions = null;
 }
 
 // ---------------------------------------------------------------------------

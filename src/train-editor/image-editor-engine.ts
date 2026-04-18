@@ -1,5 +1,17 @@
-import { Point, PointCal } from "@ue-too/math";
-import { Canvas, convertFromCanvas2ViewPort, convertFromViewPort2Canvas, convertFromCanvas2Window, convertFromWorld2Viewport, convertFromViewport2World, convertFromWindow2Canvas, ObservableBoardCamera, SynchronousObservable, Observer, SubscriptionOptions } from "@ue-too/board";
+import {
+    Canvas,
+    ObservableBoardCamera,
+    Observer,
+    SubscriptionOptions,
+    SynchronousObservable,
+    convertFromCanvas2ViewPort,
+    convertFromCanvas2Window,
+    convertFromViewPort2Canvas,
+    convertFromViewport2World,
+    convertFromWindow2Canvas,
+    convertFromWorld2Viewport,
+} from '@ue-too/board';
+import { Point, PointCal } from '@ue-too/math';
 
 export interface EditorImage {
     src: string;
@@ -18,11 +30,12 @@ const HANDLE_HIT_RADIUS_PX = 15;
  * hit-testing for drag and resize handles, and observables for changes.
  */
 export class ImageEditorEngine {
-
     private _image: EditorImage | null = null;
     private _camera: ObservableBoardCamera;
     private _canvas: Canvas;
-    private _imageChangedObservable: SynchronousObservable<[EditorImage | null]>;
+    private _imageChangedObservable: SynchronousObservable<
+        [EditorImage | null]
+    >;
     private _selectedHandle: ResizeHandle | null = null;
     private _isDragging = false;
     private _dragOffset: Point = { x: 0, y: 0 };
@@ -34,7 +47,9 @@ export class ImageEditorEngine {
     constructor(camera: ObservableBoardCamera, canvas: Canvas) {
         this._camera = camera;
         this._canvas = canvas;
-        this._imageChangedObservable = new SynchronousObservable<[EditorImage | null]>();
+        this._imageChangedObservable = new SynchronousObservable<
+            [EditorImage | null]
+        >();
     }
 
     getImage(): EditorImage | null {
@@ -58,7 +73,10 @@ export class ImageEditorEngine {
         this._imageChangedObservable.notify(null);
     }
 
-    onImageChanged(observer: Observer<[EditorImage | null]>, options?: SubscriptionOptions) {
+    onImageChanged(
+        observer: Observer<[EditorImage | null]>,
+        options?: SubscriptionOptions
+    ) {
         return this._imageChangedObservable.subscribe(observer, options);
     }
 
@@ -93,8 +111,13 @@ export class ImageEditorEngine {
         if (!this._image) return null;
         const corners = this._getCorners();
         const handleRadius = HANDLE_HIT_RADIUS_PX / this._camera.zoomLevel;
-        for (const [handle, corner] of Object.entries(corners) as [ResizeHandle, Point][]) {
-            if (PointCal.distanceBetweenPoints(worldPos, corner) < handleRadius) {
+        for (const [handle, corner] of Object.entries(corners) as [
+            ResizeHandle,
+            Point,
+        ][]) {
+            if (
+                PointCal.distanceBetweenPoints(worldPos, corner) < handleRadius
+            ) {
                 return handle;
             }
         }
@@ -178,29 +201,60 @@ export class ImageEditorEngine {
     }
 
     convert2WorldPosition(pointInWindow: Point): Point {
-        const pointInCanvas = convertFromWindow2Canvas(pointInWindow, this._canvas);
-        const pointInViewport = convertFromCanvas2ViewPort(pointInCanvas, { x: this._canvas.width / 2, y: this._canvas.height / 2 });
-        return convertFromViewport2World(pointInViewport, this._camera.position, this._camera.zoomLevel, this._camera.rotation);
+        const pointInCanvas = convertFromWindow2Canvas(
+            pointInWindow,
+            this._canvas
+        );
+        const pointInViewport = convertFromCanvas2ViewPort(pointInCanvas, {
+            x: this._canvas.width / 2,
+            y: this._canvas.height / 2,
+        });
+        return convertFromViewport2World(
+            pointInViewport,
+            this._camera.position,
+            this._camera.zoomLevel,
+            this._camera.rotation
+        );
     }
 
     convert2WindowPosition(pointInWorld: Point): Point {
-        const pointInViewport = convertFromWorld2Viewport(pointInWorld, this._camera.position, this._camera.zoomLevel, this._camera.rotation);
-        const pointInCanvas = convertFromViewPort2Canvas(pointInViewport, { x: this._canvas.width / 2, y: this._canvas.height / 2 });
+        const pointInViewport = convertFromWorld2Viewport(
+            pointInWorld,
+            this._camera.position,
+            this._camera.zoomLevel,
+            this._camera.rotation
+        );
+        const pointInCanvas = convertFromViewPort2Canvas(pointInViewport, {
+            x: this._canvas.width / 2,
+            y: this._canvas.height / 2,
+        });
         return convertFromCanvas2Window(pointInCanvas, this._canvas);
     }
 
-    setup(): void { }
-    cleanup(): void { }
+    setup(): void {}
+    cleanup(): void {}
 
     private _getCorners(): Record<ResizeHandle, Point> {
         const img = this._image!;
         const halfW = img.width / 2;
         const halfH = img.height / 2;
         return {
-            'top-left': { x: img.position.x - halfW, y: img.position.y - halfH },
-            'top-right': { x: img.position.x + halfW, y: img.position.y - halfH },
-            'bottom-left': { x: img.position.x - halfW, y: img.position.y + halfH },
-            'bottom-right': { x: img.position.x + halfW, y: img.position.y + halfH },
+            'top-left': {
+                x: img.position.x - halfW,
+                y: img.position.y - halfH,
+            },
+            'top-right': {
+                x: img.position.x + halfW,
+                y: img.position.y - halfH,
+            },
+            'bottom-left': {
+                x: img.position.x - halfW,
+                y: img.position.y + halfH,
+            },
+            'bottom-right': {
+                x: img.position.x + halfW,
+                y: img.position.y + halfH,
+            },
         };
     }
 }

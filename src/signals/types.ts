@@ -36,14 +36,14 @@ export type SignalAspect = 'green' | 'yellow' | 'red';
  * `t = 1` and beyond through subsequent segments).
  */
 export type SignalPlacement = {
-  /** Unique signal identifier. */
-  id: SignalId;
-  /** The track segment this signal sits on. */
-  segmentNumber: number;
-  /** Parametric position along the segment's bezier curve (0–1). */
-  tValue: number;
-  /** Direction the signal faces — the protected block is ahead in this direction. */
-  direction: 'tangent' | 'reverseTangent';
+    /** Unique signal identifier. */
+    id: SignalId;
+    /** The track segment this signal sits on. */
+    segmentNumber: number;
+    /** Parametric position along the segment's bezier curve (0–1). */
+    tValue: number;
+    /** Direction the signal faces — the protected block is ahead in this direction. */
+    direction: 'tangent' | 'reverseTangent';
 };
 
 // ---------------------------------------------------------------------------
@@ -60,12 +60,12 @@ export type SignalPlacement = {
  * signal's `tValue`.  Invariant: `fromT < toT`.
  */
 export type BlockSegmentEntry = {
-  /** Track segment number. */
-  segmentNumber: number;
-  /** Start of the range within the segment (inclusive). */
-  fromT: number;
-  /** End of the range within the segment (inclusive). */
-  toT: number;
+    /** Track segment number. */
+    segmentNumber: number;
+    /** Start of the range within the segment (inclusive). */
+    fromT: number;
+    /** End of the range within the segment (inclusive). */
+    toT: number;
 };
 
 /**
@@ -77,14 +77,14 @@ export type BlockSegmentEntry = {
  * next block downstream.
  */
 export type Block = {
-  /** Unique block identifier. */
-  id: BlockId;
-  /** Signal at the start of this block. */
-  entrySignalId: SignalId;
-  /** Signal at the end of this block, or `null` if the block terminates at track end. */
-  exitSignalId: SignalId | null;
-  /** Ordered list of segment entries within this block (first/last may be partial). */
-  segments: BlockSegmentEntry[];
+    /** Unique block identifier. */
+    id: BlockId;
+    /** Signal at the start of this block. */
+    entrySignalId: SignalId;
+    /** Signal at the end of this block, or `null` if the block terminates at track end. */
+    exitSignalId: SignalId | null;
+    /** Ordered list of segment entries within this block (first/last may be partial). */
+    segments: BlockSegmentEntry[];
 };
 
 // ---------------------------------------------------------------------------
@@ -93,6 +93,6 @@ export type Block = {
 
 /** Serialized form of the entire signal/block dataset. */
 export type SerializedSignalData = {
-  signals: SignalPlacement[];
-  blocks: Block[];
+    signals: SignalPlacement[];
+    blocks: Block[];
 };

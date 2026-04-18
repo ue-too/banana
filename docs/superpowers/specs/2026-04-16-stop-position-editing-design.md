@@ -31,10 +31,10 @@ Out of scope:
 
 ```ts
 export type StopPosition = {
-  id: number;                  // NEW — stable, unique within the owning platform
-  trackSegmentId: number;
-  direction: TrackDirection;
-  tValue: number;
+    id: number; // NEW — stable, unique within the owning platform
+    trackSegmentId: number;
+    direction: TrackDirection;
+    tValue: number;
 };
 ```
 
@@ -44,12 +44,12 @@ The ID is unique within the owning platform (both `Platform` for island, and `Tr
 
 ```ts
 export type ScheduledStop = {
-  stationId: number;
-  platformKind: 'island' | 'trackAligned';
-  platformId: number;
-  stopPositionId: number;      // NEW — replaces stopPositionIndex
-  arrivalTime: WeekMs | null;
-  departureTime: WeekMs | null;
+    stationId: number;
+    platformKind: 'island' | 'trackAligned';
+    platformId: number;
+    stopPositionId: number; // NEW — replaces stopPositionIndex
+    arrivalTime: WeekMs | null;
+    departureTime: WeekMs | null;
 };
 ```
 
@@ -61,12 +61,12 @@ The old `stopPositionIndex` field is dropped from the in-memory type. The serial
 
 ```ts
 export type TrackAlignedPlatform = {
-  id: number;
-  stationId: number;
-  spine: SpineEntry[];                // renamed from spineA; spineB removed
-  offset: number;
-  outerVertices: Point[];             // was OuterVertices (single | dual); now always a polyline
-  stopPositions: StopPosition[];
+    id: number;
+    stationId: number;
+    spine: SpineEntry[]; // renamed from spineA; spineB removed
+    offset: number;
+    outerVertices: Point[]; // was OuterVertices (single | dual); now always a polyline
+    stopPositions: StopPosition[];
 };
 ```
 
@@ -175,13 +175,13 @@ Old serialized form (post-migration of platforms, before this field is dropped):
 
 ```ts
 type SerializedScheduledStop = {
-  stationId: number;
-  platformKind?: 'island' | 'trackAligned';
-  platformId: number;
-  stopPositionIndex?: number;   // legacy
-  stopPositionId?: number;      // new
-  arrivalTime: number | null;
-  departureTime: number | null;
+    stationId: number;
+    platformKind?: 'island' | 'trackAligned';
+    platformId: number;
+    stopPositionIndex?: number; // legacy
+    stopPositionId?: number; // new
+    arrivalTime: number | null;
+    departureTime: number | null;
 };
 ```
 
@@ -189,8 +189,8 @@ On load:
 
 - If `stopPositionId` is present, use it as-is; `platformId` is already correct.
 - Else if `stopPositionIndex` is present:
-  - For platforms that were never dual, resolve to the current platform's `stopPositions[index].id`; `platformId` is unchanged.
-  - For platforms that were dual and have been split, use the mapping built during platform migration — the lookup returns the new `(platformId, stopPositionId)` pair, and the `ScheduledStop`'s `platformId` is rewritten accordingly.
+    - For platforms that were never dual, resolve to the current platform's `stopPositions[index].id`; `platformId` is unchanged.
+    - For platforms that were dual and have been split, use the mapping built during platform migration — the lookup returns the new `(platformId, stopPositionId)` pair, and the `ScheduledStop`'s `platformId` is rewritten accordingly.
 - If neither the old index nor the new ID resolves to an existing stop, leave `stopPositionId` pointing to an unresolved number — the Timetable panel will surface it as `⚠ Missing stop`.
 
 ### Stop-position IDs on existing single-spine and island platforms

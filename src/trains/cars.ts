@@ -16,18 +16,21 @@ export enum CarType {
 /** Per-type gangway defaults (head side, tail side). */
 const DEFAULT_GANGWAY: Record<CarType, { head: boolean; tail: boolean }> = {
     [CarType.LOCOMOTIVE]: { head: false, tail: false },
-    [CarType.COACH]:      { head: true,  tail: true },
-    [CarType.MOTOR]:      { head: true,  tail: true },
-    [CarType.TRAILER]:    { head: true,  tail: true },
-    [CarType.FREIGHT]:    { head: false, tail: false },
-    [CarType.CAB_CAR]:    { head: false, tail: true },
+    [CarType.COACH]: { head: true, tail: true },
+    [CarType.MOTOR]: { head: true, tail: true },
+    [CarType.TRAILER]: { head: true, tail: true },
+    [CarType.FREIGHT]: { head: false, tail: false },
+    [CarType.CAB_CAR]: { head: false, tail: true },
 };
 
 /**
  * Return the default gangway flags for a given car type.
  * Falls back to no gangway for unknown types.
  */
-export function getDefaultGangway(type: CarType): { head: boolean; tail: boolean } {
+export function getDefaultGangway(type: CarType): {
+    head: boolean;
+    tail: boolean;
+} {
     return DEFAULT_GANGWAY[type] ?? { head: false, tail: false };
 }
 
@@ -52,7 +55,10 @@ export function generateFormationId(): string {
  * @param carIds - All car IDs from serialized data (e.g. "car-0", "car-1")
  * @param formationIds - All formation IDs from serialized data (e.g. "formation-0")
  */
-export function seedIdGeneratorsFromSerialized(carIds: string[], formationIds: string[]): void {
+export function seedIdGeneratorsFromSerialized(
+    carIds: string[],
+    formationIds: string[]
+): void {
     const carNum = (id: string) => {
         const m = /^car-(\d+)$/.exec(id);
         return m ? parseInt(m[1], 10) : -1;
@@ -62,7 +68,10 @@ export function seedIdGeneratorsFromSerialized(carIds: string[], formationIds: s
         return m ? parseInt(m[1], 10) : -1;
     };
     const maxCar = carIds.reduce((a, id) => Math.max(a, carNum(id)), -1);
-    const maxFormation = formationIds.reduce((a, id) => Math.max(a, formationNum(id)), -1);
+    const maxFormation = formationIds.reduce(
+        (a, id) => Math.max(a, formationNum(id)),
+        -1
+    );
     if (maxCar >= 0) _nextCarId = maxCar + 1;
     if (maxFormation >= 0) _nextFormationId = maxFormation + 1;
 }
@@ -86,7 +95,7 @@ export interface TrainUnit {
     /** Flattened list of cars in head-to-tail order. */
     flatCars(): readonly Car[];
     /** Flattened list of cars in head-to-tail order, including the path to the car. */
-    _flatCars(): readonly { car: Car, path: string[] }[];
+    _flatCars(): readonly { car: Car; path: string[] }[];
     /** Reverse internal ordering for direction switch. */
     switchDirection(): void;
     /** Whether this unit is flipped from its original orientation. */
@@ -96,7 +105,6 @@ export interface TrainUnit {
 }
 
 export class Car implements TrainUnit {
-
     readonly id: string;
     private _name: string;
     private _bogieOffsets: number[];
@@ -109,7 +117,14 @@ export class Car implements TrainUnit {
     private _headHasGangway: boolean;
     private _tailHasGangway: boolean;
 
-    constructor(id: string, bogieOffsets: number[], edgeToBogie: number, bogieToEdge: number, couplerLength?: number, type?: CarType) {
+    constructor(
+        id: string,
+        bogieOffsets: number[],
+        edgeToBogie: number,
+        bogieToEdge: number,
+        couplerLength?: number,
+        type?: CarType
+    ) {
         this.id = id;
         this._name = id;
         this._bogieOffsets = bogieOffsets;
@@ -137,8 +152,14 @@ export class Car implements TrainUnit {
 
     switchDirection(): void {
         this._bogieOffsets = this._bogieOffsets.reverse();
-        [this._edgeToBogie, this._bogieToEdge] = [this._bogieToEdge, this._edgeToBogie];
-        [this._headHasGangway, this._tailHasGangway] = [this._tailHasGangway, this._headHasGangway];
+        [this._edgeToBogie, this._bogieToEdge] = [
+            this._bogieToEdge,
+            this._edgeToBogie,
+        ];
+        [this._headHasGangway, this._tailHasGangway] = [
+            this._tailHasGangway,
+            this._headHasGangway,
+        ];
         this._flipped = !this._flipped;
     }
 
@@ -146,7 +167,7 @@ export class Car implements TrainUnit {
         return [this];
     }
 
-    _flatCars(): readonly { car: Car, path: string[] }[] {
+    _flatCars(): readonly { car: Car; path: string[] }[] {
         return [{ car: this, path: [] }];
     }
 
@@ -213,4 +234,3 @@ export class Car implements TrainUnit {
         return 0;
     }
 }
-

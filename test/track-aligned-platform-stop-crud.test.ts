@@ -1,4 +1,5 @@
-import { describe, it, expect, beforeEach } from 'bun:test';
+import { beforeEach, describe, expect, it } from 'bun:test';
+
 import { TrackAlignedPlatformManager } from '../src/stations/track-aligned-platform-manager';
 import type { TrackAlignedPlatform } from '../src/stations/track-aligned-platform-types';
 import { ShiftTemplateManager } from '../src/timetable/shift-template-manager';
@@ -12,10 +13,18 @@ function makePlatform(): Omit<TrackAlignedPlatform, 'id'> {
             { trackSegment: 11, tStart: 0, tEnd: 0.5, side: 1 },
         ],
         offset: 2,
-        outerVertices: [{ x: 0, y: 0 }, { x: 10, y: 0 }],
+        outerVertices: [
+            { x: 0, y: 0 },
+            { x: 10, y: 0 },
+        ],
         stopPositions: [
             { id: 0, trackSegmentId: 10, direction: 'tangent', tValue: 0.5 },
-            { id: 1, trackSegmentId: 10, direction: 'reverseTangent', tValue: 0.5 },
+            {
+                id: 1,
+                trackSegmentId: 10,
+                direction: 'reverseTangent',
+                tValue: 0.5,
+            },
         ],
     };
 }
@@ -53,7 +62,7 @@ describe('TrackAlignedPlatformManager stop-position CRUD', () => {
                     trackSegmentId: 99,
                     direction: 'tangent',
                     tValue: 0.5,
-                }),
+                })
             ).toThrow();
         });
 
@@ -64,14 +73,14 @@ describe('TrackAlignedPlatformManager stop-position CRUD', () => {
                     trackSegmentId: 10,
                     direction: 'tangent',
                     tValue: 0.9,
-                }),
+                })
             ).toThrow();
             expect(() =>
                 mgr.addStopPosition(platformId, {
                     trackSegmentId: 10,
                     direction: 'tangent',
                     tValue: 0.1,
-                }),
+                })
             ).toThrow();
         });
 
@@ -81,14 +90,14 @@ describe('TrackAlignedPlatformManager stop-position CRUD', () => {
                     trackSegmentId: 10,
                     direction: 'tangent',
                     tValue: 0.2,
-                }),
+                })
             ).not.toThrow();
             expect(() =>
                 mgr.addStopPosition(platformId, {
                     trackSegmentId: 10,
                     direction: 'tangent',
                     tValue: 0.8,
-                }),
+                })
             ).not.toThrow();
         });
     });
@@ -106,13 +115,13 @@ describe('TrackAlignedPlatformManager stop-position CRUD', () => {
 
         it('throws when the stop id is not found', () => {
             expect(() =>
-                mgr.updateStopPosition(platformId, 999, { tValue: 0.5 }),
+                mgr.updateStopPosition(platformId, 999, { tValue: 0.5 })
             ).toThrow();
         });
 
         it('throws when the new tValue is outside the spine entry range', () => {
             expect(() =>
-                mgr.updateStopPosition(platformId, 0, { tValue: 0.9 }),
+                mgr.updateStopPosition(platformId, 0, { tValue: 0.9 })
             ).toThrow();
         });
     });

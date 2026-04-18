@@ -20,7 +20,7 @@ type CurveLike = { fullLength: number };
 export function normalizedToStop(
     spine: readonly SpineEntry[],
     normalized: number,
-    getCurve: (segmentId: number) => CurveLike,
+    getCurve: (segmentId: number) => CurveLike
 ): { trackSegmentId: number; tValue: number } {
     const n = Math.max(0, Math.min(1, normalized));
 
@@ -37,7 +37,10 @@ export function normalizedToStop(
 
     if (totalLength < 1e-9 || spine.length === 0) {
         const first = spine[0];
-        return { trackSegmentId: first?.trackSegment ?? 0, tValue: first?.tStart ?? 0 };
+        return {
+            trackSegmentId: first?.trackSegment ?? 0,
+            tValue: first?.tStart ?? 0,
+        };
     }
 
     const targetArc = n * totalLength;
@@ -48,11 +51,13 @@ export function normalizedToStop(
         const entryLength = entryLengths[i];
 
         if (accumulated + entryLength >= targetArc || i === spine.length - 1) {
-            const fraction = entryLength > 1e-9
-                ? (targetArc - accumulated) / entryLength
-                : 0;
+            const fraction =
+                entryLength > 1e-9
+                    ? (targetArc - accumulated) / entryLength
+                    : 0;
             const clampedFraction = Math.max(0, Math.min(1, fraction));
-            const tValue = entry.tStart + (entry.tEnd - entry.tStart) * clampedFraction;
+            const tValue =
+                entry.tStart + (entry.tEnd - entry.tStart) * clampedFraction;
             return { trackSegmentId: entry.trackSegment, tValue };
         }
 
@@ -74,7 +79,7 @@ export function stopToNormalized(
     spine: readonly SpineEntry[],
     trackSegmentId: number,
     tValue: number,
-    getCurve: (segmentId: number) => CurveLike,
+    getCurve: (segmentId: number) => CurveLike
 ): number {
     const entryLengths: number[] = [];
     let totalLength = 0;
@@ -93,9 +98,8 @@ export function stopToNormalized(
         const entry = spine[i];
         if (entry.trackSegment === trackSegmentId) {
             const tRange = entry.tEnd - entry.tStart;
-            const fraction = Math.abs(tRange) > 1e-9
-                ? (tValue - entry.tStart) / tRange
-                : 0;
+            const fraction =
+                Math.abs(tRange) > 1e-9 ? (tValue - entry.tStart) / tRange : 0;
             const clampedFraction = Math.max(0, Math.min(1, fraction));
             const arc = accumulated + clampedFraction * entryLengths[i];
             return arc / totalLength;

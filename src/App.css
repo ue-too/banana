@@ -106,8 +106,16 @@ body {
     --sidebar-ring: oklch(0.708 0 0);
 
     --scrollbar-thumb: color-mix(in oklch, var(--foreground) 30%, transparent);
-    --scrollbar-thumb-hover: color-mix(in oklch, var(--foreground) 45%, transparent);
-    --scrollbar-thumb-active: color-mix(in oklch, var(--foreground) 60%, transparent);
+    --scrollbar-thumb-hover: color-mix(
+        in oklch,
+        var(--foreground) 45%,
+        transparent
+    );
+    --scrollbar-thumb-active: color-mix(
+        in oklch,
+        var(--foreground) 60%,
+        transparent
+    );
 }
 
 .dark {

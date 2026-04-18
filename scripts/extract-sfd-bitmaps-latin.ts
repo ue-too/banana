@@ -5,14 +5,16 @@
  *
  * Usage: bun run scripts/extract-sfd-bitmaps-latin.ts
  */
-
 import { existsSync, readFileSync, writeFileSync } from 'fs';
 import { resolve } from 'path';
 
 import { ROOT, SFD_PATH, extractGlyphLines } from './sfd-bitmap-core';
 
 const LOCALES_DIR = resolve(ROOT, 'src/i18n/locales');
-const OUTPUT_PATH = resolve(ROOT, 'src/components/pixel-font-latin.generated.ts');
+const OUTPUT_PATH = resolve(
+    ROOT,
+    'src/components/pixel-font-latin.generated.ts'
+);
 
 /** Printable ASCII: space (0x20) through tilde (0x7E). */
 function printableAsciiChars(): Set<string> {
@@ -102,7 +104,7 @@ const entries = [...glyphs.entries()].sort(([a], [b]) =>
 
 const body = entries
     .map(([char, lines]) => {
-        const linesStr = lines.map((l) => `        '${l}',`).join('\n');
+        const linesStr = lines.map(l => `        '${l}',`).join('\n');
         return `    ${JSON.stringify(char)}: [\n${linesStr}\n    ],`;
     })
     .join('\n');

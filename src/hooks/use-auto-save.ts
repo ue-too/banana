@@ -3,9 +3,9 @@ import { useTranslation } from 'react-i18next';
 import { toast } from 'sonner';
 
 import { useBananaApp } from '@/contexts/pixi';
-import { useSceneStore } from '@/stores/scene-store';
 import { serializeSceneData } from '@/scene-serialization';
-import { getSceneStorage, SCENE_DATA_VERSION } from '@/storage';
+import { SCENE_DATA_VERSION, getSceneStorage } from '@/storage';
+import { useSceneStore } from '@/stores/scene-store';
 
 const requestIdle =
     typeof requestIdleCallback === 'function'
@@ -21,9 +21,9 @@ const requestIdle =
 export function useAutoSave(): { saveNow: () => void } {
     const { t } = useTranslation();
     const app = useBananaApp();
-    const activeSceneId = useSceneStore((s) => s.activeSceneId);
-    const activeSceneName = useSceneStore((s) => s.activeSceneName);
-    const autoSaveIntervalMs = useSceneStore((s) => s.autoSaveIntervalMs);
+    const activeSceneId = useSceneStore(s => s.activeSceneId);
+    const activeSceneName = useSceneStore(s => s.activeSceneName);
+    const autoSaveIntervalMs = useSceneStore(s => s.autoSaveIntervalMs);
     const hasShownToast = useRef(false);
     const savingRef = useRef(false);
     const createdAtRef = useRef<number>(Date.now());
@@ -33,7 +33,7 @@ export function useAutoSave(): { saveNow: () => void } {
         if (!activeSceneId) return;
         getSceneStorage()
             .loadScene(activeSceneId)
-            .then((stored) => {
+            .then(stored => {
                 if (stored) {
                     createdAtRef.current = stored.metadata.createdAt;
                 }
@@ -41,7 +41,13 @@ export function useAutoSave(): { saveNow: () => void } {
     }, [activeSceneId]);
 
     const doSave = useCallback(() => {
-        if (!app || !activeSceneId || savingRef.current || useSceneStore.getState().sceneLoading) return;
+        if (
+            !app ||
+            !activeSceneId ||
+            savingRef.current ||
+            useSceneStore.getState().sceneLoading
+        )
+            return;
         savingRef.current = true;
 
         try {
@@ -62,13 +68,16 @@ export function useAutoSave(): { saveNow: () => void } {
                     })
                     .then(() => {
                         if (!hasShownToast.current) {
-                            toast.success(t('autoSaveToast', { name: activeSceneName }), {
-                                duration: 2000,
-                            });
+                            toast.success(
+                                t('autoSaveToast', { name: activeSceneName }),
+                                {
+                                    duration: 2000,
+                                }
+                            );
                             hasShownToast.current = true;
                         }
                     })
-                    .catch((err) => {
+                    .catch(err => {
                         console.error('Auto-save failed:', err);
                     })
                     .finally(() => {
@@ -82,7 +91,13 @@ export function useAutoSave(): { saveNow: () => void } {
     }, [app, activeSceneId, activeSceneName]);
 
     const saveNow = useCallback(() => {
-        if (!app || !activeSceneId || savingRef.current || useSceneStore.getState().sceneLoading) return;
+        if (
+            !app ||
+            !activeSceneId ||
+            savingRef.current ||
+            useSceneStore.getState().sceneLoading
+        )
+            return;
         savingRef.current = true;
 
         try {
@@ -101,9 +116,11 @@ export function useAutoSave(): { saveNow: () => void } {
                     data,
                 })
                 .then(() => {
-                    toast.success(`"${activeSceneName}" saved`, { duration: 2000 });
+                    toast.success(`"${activeSceneName}" saved`, {
+                        duration: 2000,
+                    });
                 })
-                .catch((err) => {
+                .catch(err => {
                     console.error('Manual save failed:', err);
                     toast.error('Save failed');
                 })

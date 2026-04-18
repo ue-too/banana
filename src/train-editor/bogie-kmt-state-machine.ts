@@ -1,17 +1,25 @@
-import { BaseContext, EventGuards, EventReactions, Guard, NO_OP, StateMachine, TemplateState, TemplateStateMachine } from "@ue-too/being";
-import { Point } from "@ue-too/math";
-
+import {
+    BaseContext,
+    EventGuards,
+    EventReactions,
+    Guard,
+    NO_OP,
+    StateMachine,
+    TemplateState,
+    TemplateStateMachine,
+} from '@ue-too/being';
+import { Point } from '@ue-too/math';
 
 export type BogieEditStates = 'INACTIVE' | 'IDLE' | 'DRAGGING';
 
 export type BogieEditEvents = {
-    'startEditing': {};
-    'endEditing': {};
-    'leftPointerDown': Point;
-    'leftPointerUp': Point;
-    'leftPointerMove': Point;
-    'pointerMove': Point;
-}
+    startEditing: {};
+    endEditing: {};
+    leftPointerDown: Point;
+    leftPointerUp: Point;
+    leftPointerMove: Point;
+    pointerMove: Point;
+};
 
 export type BogieEditContext = BaseContext & {
     setCurrentPosition: (position: Point) => void;
@@ -20,11 +28,19 @@ export type BogieEditContext = BaseContext & {
     convert2WindowPosition: (pointInWorld: Point) => Point;
     dropCurrentBogie: () => void;
     getCurrentPosition: () => Point;
-}
+};
 
-export type BogieEditStateMachine = StateMachine<BogieEditEvents, BogieEditContext, BogieEditStates>;
+export type BogieEditStateMachine = StateMachine<
+    BogieEditEvents,
+    BogieEditContext,
+    BogieEditStates
+>;
 
-class BogieInactiveState extends TemplateState<BogieEditEvents, BogieEditContext, BogieEditStates> {
+class BogieInactiveState extends TemplateState<
+    BogieEditEvents,
+    BogieEditContext,
+    BogieEditStates
+> {
     protected _eventReactions = {
         startEditing: {
             action: NO_OP,
@@ -33,8 +49,11 @@ class BogieInactiveState extends TemplateState<BogieEditEvents, BogieEditContext
     } as EventReactions<BogieEditEvents, BogieEditContext, BogieEditStates>;
 }
 
-class BogieIdleState extends TemplateState<BogieEditEvents, BogieEditContext, BogieEditStates> {
-
+class BogieIdleState extends TemplateState<
+    BogieEditEvents,
+    BogieEditContext,
+    BogieEditStates
+> {
     constructor() {
         super();
     }
@@ -48,7 +67,6 @@ class BogieIdleState extends TemplateState<BogieEditEvents, BogieEditContext, Bo
             defaultTargetState: 'INACTIVE' as const,
         },
     } as EventReactions<BogieEditEvents, BogieEditContext, BogieEditStates>;
-
 
     protected _guards: Guard<BogieEditContext, 'projectOnBogie'> = {
         projectOnBogie: ((context: BogieEditContext) => {
@@ -64,22 +82,25 @@ class BogieIdleState extends TemplateState<BogieEditEvents, BogieEditContext, Bo
             typeof this._guards
         >
     > = {
-            leftPointerDown: [
-                {
-                    guard: 'projectOnBogie',
-                    target: 'DRAGGING',
-                },
-            ],
-        };
+        leftPointerDown: [
+            {
+                guard: 'projectOnBogie',
+                target: 'DRAGGING',
+            },
+        ],
+    };
 
     leftPointerDown(context: BogieEditContext, payload: Point): void {
         const worldPos = context.convert2WorldPosition(payload);
         context.setCurrentPosition(worldPos);
     }
-
 }
 
-class BogieDraggingState extends TemplateState<BogieEditEvents, BogieEditContext, BogieEditStates> {
+class BogieDraggingState extends TemplateState<
+    BogieEditEvents,
+    BogieEditContext,
+    BogieEditStates
+> {
     constructor() {
         super();
     }
@@ -105,11 +126,16 @@ class BogieDraggingState extends TemplateState<BogieEditEvents, BogieEditContext
     leftPointerUp(context: BogieEditContext, _payload: Point): void {
         context.dropCurrentBogie();
     }
-
 }
 
-export const createBogieEditStateMachine = (context: BogieEditContext): BogieEditStateMachine => {
-    return new TemplateStateMachine<BogieEditEvents, BogieEditContext, BogieEditStates>(
+export const createBogieEditStateMachine = (
+    context: BogieEditContext
+): BogieEditStateMachine => {
+    return new TemplateStateMachine<
+        BogieEditEvents,
+        BogieEditContext,
+        BogieEditStates
+    >(
         {
             INACTIVE: new BogieInactiveState(),
             IDLE: new BogieIdleState(),
@@ -118,9 +144,4 @@ export const createBogieEditStateMachine = (context: BogieEditContext): BogieEdi
         'INACTIVE',
         context
     );
-}
-
-
-
-
-
+};

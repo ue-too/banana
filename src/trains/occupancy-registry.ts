@@ -68,8 +68,14 @@ export class OccupancyRegistry {
             for (const id of occupants) this._scratchIds.push(id);
             for (let i = 0; i < this._scratchIds.length; i++) {
                 for (let j = i + 1; j < this._scratchIds.length; j++) {
-                    const a = Math.min(this._scratchIds[i], this._scratchIds[j]);
-                    const b = Math.max(this._scratchIds[i], this._scratchIds[j]);
+                    const a = Math.min(
+                        this._scratchIds[i],
+                        this._scratchIds[j]
+                    );
+                    const b = Math.max(
+                        this._scratchIds[i],
+                        this._scratchIds[j]
+                    );
                     this._colocatedPairs.add(`${a}:${b}`);
                 }
             }

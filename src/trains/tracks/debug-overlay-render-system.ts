@@ -89,7 +89,8 @@ export class DebugOverlayRenderSystem {
     private _showProximityLines = false;
     private _getPlacedTrains: (() => readonly PlacedTrainEntry[]) | null = null;
     private _stationManager: StationManager | null = null;
-    private _trackAlignedPlatformManager: TrackAlignedPlatformManager | null = null;
+    private _trackAlignedPlatformManager: TrackAlignedPlatformManager | null =
+        null;
     private _proximityDetector: ProximityDetector | null = null;
     private _zoomLevel = 1;
     private _abortController = new AbortController();
@@ -499,7 +500,10 @@ export class DebugOverlayRenderSystem {
             // Track-aligned platforms store stop positions on the platform entity.
             if (this._trackAlignedPlatformManager !== null) {
                 for (const platformId of station.trackAlignedPlatforms) {
-                    const tap = this._trackAlignedPlatformManager.getPlatform(platformId);
+                    const tap =
+                        this._trackAlignedPlatformManager.getPlatform(
+                            platformId
+                        );
                     if (tap === null) continue;
                     this._addStopLabels(tap.stopPositions, `T${platformId}`);
                 }
@@ -508,8 +512,12 @@ export class DebugOverlayRenderSystem {
     }
 
     private _addStopLabels(
-        stopPositions: readonly { trackSegmentId: number; direction: string; tValue: number }[],
-        platformLabel: string,
+        stopPositions: readonly {
+            trackSegmentId: number;
+            direction: string;
+            tValue: number;
+        }[],
+        platformLabel: string
     ): void {
         for (let idx = 0; idx < stopPositions.length; idx++) {
             const stop = stopPositions[idx];

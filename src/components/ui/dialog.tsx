@@ -1,7 +1,7 @@
 import { Dialog as DialogPrimitive } from 'radix-ui';
 import * as React from 'react';
-import { X } from '@/assets/icons';
 
+import { X } from '@/assets/icons';
 import { cn } from '@/lib/utils';
 
 function Dialog({
@@ -64,10 +64,7 @@ function DialogContent({
     );
 }
 
-function DialogHeader({
-    className,
-    ...props
-}: React.ComponentProps<'div'>) {
+function DialogHeader({ className, ...props }: React.ComponentProps<'div'>) {
     return (
         <div
             data-slot="dialog-header"
@@ -88,7 +85,7 @@ function DialogTitle({
         <DialogPrimitive.Title
             data-slot="dialog-title"
             className={cn(
-                'text-lg font-semibold leading-none tracking-tight',
+                'text-lg leading-none font-semibold tracking-tight',
                 className
             )}
             {...props}
@@ -109,10 +106,7 @@ function DialogDescription({
     );
 }
 
-function DialogFooter({
-    className,
-    ...props
-}: React.ComponentProps<'div'>) {
+function DialogFooter({ className, ...props }: React.ComponentProps<'div'>) {
     return (
         <div
             data-slot="dialog-footer"

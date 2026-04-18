@@ -21,9 +21,7 @@ export function useRenderSync(app: BananaAppComponents | null): void {
                 app.trackRenderSystem.sunAngle = state.sunAngle;
                 app.buildingRenderSystem.sunAngle = state.sunAngle;
             }
-            if (
-                state.showElevationGradient !== prev.showElevationGradient
-            ) {
+            if (state.showElevationGradient !== prev.showElevationGradient) {
                 app.trackRenderSystem.showElevationGradient =
                     state.showElevationGradient;
             }
@@ -53,15 +51,13 @@ export function useRenderSync(app: BananaAppComponents | null): void {
                 app.terrainRenderSystem.xray = state.terrainXray;
             }
             if (state.terrainFillVisible !== prev.terrainFillVisible) {
-                app.terrainRenderSystem.fillVisible =
-                    state.terrainFillVisible;
+                app.terrainRenderSystem.fillVisible = state.terrainFillVisible;
             }
             if (state.terrainOpacity !== prev.terrainOpacity) {
                 app.terrainRenderSystem.fillOpacity = state.terrainOpacity;
             }
             if (state.whiteOcclusion !== prev.whiteOcclusion) {
-                app.terrainRenderSystem.whiteOcclusion =
-                    state.whiteOcclusion;
+                app.terrainRenderSystem.whiteOcclusion = state.whiteOcclusion;
             }
             if (state.showJointNumbers !== prev.showJointNumbers) {
                 app.debugOverlayRenderSystem.setShowJointDebug(
@@ -102,9 +98,7 @@ export function useRenderSync(app: BananaAppComponents | null): void {
                 app.trainRenderSystem.showBogies = state.showBogies;
             }
             if (state.showStats !== prev.showStats) {
-                app.statsDom.style.display = state.showStats
-                    ? 'block'
-                    : 'none';
+                app.statsDom.style.display = state.showStats ? 'block' : 'none';
             }
         });
     }, [app]);
@@ -116,10 +110,8 @@ function applyAll(
 ): void {
     app.trackRenderSystem.sunAngle = state.sunAngle;
     app.buildingRenderSystem.sunAngle = state.sunAngle;
-    app.trackRenderSystem.showElevationGradient =
-        state.showElevationGradient;
-    app.trackRenderSystem.showPreviewCurveArcs =
-        state.showPreviewCurveArcs;
+    app.trackRenderSystem.showElevationGradient = state.showElevationGradient;
+    app.trackRenderSystem.showPreviewCurveArcs = state.showPreviewCurveArcs;
     app.trackRenderSystem.trackStyle = state.trackStyle;
     app.trackRenderSystem.electrified = state.electrified;
     app.curveEngine.trackGraph.projectionBuffer = state.projectionBuffer;
@@ -134,9 +126,7 @@ function applyAll(
     app.debugOverlayRenderSystem.setShowJointDebug(state.showJointNumbers);
     app.debugOverlayRenderSystem.setShowSegmentDebug(state.showSegmentIds);
     app.debugOverlayRenderSystem.setShowGaugeDebug(state.showGaugeLabels);
-    app.debugOverlayRenderSystem.setShowFormationDebug(
-        state.showFormationIds
-    );
+    app.debugOverlayRenderSystem.setShowFormationDebug(state.showFormationIds);
     app.debugOverlayRenderSystem.setShowStationStopDebug(
         state.showStationStops
     );

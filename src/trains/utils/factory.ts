@@ -1,1 +1,1 @@
-import { TrainPlacementEngine } from "../input-state-machine/train-kmt-state-machine";
+import { TrainPlacementEngine } from '../input-state-machine/train-kmt-state-machine';

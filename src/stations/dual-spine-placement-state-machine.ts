@@ -31,9 +31,9 @@ import {
     sampleSpineEdge,
     validateSpine,
 } from './spine-utils';
-import { computeDualSpineMidline } from './track-aligned-platform-migration';
 import type { StationManager } from './station-manager';
 import type { TrackAlignedPlatformManager } from './track-aligned-platform-manager';
+import { computeDualSpineMidline } from './track-aligned-platform-migration';
 import type { TrackAlignedPlatformRenderSystem } from './track-aligned-platform-render-system';
 import type { SpineEntry } from './track-aligned-platform-types';
 
@@ -918,7 +918,7 @@ export class DualSpinePlacementEngine
             this._spineA,
             this._spineB,
             this._spineAOffset,
-            getCurve,
+            getCurve
         );
 
         const platformIdA = this._platformManager.createPlatform({

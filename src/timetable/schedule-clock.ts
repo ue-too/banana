@@ -8,12 +8,7 @@
  *
  * @module timetable/schedule-clock
  */
-
-import {
-  DayOfWeek,
-  type VirtualDateTime,
-  type WeekMs,
-} from './types';
+import { DayOfWeek, type VirtualDateTime, type WeekMs } from './types';
 
 // ---------------------------------------------------------------------------
 // Constants
@@ -55,68 +50,71 @@ const EPOCH_THURSDAY_OFFSET = 3 * MS_PER_DAY;
  * ```
  */
 export class ScheduleClock {
-  /**
-   * Convert epoch milliseconds to a position within the virtual week
-   * (wraps every 7 days).
-   *
-   * @param epochMs - Current value of `TimeManager._currentTime` (epoch ms).
-   * @returns Milliseconds since Monday 00:00:00 in the virtual week.
-   */
-  toWeekMs(epochMs: number): WeekMs {
-    return ((epochMs + EPOCH_THURSDAY_OFFSET) % MS_PER_WEEK + MS_PER_WEEK) % MS_PER_WEEK;
-  }
+    /**
+     * Convert epoch milliseconds to a position within the virtual week
+     * (wraps every 7 days).
+     *
+     * @param epochMs - Current value of `TimeManager._currentTime` (epoch ms).
+     * @returns Milliseconds since Monday 00:00:00 in the virtual week.
+     */
+    toWeekMs(epochMs: number): WeekMs {
+        return (
+            (((epochMs + EPOCH_THURSDAY_OFFSET) % MS_PER_WEEK) + MS_PER_WEEK) %
+            MS_PER_WEEK
+        );
+    }
 
-  /**
-   * Convert epoch milliseconds to a full virtual datetime.
-   *
-   * @param epochMs - Current value of `TimeManager._currentTime` (epoch ms).
-   */
-  toVirtualDateTime(epochMs: number): VirtualDateTime {
-    const weekMs = this.toWeekMs(epochMs);
-    return ScheduleClock.weekMsToDateTime(weekMs);
-  }
+    /**
+     * Convert epoch milliseconds to a full virtual datetime.
+     *
+     * @param epochMs - Current value of `TimeManager._currentTime` (epoch ms).
+     */
+    toVirtualDateTime(epochMs: number): VirtualDateTime {
+        const weekMs = this.toWeekMs(epochMs);
+        return ScheduleClock.weekMsToDateTime(weekMs);
+    }
 
-  /**
-   * Convert a {@link VirtualDateTime} to its {@link WeekMs} representation.
-   *
-   * @remarks
-   * Useful for comparing schedule times against the current virtual clock.
-   */
-  static dateTimeToWeekMs(dt: VirtualDateTime): WeekMs {
-    return (
-      dt.day * MS_PER_DAY +
-      dt.time.hours * MS_PER_HOUR +
-      dt.time.minutes * MS_PER_MINUTE +
-      dt.time.seconds * MS_PER_SECOND
-    );
-  }
+    /**
+     * Convert a {@link VirtualDateTime} to its {@link WeekMs} representation.
+     *
+     * @remarks
+     * Useful for comparing schedule times against the current virtual clock.
+     */
+    static dateTimeToWeekMs(dt: VirtualDateTime): WeekMs {
+        return (
+            dt.day * MS_PER_DAY +
+            dt.time.hours * MS_PER_HOUR +
+            dt.time.minutes * MS_PER_MINUTE +
+            dt.time.seconds * MS_PER_SECOND
+        );
+    }
 
-  /**
-   * Convert a {@link WeekMs} value back to a {@link VirtualDateTime}.
-   */
-  static weekMsToDateTime(weekMs: WeekMs): VirtualDateTime {
-    let remaining = weekMs;
-    const day = Math.floor(remaining / MS_PER_DAY) as DayOfWeek;
-    remaining -= day * MS_PER_DAY;
-    const hours = Math.floor(remaining / MS_PER_HOUR);
-    remaining -= hours * MS_PER_HOUR;
-    const minutes = Math.floor(remaining / MS_PER_MINUTE);
-    remaining -= minutes * MS_PER_MINUTE;
-    const seconds = Math.floor(remaining / MS_PER_SECOND);
-    return { day, time: { hours, minutes, seconds } };
-  }
+    /**
+     * Convert a {@link WeekMs} value back to a {@link VirtualDateTime}.
+     */
+    static weekMsToDateTime(weekMs: WeekMs): VirtualDateTime {
+        let remaining = weekMs;
+        const day = Math.floor(remaining / MS_PER_DAY) as DayOfWeek;
+        remaining -= day * MS_PER_DAY;
+        const hours = Math.floor(remaining / MS_PER_HOUR);
+        remaining -= hours * MS_PER_HOUR;
+        const minutes = Math.floor(remaining / MS_PER_MINUTE);
+        remaining -= minutes * MS_PER_MINUTE;
+        const seconds = Math.floor(remaining / MS_PER_SECOND);
+        return { day, time: { hours, minutes, seconds } };
+    }
 
-  // -----------------------------------------------------------------------
-  // Serialization
-  // -----------------------------------------------------------------------
+    // -----------------------------------------------------------------------
+    // Serialization
+    // -----------------------------------------------------------------------
 
-  /** Serialize is a no-op — the clock is stateless. Kept for format compat. */
-  serialize(): Record<string, never> {
-    return {};
-  }
+    /** Serialize is a no-op — the clock is stateless. Kept for format compat. */
+    serialize(): Record<string, never> {
+        return {};
+    }
 
-  /** Deserialize ignores saved data — the clock is stateless. */
-  static deserialize(_data: unknown): ScheduleClock {
-    return new ScheduleClock();
-  }
+    /** Deserialize ignores saved data — the clock is stateless. */
+    static deserialize(_data: unknown): ScheduleClock {
+        return new ScheduleClock();
+    }
 }

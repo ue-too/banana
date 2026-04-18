@@ -82,7 +82,10 @@ export class DefaultJointDirectionManager implements JointDirectionManager {
     private _trackGraph: TrackGraph;
     private _preferenceMap: JointDirectionPreferenceMap | null;
 
-    constructor(trackGraph: TrackGraph, preferenceMap?: JointDirectionPreferenceMap) {
+    constructor(
+        trackGraph: TrackGraph,
+        preferenceMap?: JointDirectionPreferenceMap
+    ) {
         this._trackGraph = trackGraph;
         this._preferenceMap = preferenceMap ?? null;
     }

@@ -1,35 +1,29 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { CanvasSource, Graphics, MeshSimple, Texture } from 'pixi.js';
-import { toast } from 'sonner';
+import {
+    convertFromCanvas2ViewPort,
+    convertFromViewport2World,
+    convertFromWindow2Canvas,
+} from '@ue-too/board';
+import {
+    type BaseAppComponents,
+    type InitAppOptions,
+    baseInitApp,
+} from '@ue-too/board-pixi-integration';
 import {
     ScrollBarDisplay,
     Wrapper,
-    usePixiCanvas,
     appIsReady,
+    usePixiCanvas,
 } from '@ue-too/board-pixi-react-integration';
-import {
-    baseInitApp,
-    type BaseAppComponents,
-    type InitAppOptions,
-} from '@ue-too/board-pixi-integration';
-import {
-    convertFromWindow2Canvas,
-    convertFromCanvas2ViewPort,
-    convertFromViewport2World,
-} from '@ue-too/board';
-import {
-    Download, Upload, Layers, Package, Eraser,
-} from '@/assets/icons';
+import { CanvasSource, Graphics, MeshSimple, Texture } from 'pixi.js';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { toast } from 'sonner';
 
-import { TerrainData, validateSerializedTerrainData } from '@/terrain/terrain-data';
-import type { TerrainConfig, SerializedTerrainData } from '@/terrain/terrain-data';
+import { Download, Eraser, Layers, Package, Upload } from '@/assets/icons';
 import {
-    TerrainPaintCanvas,
-    TERRAIN_PALETTE,
-    WATER_PALETTE,
-    GROUND_PALETTE_INDEX,
-} from '@/terrain/terrain-paint-canvas';
-import { MapTileLayer, MapTileLayerSync, type MapInstance } from '@/components/map-tile-layer';
+    type MapInstance,
+    MapTileLayer,
+    MapTileLayerSync,
+} from '@/components/map-tile-layer';
 import { Button } from '@/components/ui/button';
 import {
     Tooltip,
@@ -37,6 +31,20 @@ import {
     TooltipProvider,
     TooltipTrigger,
 } from '@/components/ui/tooltip';
+import {
+    TerrainData,
+    validateSerializedTerrainData,
+} from '@/terrain/terrain-data';
+import type {
+    SerializedTerrainData,
+    TerrainConfig,
+} from '@/terrain/terrain-data';
+import {
+    GROUND_PALETTE_INDEX,
+    TERRAIN_PALETTE,
+    TerrainPaintCanvas,
+    WATER_PALETTE,
+} from '@/terrain/terrain-paint-canvas';
 
 import '../App.css';
 
@@ -121,7 +129,7 @@ function buildGridGeometry(config: TerrainConfig) {
 
 const initPaintEditor = async (
     canvas: HTMLCanvasElement,
-    option: Partial<InitAppOptions>,
+    option: Partial<InitAppOptions>
 ): Promise<PaintEditorComponents> => {
     const baseComponents = await baseInitApp(canvas, option);
     const config = TERRAIN_CONFIG;
@@ -132,14 +140,25 @@ const initPaintEditor = async (
     const { positions, uvs, indices } = buildGridGeometry(config);
 
     // Terrain mesh (opaque base layer)
-    const terrainCanvasSource = new CanvasSource({ resource: paintCanvas.terrainCanvas, resolution: 1 });
+    const terrainCanvasSource = new CanvasSource({
+        resource: paintCanvas.terrainCanvas,
+        resolution: 1,
+    });
     const terrainTexture = new Texture(terrainCanvasSource);
-    const terrainMesh = new MeshSimple({ texture: terrainTexture, vertices: positions, uvs, indices });
+    const terrainMesh = new MeshSimple({
+        texture: terrainTexture,
+        vertices: positions,
+        uvs,
+        indices,
+    });
     baseComponents.app.stage.addChild(terrainMesh);
 
     // Water mesh (semi-transparent overlay)
     // Clone positions/uvs since MeshSimple takes ownership
-    const waterCanvasSource = new CanvasSource({ resource: paintCanvas.waterCanvas, resolution: 1 });
+    const waterCanvasSource = new CanvasSource({
+        resource: paintCanvas.waterCanvas,
+        resolution: 1,
+    });
     const waterTexture = new Texture(waterCanvasSource);
     const waterMesh = new MeshSimple({
         texture: waterTexture,
@@ -203,10 +222,10 @@ function useBrushInput(brushTarget: BrushTarget, brushRadius: number) {
                 camera.position,
                 camera.zoomLevel,
                 camera.rotation,
-                false,
+                false
             );
         },
-        [app],
+        [app]
     );
 
     const toCanvasPixel = useCallback(
@@ -218,7 +237,7 @@ function useBrushInput(brushTarget: BrushTarget, brushRadius: number) {
                 y: (worldY - originY) / cellSize,
             };
         },
-        [app],
+        [app]
     );
 
     const radiusPixels = useMemo(() => {
@@ -246,7 +265,7 @@ function useBrushInput(brushTarget: BrushTarget, brushRadius: number) {
             });
             g.visible = true;
         },
-        [app, brushRadius, cursorColor, toWorld],
+        [app, brushRadius, cursorColor, toWorld]
     );
 
     const applyStroke = useCallback(
@@ -259,11 +278,21 @@ function useBrushInput(brushTarget: BrushTarget, brushRadius: number) {
 
             switch (brushTarget.layer) {
                 case 'terrain':
-                    app.paintCanvas.paintTerrain(pixel.x, pixel.y, radiusPixels, brushTarget.paletteIndex);
+                    app.paintCanvas.paintTerrain(
+                        pixel.x,
+                        pixel.y,
+                        radiusPixels,
+                        brushTarget.paletteIndex
+                    );
                     app.terrainCanvasSource.update();
                     break;
                 case 'water':
-                    app.paintCanvas.paintWater(pixel.x, pixel.y, radiusPixels, brushTarget.paletteIndex);
+                    app.paintCanvas.paintWater(
+                        pixel.x,
+                        pixel.y,
+                        radiusPixels,
+                        brushTarget.paletteIndex
+                    );
                     app.waterCanvasSource.update();
                     break;
                 case 'water-erase':
@@ -272,7 +301,7 @@ function useBrushInput(brushTarget: BrushTarget, brushRadius: number) {
                     break;
             }
         },
-        [app, brushTarget, radiusPixels, toWorld, toCanvasPixel],
+        [app, brushTarget, radiusPixels, toWorld, toCanvasPixel]
     );
 
     useEffect(() => {
@@ -304,13 +333,17 @@ function useBrushInput(brushTarget: BrushTarget, brushRadius: number) {
             paintingRef.current = false;
         };
 
-        canvasEl.addEventListener('pointerdown', onPointerDown, { capture: true });
+        canvasEl.addEventListener('pointerdown', onPointerDown, {
+            capture: true,
+        });
         canvasEl.addEventListener('pointermove', onPointerMove);
         canvasEl.addEventListener('pointerup', onPointerUp);
         canvasEl.addEventListener('pointerleave', onPointerLeave);
 
         return () => {
-            canvasEl.removeEventListener('pointerdown', onPointerDown, { capture: true });
+            canvasEl.removeEventListener('pointerdown', onPointerDown, {
+                capture: true,
+            });
             canvasEl.removeEventListener('pointermove', onPointerMove);
             canvasEl.removeEventListener('pointerup', onPointerUp);
             canvasEl.removeEventListener('pointerleave', onPointerLeave);
@@ -341,7 +374,9 @@ function PaintEditorToolbar({
 
     const handleExport = useCallback(() => {
         if (!app) return;
-        const terrainData = app.paintCanvas.exportToTerrainData(app.terrainConfig);
+        const terrainData = app.paintCanvas.exportToTerrainData(
+            app.terrainConfig
+        );
         const data = terrainData.serialize();
         const json = JSON.stringify(data);
         const blob = new Blob([json], { type: 'application/json' });
@@ -356,7 +391,9 @@ function PaintEditorToolbar({
 
     const handleExportAsScene = useCallback(() => {
         if (!app) return;
-        const terrainData = app.paintCanvas.exportToTerrainData(app.terrainConfig);
+        const terrainData = app.paintCanvas.exportToTerrainData(
+            app.terrainConfig
+        );
         const sceneData = {
             tracks: { joints: [], segments: [] },
             trains: { trains: [], formations: [], carStocks: [] },
@@ -391,10 +428,14 @@ function PaintEditorToolbar({
                     const data = JSON.parse(reader.result as string);
                     const validation = validateSerializedTerrainData(data);
                     if (!validation.valid) {
-                        toast.error(`Invalid terrain file: ${validation.error}`);
+                        toast.error(
+                            `Invalid terrain file: ${validation.error}`
+                        );
                         return;
                     }
-                    const restored = TerrainData.deserialize(data as SerializedTerrainData);
+                    const restored = TerrainData.deserialize(
+                        data as SerializedTerrainData
+                    );
                     app.paintCanvas.importFromTerrainData(restored);
                     app.terrainCanvasSource.update();
                     app.waterCanvasSource.update();
@@ -406,7 +447,7 @@ function PaintEditorToolbar({
             reader.readAsText(file);
             e.target.value = '';
         },
-        [app],
+        [app]
     );
 
     // ---- Palette selection helpers ----
@@ -423,18 +464,25 @@ function PaintEditorToolbar({
         <div className="pointer-events-auto absolute top-4 left-4 z-50 flex flex-col gap-2">
             {/* Elevation palette */}
             <div className="bg-background/80 flex flex-col items-center gap-1 rounded-xl border p-1.5 shadow-lg backdrop-blur-sm">
-                <span className="text-muted-foreground text-[9px] uppercase tracking-wider">Land</span>
+                <span className="text-muted-foreground text-[9px] tracking-wider uppercase">
+                    Land
+                </span>
                 {TERRAIN_PALETTE.map((entry, index) => (
                     <Tooltip key={entry.height}>
                         <TooltipTrigger asChild>
                             <button
                                 className={`size-8 rounded-md border-2 transition-all ${
                                     isTerrainSelected(index)
-                                        ? 'border-white scale-110 shadow-md'
+                                        ? 'scale-110 border-white shadow-md'
                                         : 'border-transparent hover:border-white/40'
                                 }`}
                                 style={{ backgroundColor: entry.css }}
-                                onClick={() => onBrushTargetChange({ layer: 'terrain', paletteIndex: index })}
+                                onClick={() =>
+                                    onBrushTargetChange({
+                                        layer: 'terrain',
+                                        paletteIndex: index,
+                                    })
+                                }
                             />
                         </TooltipTrigger>
                         <TooltipContent side="right">
@@ -446,18 +494,25 @@ function PaintEditorToolbar({
 
             {/* Water palette */}
             <div className="bg-background/80 flex flex-col items-center gap-1 rounded-xl border p-1.5 shadow-lg backdrop-blur-sm">
-                <span className="text-muted-foreground text-[9px] uppercase tracking-wider">Water</span>
+                <span className="text-muted-foreground text-[9px] tracking-wider uppercase">
+                    Water
+                </span>
                 {WATER_PALETTE.map((entry, index) => (
                     <Tooltip key={entry.depth}>
                         <TooltipTrigger asChild>
                             <button
                                 className={`size-8 rounded-md border-2 transition-all ${
                                     isWaterSelected(index)
-                                        ? 'border-white scale-110 shadow-md'
+                                        ? 'scale-110 border-white shadow-md'
                                         : 'border-transparent hover:border-white/40'
                                 }`}
                                 style={{ backgroundColor: entry.css }}
-                                onClick={() => onBrushTargetChange({ layer: 'water', paletteIndex: index })}
+                                onClick={() =>
+                                    onBrushTargetChange({
+                                        layer: 'water',
+                                        paletteIndex: index,
+                                    })
+                                }
                             />
                         </TooltipTrigger>
                         <TooltipContent side="right">
@@ -472,7 +527,9 @@ function PaintEditorToolbar({
                             variant={isWaterEraseSelected ? 'default' : 'ghost'}
                             size="icon"
                             className="size-8"
-                            onClick={() => onBrushTargetChange({ layer: 'water-erase' })}
+                            onClick={() =>
+                                onBrushTargetChange({ layer: 'water-erase' })
+                            }
                         >
                             <Eraser className="size-4" />
                         </Button>
@@ -486,14 +543,18 @@ function PaintEditorToolbar({
                 <Tooltip>
                     <TooltipTrigger asChild>
                         <div className="flex flex-col items-center gap-0.5">
-                            <span className="text-muted-foreground text-[9px]">Size</span>
+                            <span className="text-muted-foreground text-[9px]">
+                                Size
+                            </span>
                             <input
                                 type="range"
                                 min={25}
                                 max={500}
                                 step={25}
                                 value={brushRadius}
-                                onChange={e => onBrushRadiusChange(Number(e.target.value))}
+                                onChange={e =>
+                                    onBrushRadiusChange(Number(e.target.value))
+                                }
                                 className="h-16 w-1.5 appearance-none [writing-mode:vertical-lr]"
                             />
                             <span className="text-muted-foreground text-[9px]">
@@ -508,7 +569,11 @@ function PaintEditorToolbar({
 
                 <Tooltip>
                     <TooltipTrigger asChild>
-                        <Button variant="ghost" size="icon" onClick={handleExport}>
+                        <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={handleExport}
+                        >
                             <Download className="size-4" />
                         </Button>
                     </TooltipTrigger>
@@ -517,16 +582,26 @@ function PaintEditorToolbar({
 
                 <Tooltip>
                     <TooltipTrigger asChild>
-                        <Button variant="ghost" size="icon" onClick={handleExportAsScene}>
+                        <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={handleExportAsScene}
+                        >
                             <Package className="size-4" />
                         </Button>
                     </TooltipTrigger>
-                    <TooltipContent side="right">Export as scene (for main app)</TooltipContent>
+                    <TooltipContent side="right">
+                        Export as scene (for main app)
+                    </TooltipContent>
                 </Tooltip>
 
                 <Tooltip>
                     <TooltipTrigger asChild>
-                        <Button variant="ghost" size="icon" onClick={handleImport}>
+                        <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={handleImport}
+                        >
                             <Upload className="size-4" />
                         </Button>
                     </TooltipTrigger>
@@ -583,7 +658,7 @@ export function TerrainEditorPage(): React.ReactNode {
                 max: { x: 5000, y: 5000 },
             },
         }),
-        [],
+        []
     );
 
     return (
@@ -594,10 +669,7 @@ export function TerrainEditorPage(): React.ReactNode {
                     onMapReady={setMapInstance}
                     onMapDestroy={handleMapDestroy}
                 />
-                <Wrapper
-                    option={wrapperOption}
-                    initFunction={initPaintEditor}
-                >
+                <Wrapper option={wrapperOption} initFunction={initPaintEditor}>
                     {showMap && mapInstance && (
                         <MapTileLayerSync map={mapInstance} />
                     )}
@@ -628,7 +700,9 @@ export function TerrainEditorPage(): React.ReactNode {
                                         <Layers className="size-4" />
                                     </Button>
                                 </TooltipTrigger>
-                                <TooltipContent side="right">Toggle map overlay</TooltipContent>
+                                <TooltipContent side="right">
+                                    Toggle map overlay
+                                </TooltipContent>
                             </Tooltip>
                         </div>
                     </div>

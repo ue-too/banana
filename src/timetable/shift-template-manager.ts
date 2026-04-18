@@ -5,9 +5,9 @@
  */
 import { Observable, SynchronousObservable } from '@ue-too/board';
 
-import type { PlatformMigrationMap } from '@/stations/track-aligned-platform-migration';
 import type { StationManager } from '@/stations/station-manager';
 import type { TrackAlignedPlatformManager } from '@/stations/track-aligned-platform-manager';
+import type { PlatformMigrationMap } from '@/stations/track-aligned-platform-migration';
 
 import {
     type DayMask,
@@ -129,13 +129,13 @@ export class ShiftTemplateManager {
     // -----------------------------------------------------------------------
 
     serialize(): SerializedShiftTemplate[] {
-        return this.getAllTemplates().map((t) => ({
+        return this.getAllTemplates().map(t => ({
             id: t.id,
             name: t.name,
             activeDays: Object.fromEntries(
-                Object.entries(t.activeDays).map(([k, v]) => [String(k), v]),
+                Object.entries(t.activeDays).map(([k, v]) => [String(k), v])
             ),
-            stops: t.stops.map((s) => ({
+            stops: t.stops.map(s => ({
                 stationId: s.stationId,
                 platformKind: s.platformKind,
                 platformId: s.platformId,
@@ -143,7 +143,7 @@ export class ShiftTemplateManager {
                 arrivalTime: s.arrivalTime,
                 departureTime: s.departureTime,
             })),
-            legs: t.legs.map((l) => ({ routeId: l.routeId })),
+            legs: t.legs.map(l => ({ routeId: l.routeId })),
         }));
     }
 
@@ -151,7 +151,7 @@ export class ShiftTemplateManager {
         data: SerializedShiftTemplate[],
         stationManager: StationManager,
         trackAlignedPlatformManager: TrackAlignedPlatformManager,
-        platformMigrationMap: PlatformMigrationMap = new Map(),
+        platformMigrationMap: PlatformMigrationMap = new Map()
     ): ShiftTemplateManager {
         const manager = new ShiftTemplateManager();
         for (const st of data) {
@@ -163,13 +163,14 @@ export class ShiftTemplateManager {
                 id: st.id,
                 name: st.name,
                 activeDays,
-                stops: st.stops.map((s) => {
-                    const resolved = ShiftTemplateManager._resolveStopPositionId(
-                        s,
-                        stationManager,
-                        trackAlignedPlatformManager,
-                        platformMigrationMap,
-                    );
+                stops: st.stops.map(s => {
+                    const resolved =
+                        ShiftTemplateManager._resolveStopPositionId(
+                            s,
+                            stationManager,
+                            trackAlignedPlatformManager,
+                            platformMigrationMap
+                        );
                     return {
                         stationId: s.stationId,
                         platformKind: s.platformKind ?? 'island',
@@ -179,7 +180,7 @@ export class ShiftTemplateManager {
                         departureTime: s.departureTime,
                     };
                 }),
-                legs: st.legs.map((l) => ({ routeId: l.routeId })),
+                legs: st.legs.map(l => ({ routeId: l.routeId })),
             });
         }
         return manager;
@@ -200,11 +201,14 @@ export class ShiftTemplateManager {
         s: SerializedScheduledStop,
         stationManager: StationManager,
         trackAlignedPlatformManager: TrackAlignedPlatformManager,
-        platformMigrationMap: PlatformMigrationMap,
+        platformMigrationMap: PlatformMigrationMap
     ): { platformId: number; stopPositionId: number } {
         // Direct id wins.
         if (typeof s.stopPositionId === 'number') {
-            return { platformId: s.platformId, stopPositionId: s.stopPositionId };
+            return {
+                platformId: s.platformId,
+                stopPositionId: s.stopPositionId,
+            };
         }
 
         if (typeof s.stopPositionIndex !== 'number') {
@@ -222,7 +226,10 @@ export class ShiftTemplateManager {
                 if (migration.newStopId < 0) {
                     // Orphaned by the split — return the migrated platform id
                     // but leave the stop reference broken so the UI can flag it.
-                    return { platformId: migration.newPlatformId, stopPositionId: -1 };
+                    return {
+                        platformId: migration.newPlatformId,
+                        stopPositionId: -1,
+                    };
                 }
                 return {
                     platformId: migration.newPlatformId,
@@ -240,7 +247,7 @@ export class ShiftTemplateManager {
 
         // Island platforms never participate in the dual-spine split.
         const station = stationManager.getStation(s.stationId);
-        const platform = station?.platforms.find((p) => p.id === s.platformId);
+        const platform = station?.platforms.find(p => p.id === s.platformId);
         const stop = platform?.stopPositions[s.stopPositionIndex];
         return { platformId: s.platformId, stopPositionId: stop?.id ?? -1 };
     }

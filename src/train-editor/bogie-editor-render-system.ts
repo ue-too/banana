@@ -1,8 +1,13 @@
-import { Container, Graphics, Text } from "pixi.js";
-import type { BogieEditorEngine } from "./bogie-editor-engine";
-import type { Point } from "@ue-too/math";
-import { PointCal } from "@ue-too/math";
-import type { ObservableBoardCamera, CameraState, CameraZoomEventPayload } from "@ue-too/board";
+import type {
+    CameraState,
+    CameraZoomEventPayload,
+    ObservableBoardCamera,
+} from '@ue-too/board';
+import type { Point } from '@ue-too/math';
+import { PointCal } from '@ue-too/math';
+import { Container, Graphics, Text } from 'pixi.js';
+
+import type { BogieEditorEngine } from './bogie-editor-engine';
 
 const BOGIE_RADIUS = 0.5;
 const BOGIE_FILL_COLOR = 0x3498db;
@@ -86,18 +91,23 @@ export class BogieEditorRenderSystem {
 
     setup(): void {
         this._unsubscribePosition = this._engine.onBogiePositionChanged(
-            (index: number, position: Point) => this._onPositionChanged(index, position)
+            (index: number, position: Point) =>
+                this._onPositionChanged(index, position)
         );
-        this._unsubscribeAdded = this._engine.onBogieAdded(
-            () => this._syncAll()
+        this._unsubscribeAdded = this._engine.onBogieAdded(() =>
+            this._syncAll()
         );
-        this._unsubscribeRemoved = this._engine.onBogieRemoved(
-            () => this._syncAll()
+        this._unsubscribeRemoved = this._engine.onBogieRemoved(() =>
+            this._syncAll()
         );
-        this._camera.on('zoom', (_event: CameraZoomEventPayload, state: CameraState) => {
-            this._zoomLevel = state.zoomLevel;
-            this._updateScales();
-        }, { signal: this._abortController.signal });
+        this._camera.on(
+            'zoom',
+            (_event: CameraZoomEventPayload, state: CameraState) => {
+                this._zoomLevel = state.zoomLevel;
+                this._updateScales();
+            },
+            { signal: this._abortController.signal }
+        );
         this._syncAll();
     }
 

@@ -44,7 +44,7 @@ export function pixelFontToGrid(text: string): boolean[][] {
 
     if (charGrids.length === 0) return [];
 
-    const totalRows = Math.max(...charGrids.map((g) => g.length));
+    const totalRows = Math.max(...charGrids.map(g => g.length));
 
     const result: boolean[][] = [];
     for (let r = 0; r < totalRows; r++) {

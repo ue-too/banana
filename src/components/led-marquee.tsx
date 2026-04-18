@@ -94,13 +94,11 @@ function textToDotMatrix(
                 for (let py = sy; py < eyEnd; py++) {
                     for (let px = sx; px < exEnd; px++) {
                         const idx = (py * offscreen.width + px) * 4 + 3;
-                        alphaSquareSum +=
-                            imgData.data[idx] * imgData.data[idx];
+                        alphaSquareSum += imgData.data[idx] * imgData.data[idx];
                         count++;
                     }
                 }
-                const rms =
-                    count > 0 ? Math.sqrt(alphaSquareSum / count) : 0;
+                const rms = count > 0 ? Math.sqrt(alphaSquareSum / count) : 0;
                 row.push(rms > 80);
             }
             grid.push(row);
@@ -108,14 +106,11 @@ function textToDotMatrix(
 
         // Trim empty rows
         let firstRow = 0;
-        while (
-            firstRow < grid.length &&
-            grid[firstRow].every((v) => !v)
-        ) {
+        while (firstRow < grid.length && grid[firstRow].every(v => !v)) {
             firstRow++;
         }
         let lastRow = grid.length - 1;
-        while (lastRow > firstRow && grid[lastRow].every((v) => !v)) {
+        while (lastRow > firstRow && grid[lastRow].every(v => !v)) {
             lastRow--;
         }
 
@@ -134,7 +129,7 @@ function textToDotMatrix(
             }
         }
 
-        return trimmed.map((row) => row.slice(firstCol, lastCol + 1));
+        return trimmed.map(row => row.slice(firstCol, lastCol + 1));
     }
 
     // Vector font path: render large, downsample via RMS
@@ -167,10 +162,7 @@ function textToDotMatrix(
 
         for (let c = 0; c < cols; c++) {
             const startX = Math.floor(c * cellW);
-            const endX = Math.min(
-                offscreen.width,
-                Math.floor((c + 1) * cellW)
-            );
+            const endX = Math.min(offscreen.width, Math.floor((c + 1) * cellW));
 
             let alphaSquareSum = 0;
             let count = 0;
@@ -243,11 +235,9 @@ export function LedMarquee({
             const dpr = window.devicePixelRatio || 1;
             const spaceRatio = 0.15;
             const dotDiameter =
-                dotSize ??
-                height / (drawRows + spaceRatio * (drawRows - 1));
+                dotSize ?? height / (drawRows + spaceRatio * (drawRows - 1));
             const space = dotDiameter * spaceRatio;
-            const canvasWidth =
-                drawCols * dotDiameter + (drawCols - 1) * space;
+            const canvasWidth = drawCols * dotDiameter + (drawCols - 1) * space;
             const canvasHeight =
                 drawRows * dotDiameter + (drawRows - 1) * space;
 
@@ -259,12 +249,8 @@ export function LedMarquee({
             function getColors() {
                 const s = getComputedStyle(document.documentElement);
                 return {
-                    lit:
-                        litColor ??
-                        s.getPropertyValue('--foreground').trim(),
-                    unlit:
-                        unlitColor ??
-                        s.getPropertyValue('--border').trim(),
+                    lit: litColor ?? s.getPropertyValue('--foreground').trim(),
+                    unlit: unlitColor ?? s.getPropertyValue('--border').trim(),
                 };
             }
 
@@ -372,7 +358,23 @@ export function LedMarquee({
             cancelAnimationFrame(animId);
             observer?.disconnect();
         };
-    }, [text, rows, visibleCols, visibleRows, font, height, litColor, unlitColor, speed, scroll, usePixelFont, nativePx, dotSize, pulse, scrollDirection]);
+    }, [
+        text,
+        rows,
+        visibleCols,
+        visibleRows,
+        font,
+        height,
+        litColor,
+        unlitColor,
+        speed,
+        scroll,
+        usePixelFont,
+        nativePx,
+        dotSize,
+        pulse,
+        scrollDirection,
+    ]);
 
-    return <canvas ref={canvasRef} className="max-w-full h-auto" />;
+    return <canvas ref={canvasRef} className="h-auto max-w-full" />;
 }

@@ -52,10 +52,7 @@ root.render(
                         path="/terrain-editor"
                         element={<TerrainEditorPage />}
                     />
-                    <Route
-                        path="/icon-handoff"
-                        element={<IconHandoffPage />}
-                    />
+                    <Route path="/icon-handoff" element={<IconHandoffPage />} />
                     <Route path="/404" element={<NotFoundPage />} />
                     <Route path="*" element={<Navigate to="/404" replace />} />
                 </Routes>

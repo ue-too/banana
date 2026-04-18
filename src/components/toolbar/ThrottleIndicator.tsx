@@ -3,7 +3,11 @@ import { useCallback, useRef } from 'react';
 import { cn } from '@/lib/utils';
 import type { ThrottleSteps } from '@/trains/formation';
 
-const NOTCHES: { key: ThrottleSteps; label: string; zone: 'brake' | 'neutral' | 'power' }[] = [
+const NOTCHES: {
+    key: ThrottleSteps;
+    label: string;
+    zone: 'brake' | 'neutral' | 'power';
+}[] = [
     { key: 'p5', label: 'P5', zone: 'power' },
     { key: 'p4', label: 'P4', zone: 'power' },
     { key: 'p3', label: 'P3', zone: 'power' },
@@ -74,8 +78,12 @@ function yToNotchIndex(y: number): number {
     return Math.max(6, Math.min(NOTCHES.length - 1, brakeIdx));
 }
 
-export function ThrottleIndicator({ currentStep, speed, onThrottleChange }: ThrottleIndicatorProps) {
-    const activeIndex = NOTCHES.findIndex((n) => n.key === currentStep);
+export function ThrottleIndicator({
+    currentStep,
+    speed,
+    onThrottleChange,
+}: ThrottleIndicatorProps) {
+    const activeIndex = NOTCHES.findIndex(n => n.key === currentStep);
     const activeZone = NOTCHES[activeIndex]?.zone ?? 'neutral';
     const stripRef = useRef<HTMLDivElement>(null);
     const dragging = useRef(false);
@@ -116,7 +124,7 @@ export function ThrottleIndicator({ currentStep, speed, onThrottleChange }: Thro
     }, []);
 
     return (
-        <div className="flex select-none flex-col items-center gap-2">
+        <div className="flex flex-col items-center gap-2 select-none">
             {/* Speed readout */}
             <div className="flex items-baseline gap-1">
                 <span
@@ -167,7 +175,9 @@ export function ThrottleIndicator({ currentStep, speed, onThrottleChange }: Thro
                             <div
                                 className={cn(
                                     'absolute left-[calc(50%-4px)] h-px',
-                                    isActive ? cn('w-5', colors.tick) : 'w-3 bg-neutral-600'
+                                    isActive
+                                        ? cn('w-5', colors.tick)
+                                        : 'w-3 bg-neutral-600'
                                 )}
                             />
 

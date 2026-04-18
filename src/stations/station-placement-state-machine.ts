@@ -19,10 +19,9 @@ import {
 import type { Point } from '@ue-too/math';
 import { PointCal } from '@ue-too/math';
 
+import { useGaugeStore } from '@/stores/gauge-store';
 import type { TrackGraph } from '@/trains/tracks/track';
 import { ELEVATION } from '@/trains/tracks/types';
-
-import { useGaugeStore } from '@/stores/gauge-store';
 
 import { createIslandStation } from './station-factory';
 import type { StationManager } from './station-manager';

@@ -1,19 +1,44 @@
-import { Container, Graphics, MeshSimple, Text, Texture } from 'pixi.js';
-import { TrackCurveManager } from './trackcurve-manager';
+import {
+    CameraState,
+    CameraZoomEventPayload,
+    ObservableBoardCamera,
+} from '@ue-too/board';
 import { BCurve } from '@ue-too/curve';
 import { Point, PointCal } from '@ue-too/math';
-import { CurveCreationEngine } from '../input-state-machine';
-import { DeletionHighlightState } from '../input-state-machine/curve-engine';
-import { CatenaryHighlightState, CatenaryLayoutEngine, CatenaryPreviewState } from '../input-state-machine/catenary-layout-engine';
-import { DuplicateHighlightState, DuplicateToSideEngine } from '../input-state-machine/duplicate-to-side-engine';
-import { ELEVATION, ELEVATION_MAX, ELEVATION_MIN, ELEVATION_VALUES, ProjectionPositiveResult, TrackSegmentDrawData, TrackSegmentWithCollision, TrackStyle } from './types';
-import { LEVEL_HEIGHT } from './constants';
+import { Container, Graphics, MeshSimple, Text, Texture } from 'pixi.js';
+
 import type { TerrainData } from '@/terrain/terrain-data';
 import { clearShadowCache } from '@/utils';
-import { WorldRenderSystem, findElevationInterval } from '@/world-render-system';
-import { CameraState, CameraZoomEventPayload, ObservableBoardCamera } from '@ue-too/board';
+import {
+    WorldRenderSystem,
+    findElevationInterval,
+} from '@/world-render-system';
+
+import { CurveCreationEngine } from '../input-state-machine';
+import {
+    CatenaryHighlightState,
+    CatenaryLayoutEngine,
+    CatenaryPreviewState,
+} from '../input-state-machine/catenary-layout-engine';
+import { DeletionHighlightState } from '../input-state-machine/curve-engine';
+import {
+    DuplicateHighlightState,
+    DuplicateToSideEngine,
+} from '../input-state-machine/duplicate-to-side-engine';
+import { LEVEL_HEIGHT } from './constants';
 import { ballastHalfWidth } from './geometry-utils';
+import { TrackCurveManager } from './trackcurve-manager';
 import { computeTunnelEntranceGeometry } from './tunnel-geometry';
+import {
+    ELEVATION,
+    ELEVATION_MAX,
+    ELEVATION_MIN,
+    ELEVATION_VALUES,
+    ProjectionPositiveResult,
+    TrackSegmentDrawData,
+    TrackSegmentWithCollision,
+    TrackStyle,
+} from './types';
 
 /** Zoom level above which detailed track draw data is shown; below this only the bezier curve is drawn. */
 const ZOOM_THRESHOLD_DETAILED_TRACK = 5;
@@ -37,7 +62,8 @@ const ELEVATION_RAW_MAX = ELEVATION_MAX * LEVEL_HEIGHT;
 
 /** Map a raw elevation value to a normalised [0, 1] coordinate into the gradient texture. */
 const normalizeElevation = (rawElevation: number): number =>
-    (rawElevation - ELEVATION_RAW_MIN) / (ELEVATION_RAW_MAX - ELEVATION_RAW_MIN);
+    (rawElevation - ELEVATION_RAW_MIN) /
+    (ELEVATION_RAW_MAX - ELEVATION_RAW_MIN);
 
 /** Size of the tiny solid-black texture used for shadow meshes. */
 const SHADOW_TEX_SIZE = 4;
@@ -53,19 +79,24 @@ const railHalfWidth = (drawData: TrackSegmentDrawData): number => {
     return (drawData.gauge / 2) * (texFullWidth / TRACK_TEX_SIZE);
 };
 
-
 /** Renderer (or app) that provides texture generation for the texture-style track and train cars. */
 export type TrackTextureRenderer = {
-    renderer: { textureGenerator: { generateTexture: (options: { target: Container }) => Texture } };
+    renderer: {
+        textureGenerator: {
+            generateTexture: (options: { target: Container }) => Texture;
+        };
+    };
 };
 
 export class TrackRenderSystem {
-
     private _worldRenderSystem: WorldRenderSystem;
     private _simplifiedTrack: Container;
     private _topLevelContainer: Container;
     private _trackCurveManager: TrackCurveManager;
-    private _simplifiedTrackGraphicsMap: Map<number, { graphics: Graphics; bandKey: string }> = new Map();
+    private _simplifiedTrackGraphicsMap: Map<
+        number,
+        { graphics: Graphics; bandKey: string }
+    > = new Map();
     /** Rail mesh containers in the offset layer (between ballast and bogies), keyed by draw data key. */
     private _offsetRailMap: Map<string, Container> = new Map();
 
@@ -107,7 +138,13 @@ export class TrackRenderSystem {
 
     private _showPreviewCurveArcs: boolean = false;
     private _latestPreviewDrawDataList:
-        | { index: number; drawData: TrackSegmentDrawData & { positiveOffsets: Point[]; negativeOffsets: Point[] } }[]
+        | {
+              index: number;
+              drawData: TrackSegmentDrawData & {
+                  positiveOffsets: Point[];
+                  negativeOffsets: Point[];
+              };
+          }[]
         | undefined = undefined;
 
     private _sunAngle: number = 135;
@@ -143,7 +180,10 @@ export class TrackRenderSystem {
     private _cuttingCoverMap: Map<string, Container> = new Map();
 
     /** Dashed underground-track indicators keyed by curve number. */
-    private _undergroundIndicatorMap: Map<number, { graphics: Graphics; bandKey: string }> = new Map();
+    private _undergroundIndicatorMap: Map<
+        number,
+        { graphics: Graphics; bandKey: string }
+    > = new Map();
 
     /** Tunnel enclosure meshes (walls + ceiling) for fully underground segments, keyed by draw data key. */
     private _tunnelWallMap: Map<string, MeshSimple> = new Map();
@@ -193,7 +233,10 @@ export class TrackRenderSystem {
     private _shadowRecords: Map<string, ShadowRecord> = new Map();
 
     /** For each drawable key, the ballast node contains elevationMesh and solidBallastMesh (toggle visibility). */
-    private _ballastStyleNodes: Map<string, { elevationMesh: Container; solidBallastMesh: Container }> = new Map();
+    private _ballastStyleNodes: Map<
+        string,
+        { elevationMesh: Container; solidBallastMesh: Container }
+    > = new Map();
 
     private _abortController: AbortController = new AbortController();
 
@@ -208,7 +251,7 @@ export class TrackRenderSystem {
         textureRenderer?: TrackTextureRenderer | null,
         terrainData?: TerrainData | null,
         duplicateToSideEngine?: DuplicateToSideEngine,
-        catenaryLayoutEngine?: CatenaryLayoutEngine,
+        catenaryLayoutEngine?: CatenaryLayoutEngine
     ) {
         this._worldRenderSystem = worldRenderSystem;
         this._terrainData = terrainData ?? null;
@@ -220,20 +263,45 @@ export class TrackRenderSystem {
 
         this._trackCurveManager = trackCurveManager;
 
-        this._trackCurveManager.onDelete(this._onDelete.bind(this), { signal: this._abortController.signal });
-        this._trackCurveManager.onAdd(this._onNewTrackData.bind(this), { signal: this._abortController.signal });
-        curveCreationEngine.onPreviewDrawDataChange(this._onPreviewDrawDataChange.bind(this), { signal: this._abortController.signal });
-        curveCreationEngine.onDeletionHighlightChange(this._onDeletionHighlightChange.bind(this), { signal: this._abortController.signal });
+        this._trackCurveManager.onDelete(this._onDelete.bind(this), {
+            signal: this._abortController.signal,
+        });
+        this._trackCurveManager.onAdd(this._onNewTrackData.bind(this), {
+            signal: this._abortController.signal,
+        });
+        curveCreationEngine.onPreviewDrawDataChange(
+            this._onPreviewDrawDataChange.bind(this),
+            { signal: this._abortController.signal }
+        );
+        curveCreationEngine.onDeletionHighlightChange(
+            this._onDeletionHighlightChange.bind(this),
+            { signal: this._abortController.signal }
+        );
         if (duplicateToSideEngine) {
-            duplicateToSideEngine.onPreviewDrawDataChange(this._onPreviewDrawDataChange.bind(this), { signal: this._abortController.signal });
-            duplicateToSideEngine.onHighlightChange(this._onDuplicateHighlightChange.bind(this), { signal: this._abortController.signal });
+            duplicateToSideEngine.onPreviewDrawDataChange(
+                this._onPreviewDrawDataChange.bind(this),
+                { signal: this._abortController.signal }
+            );
+            duplicateToSideEngine.onHighlightChange(
+                this._onDuplicateHighlightChange.bind(this),
+                { signal: this._abortController.signal }
+            );
         }
         if (catenaryLayoutEngine) {
-            catenaryLayoutEngine.onHighlightChange(this._onCatenaryHighlightChange.bind(this), { signal: this._abortController.signal });
-            catenaryLayoutEngine.onPreviewChange(this._onCatenaryPreviewChange.bind(this), { signal: this._abortController.signal });
-            catenaryLayoutEngine.onCommit((payload) => {
-                this.applyCatenary(payload.segmentNumber, payload.side);
-            }, { signal: this._abortController.signal });
+            catenaryLayoutEngine.onHighlightChange(
+                this._onCatenaryHighlightChange.bind(this),
+                { signal: this._abortController.signal }
+            );
+            catenaryLayoutEngine.onPreviewChange(
+                this._onCatenaryPreviewChange.bind(this),
+                { signal: this._abortController.signal }
+            );
+            catenaryLayoutEngine.onCommit(
+                payload => {
+                    this.applyCatenary(payload.segmentNumber, payload.side);
+                },
+                { signal: this._abortController.signal }
+            );
         }
 
         this._topLevelContainer.addChild(this._duplicateHighlightGraphics);
@@ -245,26 +313,46 @@ export class TrackRenderSystem {
         this._previewEndProjection.visible = false;
 
         this._previewStartProjection.arc(0, 0, 1, 0, 2 * Math.PI);
-        this._previewStartProjection.pivot.set(this._previewStartProjection.width / 2, this._previewStartProjection.height / 2);
-        this._previewStartProjection.fill({ color: 0xFFFFFF });
+        this._previewStartProjection.pivot.set(
+            this._previewStartProjection.width / 2,
+            this._previewStartProjection.height / 2
+        );
+        this._previewStartProjection.fill({ color: 0xffffff });
         this._topLevelContainer.addChild(this._previewStartProjection);
 
-        curveCreationEngine.onPreviewStartProjectionChange(this._onPreviewStartChange.bind(this), { signal: this._abortController.signal });
+        curveCreationEngine.onPreviewStartProjectionChange(
+            this._onPreviewStartChange.bind(this),
+            { signal: this._abortController.signal }
+        );
 
         this._previewEndProjection.arc(0, 0, 1, 0, 2 * Math.PI);
-        this._previewEndProjection.pivot.set(this._previewEndProjection.width / 2, this._previewEndProjection.height / 2);
-        this._previewEndProjection.fill({ color: 0xFFFFFF });
+        this._previewEndProjection.pivot.set(
+            this._previewEndProjection.width / 2,
+            this._previewEndProjection.height / 2
+        );
+        this._previewEndProjection.fill({ color: 0xffffff });
         this._topLevelContainer.addChild(this._previewEndProjection);
 
-        curveCreationEngine.onPreviewEndProjectionChange(this._onPreviewEndChange.bind(this), { signal: this._abortController.signal });
+        curveCreationEngine.onPreviewEndProjectionChange(
+            this._onPreviewEndChange.bind(this),
+            { signal: this._abortController.signal }
+        );
 
-        this._trackCurveManager.onAddTrackSegment(this._onAddTrackSegment.bind(this), { signal: this._abortController.signal });
-        this._trackCurveManager.onRemoveTrackSegment(this._onRemoveTrackSegment.bind(this), { signal: this._abortController.signal });
+        this._trackCurveManager.onAddTrackSegment(
+            this._onAddTrackSegment.bind(this),
+            { signal: this._abortController.signal }
+        );
+        this._trackCurveManager.onRemoveTrackSegment(
+            this._onRemoveTrackSegment.bind(this),
+            { signal: this._abortController.signal }
+        );
 
         this._camera = camera;
         this._textureRenderer = textureRenderer ?? null;
 
-        this._camera.on('zoom', this._onZoom.bind(this), { signal: this._abortController.signal });
+        this._camera.on('zoom', this._onZoom.bind(this), {
+            signal: this._abortController.signal,
+        });
 
         this._applyZoomLod(this._camera.zoomLevel);
     }
@@ -282,7 +370,8 @@ export class TrackRenderSystem {
 
     /** Apply elevation gradient toggle to all ballast nodes. Rails and ties stay visible. */
     private _applyElevationGradientVisibility(): void {
-        for (const [, { elevationMesh, solidBallastMesh }] of this._ballastStyleNodes) {
+        for (const [, { elevationMesh, solidBallastMesh }] of this
+            ._ballastStyleNodes) {
             elevationMesh.visible = this._showElevationGradient;
             solidBallastMesh.visible = !this._showElevationGradient;
         }
@@ -312,7 +401,8 @@ export class TrackRenderSystem {
      */
     applyCatenary(segmentNumber: number, side: 1 | -1): void {
         // Stamp the canonical segment so serialization picks it up.
-        const segment = this._trackCurveManager.getTrackSegmentWithJoints(segmentNumber);
+        const segment =
+            this._trackCurveManager.getTrackSegmentWithJoints(segmentNumber);
         if (segment) {
             segment.electrified = true;
             segment.catenarySide = side;
@@ -320,28 +410,40 @@ export class TrackRenderSystem {
 
         const drawDataList = this._trackCurveManager.persistedDrawData;
         for (const drawData of drawDataList) {
-            if (drawData.originalTrackSegment.trackSegmentNumber === segmentNumber) {
+            if (
+                drawData.originalTrackSegment.trackSegmentNumber ===
+                segmentNumber
+            ) {
                 drawData.electrified = true;
                 drawData.catenarySide = side;
 
                 const key = JSON.stringify({
-                    trackSegmentNumber: drawData.originalTrackSegment.trackSegmentNumber,
+                    trackSegmentNumber:
+                        drawData.originalTrackSegment.trackSegmentNumber,
                     tValInterval: drawData.originalTrackSegment.tValInterval,
                 });
 
                 // Remove existing catenary graphics if present.
                 const existing = this._catenaryMap.get(key);
                 if (existing !== undefined) {
-                    const removed = this._worldRenderSystem.removeFromBand(`__catenary__${key}`);
+                    const removed = this._worldRenderSystem.removeFromBand(
+                        `__catenary__${key}`
+                    );
                     removed?.destroy({ children: true });
                     this._catenaryMap.delete(key);
                 }
 
                 // Rebuild catenary graphics on the new side.
-                const catenaryContainer = this._buildCatenaryForDrawData(drawData);
+                const catenaryContainer =
+                    this._buildCatenaryForDrawData(drawData);
                 const bandIndex = this._drawDataBandMap.get(key);
                 if (bandIndex !== undefined) {
-                    this._worldRenderSystem.addToBand(`__catenary__${key}`, catenaryContainer, bandIndex, 'catenary');
+                    this._worldRenderSystem.addToBand(
+                        `__catenary__${key}`,
+                        catenaryContainer,
+                        bandIndex,
+                        'catenary'
+                    );
                     this._catenaryMap.set(key, catenaryContainer);
                 }
             }
@@ -353,7 +455,8 @@ export class TrackRenderSystem {
      * Clears electrified/catenarySide from all draw data entries belonging to that segment.
      */
     removeCatenary(segmentNumber: number): void {
-        const segment = this._trackCurveManager.getTrackSegmentWithJoints(segmentNumber);
+        const segment =
+            this._trackCurveManager.getTrackSegmentWithJoints(segmentNumber);
         if (segment) {
             segment.electrified = false;
             segment.catenarySide = undefined;
@@ -361,18 +464,24 @@ export class TrackRenderSystem {
 
         const drawDataList = this._trackCurveManager.persistedDrawData;
         for (const drawData of drawDataList) {
-            if (drawData.originalTrackSegment.trackSegmentNumber === segmentNumber) {
+            if (
+                drawData.originalTrackSegment.trackSegmentNumber ===
+                segmentNumber
+            ) {
                 drawData.electrified = false;
                 drawData.catenarySide = undefined;
 
                 const key = JSON.stringify({
-                    trackSegmentNumber: drawData.originalTrackSegment.trackSegmentNumber,
+                    trackSegmentNumber:
+                        drawData.originalTrackSegment.trackSegmentNumber,
                     tValInterval: drawData.originalTrackSegment.tValInterval,
                 });
 
                 const existing = this._catenaryMap.get(key);
                 if (existing !== undefined) {
-                    const removed = this._worldRenderSystem.removeFromBand(`__catenary__${key}`);
+                    const removed = this._worldRenderSystem.removeFromBand(
+                        `__catenary__${key}`
+                    );
                     removed?.destroy({ children: true });
                     this._catenaryMap.delete(key);
                 }
@@ -501,7 +610,7 @@ export class TrackRenderSystem {
             if (record.constantElevation) {
                 record.mesh.position.set(
                     cosA * record.shadowLength,
-                    sinA * record.shadowLength,
+                    sinA * record.shadowLength
                 );
             } else if (record.baseVerts && record.elevationFactors) {
                 const verts = record.mesh.vertices as Float32Array;
@@ -566,7 +675,9 @@ export class TrackRenderSystem {
         });
         this._previewKeys = [];
         this._previewRailContainers.forEach((c, idx) => {
-            const removed = this._worldRenderSystem.removeFromBand(`__preview_rail__${idx}`);
+            const removed = this._worldRenderSystem.removeFromBand(
+                `__preview_rail__${idx}`
+            );
             removed?.destroy({ children: true });
         });
         this._previewRailContainers = [];
@@ -601,7 +712,9 @@ export class TrackRenderSystem {
             this._worldRenderSystem.removeShadow(key);
             this._worldRenderSystem.removeBed(key);
             // Remove associated rail
-            const railRemoved = this._worldRenderSystem.removeFromBand(`__rail__${key}`);
+            const railRemoved = this._worldRenderSystem.removeFromBand(
+                `__rail__${key}`
+            );
             railRemoved?.destroy({ children: true });
         });
         this._drawableKeys.clear();
@@ -613,43 +726,57 @@ export class TrackRenderSystem {
         this._previewEndProjection.destroy();
 
         this._catenaryMap.forEach((catenaryContainer, key) => {
-            const removed = this._worldRenderSystem.removeFromBand(`__catenary__${key}`);
+            const removed = this._worldRenderSystem.removeFromBand(
+                `__catenary__${key}`
+            );
             removed?.destroy({ children: true });
         });
         this._catenaryMap.clear();
 
         this._cuttingMap.forEach((cuttingGraphics, key) => {
-            const removed = this._worldRenderSystem.removeFromBand(`__cutting__${key}`);
+            const removed = this._worldRenderSystem.removeFromBand(
+                `__cutting__${key}`
+            );
             removed?.destroy({ children: true });
         });
         this._cuttingMap.clear();
 
         this._cuttingCoverMap.forEach((coverGraphics, key) => {
-            const removed = this._worldRenderSystem.removeFromBand(`__cutting_cover__${key}`);
+            const removed = this._worldRenderSystem.removeFromBand(
+                `__cutting_cover__${key}`
+            );
             removed?.destroy({ children: true });
         });
         this._cuttingCoverMap.clear();
 
         this._tunnelWallMap.forEach((_g, key) => {
-            const removed = this._worldRenderSystem.removeFromBand(`__tunnel_wall__${key}`);
+            const removed = this._worldRenderSystem.removeFromBand(
+                `__tunnel_wall__${key}`
+            );
             removed?.destroy({ children: true });
         });
         this._tunnelWallMap.clear();
 
         this._tunnelCeilingMap.forEach((_g, key) => {
-            const removed = this._worldRenderSystem.removeFromBand(`__tunnel_ceiling__${key}`);
+            const removed = this._worldRenderSystem.removeFromBand(
+                `__tunnel_ceiling__${key}`
+            );
             removed?.destroy({ children: true });
         });
         this._tunnelCeilingMap.clear();
 
-        this._simplifiedTrackGraphicsMap.forEach((entry) => {
-            const removed = this._worldRenderSystem.removeFromBand(entry.bandKey);
+        this._simplifiedTrackGraphicsMap.forEach(entry => {
+            const removed = this._worldRenderSystem.removeFromBand(
+                entry.bandKey
+            );
             removed?.destroy({ children: true });
         });
         this._simplifiedTrackGraphicsMap.clear();
 
-        this._undergroundIndicatorMap.forEach((entry) => {
-            const removed = this._worldRenderSystem.removeFromBand(entry.bandKey);
+        this._undergroundIndicatorMap.forEach(entry => {
+            const removed = this._worldRenderSystem.removeFromBand(
+                entry.bandKey
+            );
             removed?.destroy({ children: true });
         });
         this._undergroundIndicatorMap.clear();
@@ -697,7 +824,9 @@ export class TrackRenderSystem {
      * Poles are placed at regular intervals along the curve. Each pole is a
      * vertical mast with an outrigger arm and a contact wire line.
      */
-    private _buildCatenaryForDrawData(drawData: TrackSegmentDrawData): Graphics {
+    private _buildCatenaryForDrawData(
+        drawData: TrackSegmentDrawData
+    ): Graphics {
         const g = new Graphics();
         const curve = drawData.curve;
         const curveLength = curve.fullLength;
@@ -747,7 +876,10 @@ export class TrackRenderSystem {
         g.moveTo(controlPoints[0].x, controlPoints[0].y);
         for (let i = 1; i <= wireSteps; i++) {
             const t = i / wireSteps;
-            const p = i === wireSteps ? controlPoints[controlPoints.length - 1] : curve.getPointbyPercentage(t);
+            const p =
+                i === wireSteps
+                    ? controlPoints[controlPoints.length - 1]
+                    : curve.getPointbyPercentage(t);
             g.lineTo(p.x, p.y);
         }
         g.stroke({ color: 0x505050, width: 0.04 });
@@ -763,7 +895,8 @@ export class TrackRenderSystem {
         return computeTunnelEntranceGeometry(
             drawData,
             this._terrainData ?? null,
-            (rawElevation) => this._worldRenderSystem.getElevationBandIndex(rawElevation),
+            rawElevation =>
+                this._worldRenderSystem.getElevationBandIndex(rawElevation)
         );
     }
 
@@ -773,18 +906,36 @@ export class TrackRenderSystem {
      *
      * Placed in the GROUND band's drawable sublayer.
      */
-    private _buildCuttingForDrawData(drawData: TrackSegmentDrawData): { mesh: Container; surfaceBandIndex: number } | null {
+    private _buildCuttingForDrawData(
+        drawData: TrackSegmentDrawData
+    ): { mesh: Container; surfaceBandIndex: number } | null {
         const geo = this._computeTunnelEntranceGeometry(drawData);
         if (geo === null) return null;
         const texture = this._getOrCreateCuttingWallTexture();
         if (texture === null) return null;
 
-        const { leftInner, leftOuter, rightInner, rightOuter, surfaceBandIndex } = geo;
+        const {
+            leftInner,
+            leftOuter,
+            rightInner,
+            rightOuter,
+            surfaceBandIndex,
+        } = geo;
         const container = new Container();
 
-        const leftWall = TrackRenderSystem._buildStripMesh(leftInner, leftOuter, texture, 0.9);
+        const leftWall = TrackRenderSystem._buildStripMesh(
+            leftInner,
+            leftOuter,
+            texture,
+            0.9
+        );
         if (leftWall) container.addChild(leftWall);
-        const rightWall = TrackRenderSystem._buildStripMesh(rightInner, rightOuter, texture, 0.9);
+        const rightWall = TrackRenderSystem._buildStripMesh(
+            rightInner,
+            rightOuter,
+            texture,
+            0.9
+        );
         if (rightWall) container.addChild(rightWall);
 
         return { mesh: container, surfaceBandIndex };
@@ -797,13 +948,21 @@ export class TrackRenderSystem {
      *
      * Placed in the GROUND band's onTrack sublayer so it renders above rails.
      */
-    private _buildCuttingCoverForDrawData(drawData: TrackSegmentDrawData): { mesh: Container; surfaceBandIndex: number } | null {
+    private _buildCuttingCoverForDrawData(
+        drawData: TrackSegmentDrawData
+    ): { mesh: Container; surfaceBandIndex: number } | null {
         const geo = this._computeTunnelEntranceGeometry(drawData);
         if (geo === null) return null;
         const texture = this._getOrCreateCuttingCoverTexture();
         if (texture === null) return null;
 
-        const { leftOuter, rightOuter, coverEnd, coverSteps, surfaceBandIndex } = geo;
+        const {
+            leftOuter,
+            rightOuter,
+            coverEnd,
+            coverSteps,
+            surfaceBandIndex,
+        } = geo;
         const container = new Container();
         const lastIdx = leftOuter.length - 1;
 
@@ -812,7 +971,12 @@ export class TrackRenderSystem {
             const hi = Math.max(fromIdx, toIdx);
             const left = leftOuter.slice(lo, hi + 1);
             const right = rightOuter.slice(lo, hi + 1);
-            const mesh = TrackRenderSystem._buildStripMesh(left, right, texture, 0.95);
+            const mesh = TrackRenderSystem._buildStripMesh(
+                left,
+                right,
+                texture,
+                0.95
+            );
             if (mesh) container.addChild(mesh);
         };
 
@@ -829,24 +993,34 @@ export class TrackRenderSystem {
      * Determine whether a draw-data segment is fully underground (both ends
      * below terrain). Returns the band index to place tunnel visuals, or null.
      */
-    private _isFullyUnderground(drawData: TrackSegmentDrawData): { bandIndex: number } | null {
+    private _isFullyUnderground(
+        drawData: TrackSegmentDrawData
+    ): { bandIndex: number } | null {
         const { curve, elevation } = drawData;
         const startPoint = curve.getPointbyPercentage(0);
         const endPoint = curve.getPointbyPercentage(1);
-        const startTerrainH = this._terrainData?.getHeight(startPoint.x, startPoint.y) ?? 0;
-        const endTerrainH = this._terrainData?.getHeight(endPoint.x, endPoint.y) ?? 0;
+        const startTerrainH =
+            this._terrainData?.getHeight(startPoint.x, startPoint.y) ?? 0;
+        const endTerrainH =
+            this._terrainData?.getHeight(endPoint.x, endPoint.y) ?? 0;
 
-        if (elevation.from >= startTerrainH || elevation.to >= endTerrainH) return null;
+        if (elevation.from >= startTerrainH || elevation.to >= endTerrainH)
+            return null;
 
         const rawElevation = Math.max(elevation.from, elevation.to);
-        return { bandIndex: this._worldRenderSystem.getElevationBandIndex(rawElevation) };
+        return {
+            bandIndex:
+                this._worldRenderSystem.getElevationBandIndex(rawElevation),
+        };
     }
 
     /**
      * Build tunnel wall meshes (two parallel concrete strips) for a fully
      * underground track segment. Placed in the track's own elevation band.
      */
-    private _buildTunnelWallsForDrawData(drawData: TrackSegmentDrawData): MeshSimple | null {
+    private _buildTunnelWallsForDrawData(
+        drawData: TrackSegmentDrawData
+    ): MeshSimple | null {
         const ugInfo = this._isFullyUnderground(drawData);
         if (ugInfo === null) return null;
         const texture = this._getOrCreateTunnelWallTexture();
@@ -854,7 +1028,9 @@ export class TrackRenderSystem {
 
         const { curve } = drawData;
         const ballastHw = ballastHalfWidth(drawData);
-        const hw = drawData.bed ? Math.max(ballastHw, (drawData.bedWidth ?? 3) / 2) : ballastHw;
+        const hw = drawData.bed
+            ? Math.max(ballastHw, (drawData.bedWidth ?? 3) / 2)
+            : ballastHw;
         const wallThickness = 0.4;
         const innerOffset = hw + 0.1;
         const outerOffset = innerOffset + wallThickness;
@@ -869,21 +1045,45 @@ export class TrackRenderSystem {
         for (let i = 0; i <= steps; i++) {
             const t = i / steps;
             const point = curve.getPointbyPercentage(t);
-            const tangent = PointCal.unitVector(curve.derivativeByPercentage(t));
+            const tangent = PointCal.unitVector(
+                curve.derivativeByPercentage(t)
+            );
             const nx = -tangent.y;
             const ny = tangent.x;
 
-            leftInner.push({ x: point.x - nx * innerOffset, y: point.y - ny * innerOffset });
-            leftOuter.push({ x: point.x - nx * outerOffset, y: point.y - ny * outerOffset });
-            rightInner.push({ x: point.x + nx * innerOffset, y: point.y + ny * innerOffset });
-            rightOuter.push({ x: point.x + nx * outerOffset, y: point.y + ny * outerOffset });
+            leftInner.push({
+                x: point.x - nx * innerOffset,
+                y: point.y - ny * innerOffset,
+            });
+            leftOuter.push({
+                x: point.x - nx * outerOffset,
+                y: point.y - ny * outerOffset,
+            });
+            rightInner.push({
+                x: point.x + nx * innerOffset,
+                y: point.y + ny * innerOffset,
+            });
+            rightOuter.push({
+                x: point.x + nx * outerOffset,
+                y: point.y + ny * outerOffset,
+            });
         }
 
         // Combine both walls into a single mesh by concatenating vertex data.
-        const leftWall = TrackRenderSystem._buildStripMesh(leftInner, leftOuter, texture, 0.7);
+        const leftWall = TrackRenderSystem._buildStripMesh(
+            leftInner,
+            leftOuter,
+            texture,
+            0.7
+        );
         if (leftWall === null) return null;
         // For the right wall, build a second mesh parented to the left one.
-        const rightWall = TrackRenderSystem._buildStripMesh(rightInner, rightOuter, texture, 0.7);
+        const rightWall = TrackRenderSystem._buildStripMesh(
+            rightInner,
+            rightOuter,
+            texture,
+            0.7
+        );
         if (rightWall) leftWall.addChild(rightWall);
 
         return leftWall;
@@ -894,7 +1094,9 @@ export class TrackRenderSystem {
      * Spans the full length of the segment between outer wall edges.
      * Placed in the catenary sublayer so it renders above the track.
      */
-    private _buildTunnelCeilingForDrawData(drawData: TrackSegmentDrawData): MeshSimple | null {
+    private _buildTunnelCeilingForDrawData(
+        drawData: TrackSegmentDrawData
+    ): MeshSimple | null {
         const ugInfo = this._isFullyUnderground(drawData);
         if (ugInfo === null) return null;
         const texture = this._getOrCreateTunnelCeilingTexture();
@@ -902,7 +1104,9 @@ export class TrackRenderSystem {
 
         const { curve } = drawData;
         const ballastHw = ballastHalfWidth(drawData);
-        const hw = drawData.bed ? Math.max(ballastHw, (drawData.bedWidth ?? 3) / 2) : ballastHw;
+        const hw = drawData.bed
+            ? Math.max(ballastHw, (drawData.bedWidth ?? 3) / 2)
+            : ballastHw;
         const outerOffset = hw + 0.1 + 0.4;
 
         const steps = Math.max(4, Math.ceil(curve.fullLength / 2));
@@ -913,15 +1117,28 @@ export class TrackRenderSystem {
         for (let i = 0; i <= steps; i++) {
             const t = i / steps;
             const point = curve.getPointbyPercentage(t);
-            const tangent = PointCal.unitVector(curve.derivativeByPercentage(t));
+            const tangent = PointCal.unitVector(
+                curve.derivativeByPercentage(t)
+            );
             const nx = -tangent.y;
             const ny = tangent.x;
 
-            leftOuter.push({ x: point.x - nx * outerOffset, y: point.y - ny * outerOffset });
-            rightOuter.push({ x: point.x + nx * outerOffset, y: point.y + ny * outerOffset });
+            leftOuter.push({
+                x: point.x - nx * outerOffset,
+                y: point.y - ny * outerOffset,
+            });
+            rightOuter.push({
+                x: point.x + nx * outerOffset,
+                y: point.y + ny * outerOffset,
+            });
         }
 
-        return TrackRenderSystem._buildStripMesh(leftOuter, rightOuter, texture, 0.6);
+        return TrackRenderSystem._buildStripMesh(
+            leftOuter,
+            rightOuter,
+            texture,
+            0.6
+        );
     }
 
     private _onDelete(key: string) {
@@ -940,42 +1157,54 @@ export class TrackRenderSystem {
 
         const railContainer = this._offsetRailMap.get(key);
         if (railContainer !== undefined) {
-            const removed = this._worldRenderSystem.removeFromBand(`__rail__${key}`);
+            const removed = this._worldRenderSystem.removeFromBand(
+                `__rail__${key}`
+            );
             removed?.destroy({ children: true });
             this._offsetRailMap.delete(key);
         }
 
         const catenaryContainer = this._catenaryMap.get(key);
         if (catenaryContainer !== undefined) {
-            const removed = this._worldRenderSystem.removeFromBand(`__catenary__${key}`);
+            const removed = this._worldRenderSystem.removeFromBand(
+                `__catenary__${key}`
+            );
             removed?.destroy({ children: true });
             this._catenaryMap.delete(key);
         }
 
         const cuttingGraphics = this._cuttingMap.get(key);
         if (cuttingGraphics !== undefined) {
-            const removed = this._worldRenderSystem.removeFromBand(`__cutting__${key}`);
+            const removed = this._worldRenderSystem.removeFromBand(
+                `__cutting__${key}`
+            );
             removed?.destroy({ children: true });
             this._cuttingMap.delete(key);
         }
 
         const coverGraphics = this._cuttingCoverMap.get(key);
         if (coverGraphics !== undefined) {
-            const removed = this._worldRenderSystem.removeFromBand(`__cutting_cover__${key}`);
+            const removed = this._worldRenderSystem.removeFromBand(
+                `__cutting_cover__${key}`
+            );
             removed?.destroy({ children: true });
             this._cuttingCoverMap.delete(key);
         }
 
         const tunnelWall = this._tunnelWallMap.get(key);
         if (tunnelWall !== undefined) {
-            const removed = this._worldRenderSystem.removeFromBand(`__tunnel_wall__${key}`);
+            const removed = this._worldRenderSystem.removeFromBand(
+                `__tunnel_wall__${key}`
+            );
             removed?.destroy({ children: true });
             this._tunnelWallMap.delete(key);
         }
 
         const tunnelCeiling = this._tunnelCeilingMap.get(key);
         if (tunnelCeiling !== undefined) {
-            const removed = this._worldRenderSystem.removeFromBand(`__tunnel_ceiling__${key}`);
+            const removed = this._worldRenderSystem.removeFromBand(
+                `__tunnel_ceiling__${key}`
+            );
             removed?.destroy({ children: true });
             this._tunnelCeilingMap.delete(key);
         }
@@ -985,7 +1214,8 @@ export class TrackRenderSystem {
 
     /** Create or return the shared solid ballast texture with procedural rock detail. */
     private _getOrCreateSolidBallastTexture(): Texture | null {
-        if (this._solidBallastTexture !== null) return this._solidBallastTexture;
+        if (this._solidBallastTexture !== null)
+            return this._solidBallastTexture;
         const renderer = this._textureRenderer?.renderer?.textureGenerator;
         if (renderer === undefined) return null;
 
@@ -1016,7 +1246,8 @@ export class TrackRenderSystem {
             g.fill(color);
             // Highlight on top-left to give depth
             if (rng() > 0.3) {
-                const hc = highlightColors[Math.floor(rng() * highlightColors.length)];
+                const hc =
+                    highlightColors[Math.floor(rng() * highlightColors.length)];
                 g.ellipse(rx - rw * 0.2, ry - rh * 0.25, rw * 0.5, rh * 0.4);
                 g.fill({ color: hc, alpha: 0.5 });
             }
@@ -1032,11 +1263,14 @@ export class TrackRenderSystem {
     /**
      * Build a mesh that draws solid-color ballast along the curve (used when elevation gradient is off).
      */
-    private _buildSolidBallastMeshForDrawData(drawData: TrackSegmentDrawData): MeshSimple | null {
+    private _buildSolidBallastMeshForDrawData(
+        drawData: TrackSegmentDrawData
+    ): MeshSimple | null {
         const style = drawData.trackStyle ?? 'ballasted';
-        const texture = style === 'slab'
-            ? this._getOrCreateSlabBallastTexture()
-            : this._getOrCreateSolidBallastTexture();
+        const texture =
+            style === 'slab'
+                ? this._getOrCreateSlabBallastTexture()
+                : this._getOrCreateSolidBallastTexture();
         if (texture === null) return null;
 
         const { curve } = drawData;
@@ -1052,7 +1286,12 @@ export class TrackRenderSystem {
 
         for (let i = 0; i <= steps; i++) {
             const t = i / steps;
-            const point = i === 0 ? startPoint : i === steps ? endPoint : curve.getPointbyPercentage(t);
+            const point =
+                i === 0
+                    ? startPoint
+                    : i === steps
+                      ? endPoint
+                      : curve.getPointbyPercentage(t);
             const derivative = curve.derivativeByPercentage(t);
             const tangent = PointCal.unitVector(derivative);
             const nx = -tangent.y;
@@ -1060,7 +1299,8 @@ export class TrackRenderSystem {
 
             if (i > 0) {
                 const prevT = (i - 1) / steps;
-                const prev = i === 1 ? startPoint : curve.getPointbyPercentage(prevT);
+                const prev =
+                    i === 1 ? startPoint : curve.getPointbyPercentage(prevT);
                 const dx = point.x - prev.x;
                 const dy = point.y - prev.y;
                 arcLen += Math.sqrt(dx * dx + dy * dy);
@@ -1156,7 +1396,10 @@ export class TrackRenderSystem {
             const sw = 1 + rng() * 3;
             const sh = 1 + rng() * 2;
             g.ellipse(sx, sy, sw, sh);
-            g.fill({ color: speckleColors[Math.floor(rng() * speckleColors.length)], alpha: 0.4 });
+            g.fill({
+                color: speckleColors[Math.floor(rng() * speckleColors.length)],
+                alpha: 0.4,
+            });
         }
         // A few hairline cracks
         for (let c = 0; c < 3; c++) {
@@ -1231,11 +1474,14 @@ export class TrackRenderSystem {
      * The texture has rails at the edges (0–64px) and ties extending past (tieOverhang on each side).
      * We use a mesh wider than the gauge so that rails span the gauge and ties extend beyond it.
      */
-    private _buildRailMeshForDrawData(drawData: TrackSegmentDrawData): MeshSimple | null {
+    private _buildRailMeshForDrawData(
+        drawData: TrackSegmentDrawData
+    ): MeshSimple | null {
         const style = drawData.trackStyle ?? 'ballasted';
-        const texture = style === 'slab'
-            ? this._getOrCreateSlabRailTexture()
-            : this._getOrCreateRailTexture();
+        const texture =
+            style === 'slab'
+                ? this._getOrCreateSlabRailTexture()
+                : this._getOrCreateRailTexture();
         if (texture === null) return null;
 
         const { curve } = drawData;
@@ -1251,7 +1497,12 @@ export class TrackRenderSystem {
 
         for (let i = 0; i <= steps; i++) {
             const t = i / steps;
-            const point = i === 0 ? startPoint : i === steps ? endPoint : curve.getPointbyPercentage(t);
+            const point =
+                i === 0
+                    ? startPoint
+                    : i === steps
+                      ? endPoint
+                      : curve.getPointbyPercentage(t);
             const derivative = curve.derivativeByPercentage(t);
             const tangent = PointCal.unitVector(derivative);
             const nx = -tangent.y;
@@ -1259,7 +1510,8 @@ export class TrackRenderSystem {
 
             if (i > 0) {
                 const prevT = (i - 1) / steps;
-                const prev = i === 1 ? startPoint : curve.getPointbyPercentage(prevT);
+                const prev =
+                    i === 1 ? startPoint : curve.getPointbyPercentage(prevT);
                 const dx = point.x - prev.x;
                 const dy = point.y - prev.y;
                 arcLen += Math.sqrt(dx * dx + dy * dy);
@@ -1288,21 +1540,26 @@ export class TrackRenderSystem {
 
     /** Create or return the shared 1D elevation gradient texture. */
     private _getOrCreateElevationGradientTexture(): Texture | null {
-        if (this._elevationGradientTexture !== null) return this._elevationGradientTexture;
+        if (this._elevationGradientTexture !== null)
+            return this._elevationGradientTexture;
         const renderer = this._textureRenderer?.renderer?.textureGenerator;
         if (renderer === undefined) return null;
 
         const g = new Graphics();
         for (let y = 0; y < ELEVATION_GRADIENT_HEIGHT; y++) {
             const normalizedV = y / (ELEVATION_GRADIENT_HEIGHT - 1);
-            const rawElevation = ELEVATION_RAW_MIN + normalizedV * (ELEVATION_RAW_MAX - ELEVATION_RAW_MIN);
+            const rawElevation =
+                ELEVATION_RAW_MIN +
+                normalizedV * (ELEVATION_RAW_MAX - ELEVATION_RAW_MIN);
             const rgb = findElevationColorStop(rawElevation);
             const color = rgbToHex(rgb);
             g.rect(0, y, ELEVATION_GRADIENT_WIDTH, 1);
             g.fill(color);
         }
 
-        this._elevationGradientTexture = renderer.generateTexture({ target: g });
+        this._elevationGradientTexture = renderer.generateTexture({
+            target: g,
+        });
         return this._elevationGradientTexture;
     }
 
@@ -1335,15 +1592,18 @@ export class TrackRenderSystem {
     }
 
     private _getOrCreateTunnelCeilingTexture(): Texture | null {
-        return (this._tunnelCeilingTexture ??= this._createSolidTexture(0x707070));
+        return (this._tunnelCeilingTexture ??=
+            this._createSolidTexture(0x707070));
     }
 
     private _getOrCreateCuttingWallTexture(): Texture | null {
-        return (this._cuttingWallTexture ??= this._createSolidTexture(0xA0A0A0));
+        return (this._cuttingWallTexture ??=
+            this._createSolidTexture(0xa0a0a0));
     }
 
     private _getOrCreateCuttingCoverTexture(): Texture | null {
-        return (this._cuttingCoverTexture ??= this._createSolidTexture(0x888888));
+        return (this._cuttingCoverTexture ??=
+            this._createSolidTexture(0x888888));
     }
 
     /**
@@ -1354,7 +1614,7 @@ export class TrackRenderSystem {
         left: { x: number; y: number }[],
         right: { x: number; y: number }[],
         texture: Texture,
-        alpha = 1,
+        alpha = 1
     ): MeshSimple | null {
         const count = Math.min(left.length, right.length);
         if (count < 2) return null;
@@ -1402,7 +1662,9 @@ export class TrackRenderSystem {
         g.fill(0x5a5248);
 
         const rng = seededRng(59);
-        const bedRockColors = [0x4a4238, 0x3e3830, 0x524a40, 0x605850, 0x3a3228];
+        const bedRockColors = [
+            0x4a4238, 0x3e3830, 0x524a40, 0x605850, 0x3a3228,
+        ];
         for (let r = 0; r < 350; r++) {
             const rw = 3 + rng() * 6;
             const rh = 2 + rng() * 5;
@@ -1411,7 +1673,8 @@ export class TrackRenderSystem {
             const cw = Math.min(rw, size - rx);
             const ch = Math.min(rh, size - ry);
             if (cw > 0 && ch > 0) {
-                const color = bedRockColors[Math.floor(rng() * bedRockColors.length)];
+                const color =
+                    bedRockColors[Math.floor(rng() * bedRockColors.length)];
                 g.rect(rx, ry, cw, ch);
                 g.fill(color);
             }
@@ -1428,7 +1691,9 @@ export class TrackRenderSystem {
      * Build a bed mesh strip along the curve. The bed is wider than the ballast
      * to create a visible foundation/shoulder on each side.
      */
-    private _buildBedMeshForDrawData(drawData: TrackSegmentDrawData): MeshSimple | null {
+    private _buildBedMeshForDrawData(
+        drawData: TrackSegmentDrawData
+    ): MeshSimple | null {
         const texture = this._getOrCreateBedTexture();
         if (texture === null) return null;
 
@@ -1445,7 +1710,12 @@ export class TrackRenderSystem {
 
         for (let i = 0; i <= steps; i++) {
             const t = i / steps;
-            const point = i === 0 ? startPoint : i === steps ? endPoint : curve.getPointbyPercentage(t);
+            const point =
+                i === 0
+                    ? startPoint
+                    : i === steps
+                      ? endPoint
+                      : curve.getPointbyPercentage(t);
             const derivative = curve.derivativeByPercentage(t);
             const tangent = PointCal.unitVector(derivative);
             const nx = -tangent.y;
@@ -1453,7 +1723,8 @@ export class TrackRenderSystem {
 
             if (i > 0) {
                 const prevT = (i - 1) / steps;
-                const prev = i === 1 ? startPoint : curve.getPointbyPercentage(prevT);
+                const prev =
+                    i === 1 ? startPoint : curve.getPointbyPercentage(prevT);
                 const dx = point.x - prev.x;
                 const dy = point.y - prev.y;
                 arcLen += Math.sqrt(dx * dx + dy * dy);
@@ -1496,8 +1767,12 @@ export class TrackRenderSystem {
         halfWidth: number,
         elevation: { from: number; to: number },
         sunAngle: number,
-        baseShadowLength: number,
-    ): { mesh: MeshSimple; baseVerts: Float32Array; elevationFactors: Float32Array } | null {
+        baseShadowLength: number
+    ): {
+        mesh: MeshSimple;
+        baseVerts: Float32Array;
+        elevationFactors: Float32Array;
+    } | null {
         const texture = this._getOrCreateShadowTexture();
         if (texture === null) return null;
 
@@ -1518,13 +1793,22 @@ export class TrackRenderSystem {
 
         for (let i = 0; i <= steps; i++) {
             const t = i / steps;
-            const point = i === 0 ? startPoint : i === steps ? endPoint : curve.getPointbyPercentage(t);
-            const tangent = PointCal.unitVector(curve.derivativeByPercentage(t));
+            const point =
+                i === 0
+                    ? startPoint
+                    : i === steps
+                      ? endPoint
+                      : curve.getPointbyPercentage(t);
+            const tangent = PointCal.unitVector(
+                curve.derivativeByPercentage(t)
+            );
             const nx = -tangent.y;
             const ny = tangent.x;
 
-            const elevationAtT = elevation.from + (elevation.to - elevation.from) * t;
-            const shadowLen = elevationAtT > 0 ? baseShadowLength * (elevationAtT / 100) : 0;
+            const elevationAtT =
+                elevation.from + (elevation.to - elevation.from) * t;
+            const shadowLen =
+                elevationAtT > 0 ? baseShadowLength * (elevationAtT / 100) : 0;
             const offsetX = cosA * shadowLen;
             const offsetY = sinA * shadowLen;
 
@@ -1545,8 +1829,10 @@ export class TrackRenderSystem {
             verts[bi + 3] = baseVerts[bi + 3] + offsetY;
 
             const ui = i * 4;
-            uvs[ui] = 0; uvs[ui + 1] = 0;
-            uvs[ui + 2] = 1; uvs[ui + 3] = 0;
+            uvs[ui] = 0;
+            uvs[ui + 1] = 0;
+            uvs[ui + 2] = 1;
+            uvs[ui + 3] = 0;
         }
 
         const indices: number[] = [];
@@ -1570,7 +1856,9 @@ export class TrackRenderSystem {
      * Uses a single shared gradient texture with UV V coordinates mapping
      * from normalised(elevation.from) to normalised(elevation.to).
      */
-    private _buildElevationMeshForDrawData(drawData: TrackSegmentDrawData): MeshSimple | null {
+    private _buildElevationMeshForDrawData(
+        drawData: TrackSegmentDrawData
+    ): MeshSimple | null {
         const texture = this._getOrCreateElevationGradientTexture();
         if (texture === null) return null;
 
@@ -1589,7 +1877,12 @@ export class TrackRenderSystem {
 
         for (let i = 0; i <= steps; i++) {
             const t = i / steps;
-            const point = i === 0 ? startPoint : i === steps ? endPoint : curve.getPointbyPercentage(t);
+            const point =
+                i === 0
+                    ? startPoint
+                    : i === steps
+                      ? endPoint
+                      : curve.getPointbyPercentage(t);
             const derivative = curve.derivativeByPercentage(t);
             const tangent = PointCal.unitVector(derivative);
             const nx = -tangent.y;
@@ -1620,39 +1913,67 @@ export class TrackRenderSystem {
     private _onRemoveTrackSegment(curveNumber: number) {
         const entry = this._simplifiedTrackGraphicsMap.get(curveNumber);
         if (entry !== undefined) {
-            const removed = this._worldRenderSystem.removeFromBand(entry.bandKey);
+            const removed = this._worldRenderSystem.removeFromBand(
+                entry.bandKey
+            );
             removed?.destroy({ children: true });
             this._simplifiedTrackGraphicsMap.delete(curveNumber);
         }
 
         const ugEntry = this._undergroundIndicatorMap.get(curveNumber);
         if (ugEntry !== undefined) {
-            const removed = this._worldRenderSystem.removeFromBand(ugEntry.bandKey);
+            const removed = this._worldRenderSystem.removeFromBand(
+                ugEntry.bandKey
+            );
             removed?.destroy({ children: true });
             this._undergroundIndicatorMap.delete(curveNumber);
         }
     }
 
-    private _onAddTrackSegment(curveNumber: number, trackSegment: TrackSegmentWithCollision) {
+    private _onAddTrackSegment(
+        curveNumber: number,
+        trackSegment: TrackSegmentWithCollision
+    ) {
         const simplifiedTrackGraphics = new Graphics();
         const controlPoints = trackSegment.curve.getControlPoints();
 
         simplifiedTrackGraphics.moveTo(controlPoints[0].x, controlPoints[0].y);
         if (controlPoints.length === 3) {
-            simplifiedTrackGraphics.quadraticCurveTo(controlPoints[1].x, controlPoints[1].y, controlPoints[2].x, controlPoints[2].y);
+            simplifiedTrackGraphics.quadraticCurveTo(
+                controlPoints[1].x,
+                controlPoints[1].y,
+                controlPoints[2].x,
+                controlPoints[2].y
+            );
         } else {
-            simplifiedTrackGraphics.bezierCurveTo(controlPoints[1].x, controlPoints[1].y, controlPoints[2].x, controlPoints[2].y, controlPoints[3].x, controlPoints[3].y);
+            simplifiedTrackGraphics.bezierCurveTo(
+                controlPoints[1].x,
+                controlPoints[1].y,
+                controlPoints[2].x,
+                controlPoints[2].y,
+                controlPoints[3].x,
+                controlPoints[3].y
+            );
         }
         simplifiedTrackGraphics.stroke({ color: 0x000000, pixelLine: true });
 
         const rawElevation = Math.max(
             trackSegment.elevation.from * LEVEL_HEIGHT,
-            trackSegment.elevation.to * LEVEL_HEIGHT,
+            trackSegment.elevation.to * LEVEL_HEIGHT
         );
-        const bandIndex = this._worldRenderSystem.getElevationBandIndex(rawElevation);
+        const bandIndex =
+            this._worldRenderSystem.getElevationBandIndex(rawElevation);
         const bandKey = `__simplified__${curveNumber}`;
-        this._worldRenderSystem.addToBand(bandKey, simplifiedTrackGraphics, bandIndex, 'rail');
-        this._simplifiedTrackGraphicsMap.set(curveNumber, { graphics: simplifiedTrackGraphics, bandKey });
+        this._worldRenderSystem.addToBand(
+            bandKey,
+            simplifiedTrackGraphics,
+            bandIndex,
+            'rail'
+        );
+        this._simplifiedTrackGraphicsMap.set(curveNumber, {
+            graphics: simplifiedTrackGraphics,
+            bandKey,
+        });
 
         // Draw a dashed outline for underground track segments (where track
         // elevation is below terrain height) so tunnels/subways are visible
@@ -1661,8 +1982,10 @@ export class TrackRenderSystem {
             const curve = trackSegment.curve;
             const startPoint = curve.getPointbyPercentage(0);
             const endPoint = curve.getPointbyPercentage(1);
-            const startTerrainH = this._terrainData?.getHeight(startPoint.x, startPoint.y) ?? 0;
-            const endTerrainH = this._terrainData?.getHeight(endPoint.x, endPoint.y) ?? 0;
+            const startTerrainH =
+                this._terrainData?.getHeight(startPoint.x, startPoint.y) ?? 0;
+            const endTerrainH =
+                this._terrainData?.getHeight(endPoint.x, endPoint.y) ?? 0;
             const startTrackElev = trackSegment.elevation.from * LEVEL_HEIGHT;
             const endTrackElev = trackSegment.elevation.to * LEVEL_HEIGHT;
 
@@ -1691,21 +2014,39 @@ export class TrackRenderSystem {
 
                     dist += cycleLen;
                 }
-                undergroundGraphics.stroke({ color: 0x555555, width: 0.8, pixelLine: true });
+                undergroundGraphics.stroke({
+                    color: 0x555555,
+                    width: 0.8,
+                    pixelLine: true,
+                });
 
                 // Place at the terrain surface elevation band so it appears on top of the terrain.
                 const surfaceElev = Math.max(startTerrainH, endTerrainH);
-                const surfaceBandIndex = this._worldRenderSystem.getElevationBandIndex(surfaceElev);
+                const surfaceBandIndex =
+                    this._worldRenderSystem.getElevationBandIndex(surfaceElev);
                 const ugKey = `__underground__${curveNumber}`;
-                this._worldRenderSystem.addToBand(ugKey, undergroundGraphics, surfaceBandIndex, 'rail');
-                this._undergroundIndicatorMap.set(curveNumber, { graphics: undergroundGraphics, bandKey: ugKey });
+                this._worldRenderSystem.addToBand(
+                    ugKey,
+                    undergroundGraphics,
+                    surfaceBandIndex,
+                    'rail'
+                );
+                this._undergroundIndicatorMap.set(curveNumber, {
+                    graphics: undergroundGraphics,
+                    bandKey: ugKey,
+                });
             }
         }
     }
 
-    private _onNewTrackData(index: number, drawDataList: (TrackSegmentDrawData & { positiveOffsets: Point[]; negativeOffsets: Point[] })[]) {
-
-        drawDataList.forEach((drawData) => {
+    private _onNewTrackData(
+        index: number,
+        drawDataList: (TrackSegmentDrawData & {
+            positiveOffsets: Point[];
+            negativeOffsets: Point[];
+        })[]
+    ) {
+        drawDataList.forEach(drawData => {
             // Stamp the current track style and electrification onto the draw data
             // so each segment retains the options that were active when it was laid down.
             if (drawData.trackStyle === undefined) {
@@ -1721,7 +2062,11 @@ export class TrackRenderSystem {
                 drawData.bed = this._bed;
             }
 
-            const key = JSON.stringify({ trackSegmentNumber: drawData.originalTrackSegment.trackSegmentNumber, tValInterval: drawData.originalTrackSegment.tValInterval });
+            const key = JSON.stringify({
+                trackSegmentNumber:
+                    drawData.originalTrackSegment.trackSegmentNumber,
+                tValInterval: drawData.originalTrackSegment.tValInterval,
+            });
 
             const segmentsContainer = new Container();
 
@@ -1735,7 +2080,8 @@ export class TrackRenderSystem {
             ballastNode.addChild(elevationMeshContainer);
 
             const solidBallastMeshContainer = new Container();
-            const solidBallastMesh = this._buildSolidBallastMeshForDrawData(drawData);
+            const solidBallastMesh =
+                this._buildSolidBallastMeshForDrawData(drawData);
             if (solidBallastMesh !== null) {
                 solidBallastMeshContainer.addChild(solidBallastMesh);
             }
@@ -1756,7 +2102,8 @@ export class TrackRenderSystem {
                 solidBallastMesh: solidBallastMeshContainer,
             });
 
-            const isConstant = drawData.elevation.from === drawData.elevation.to;
+            const isConstant =
+                drawData.elevation.from === drawData.elevation.to;
             const hasPositiveElevation =
                 drawData.elevation.from > 0 || drawData.elevation.to > 0;
 
@@ -1766,21 +2113,31 @@ export class TrackRenderSystem {
                 : ballastHw;
             const shadowResult = hasPositiveElevation
                 ? this._buildShadowMesh(
-                    drawData.curve, shadowHw, drawData.elevation, this._sunAngle, this._baseShadowLength,
-                )
+                      drawData.curve,
+                      shadowHw,
+                      drawData.elevation,
+                      this._sunAngle,
+                      this._baseShadowLength
+                  )
                 : null;
 
             if (shadowResult !== null) {
-                const { mesh: shadowMesh, baseVerts, elevationFactors } = shadowResult;
+                const {
+                    mesh: shadowMesh,
+                    baseVerts,
+                    elevationFactors,
+                } = shadowResult;
 
                 if (isConstant && hasPositiveElevation) {
-                    const shadowLen = this._baseShadowLength * (drawData.elevation.from / 100);
+                    const shadowLen =
+                        this._baseShadowLength *
+                        (drawData.elevation.from / 100);
                     // Use base vertices (no baked sun offset); position handles the offset
                     shadowMesh.vertices = new Float32Array(baseVerts);
                     const sunAngleRad = (this._sunAngle * Math.PI) / 180;
                     shadowMesh.position.set(
                         Math.cos(sunAngleRad) * shadowLen,
-                        Math.sin(sunAngleRad) * shadowLen,
+                        Math.sin(sunAngleRad) * shadowLen
                     );
                     this._shadowRecords.set(key, {
                         drawData,
@@ -1802,21 +2159,32 @@ export class TrackRenderSystem {
                 // Place shadow one elevation band below the track so terrain
                 // occlusion at the track's own level properly hides it.
                 // e.g. ABOVE_2 track shadow → ABOVE_1 band; hidden by ABOVE_2+ terrain.
-                const trackBandIndex = this._worldRenderSystem.getElevationBandIndex(
-                    Math.max(drawData.elevation.from, drawData.elevation.to)
-                );
+                const trackBandIndex =
+                    this._worldRenderSystem.getElevationBandIndex(
+                        Math.max(drawData.elevation.from, drawData.elevation.to)
+                    );
                 const shadowBandIndex = Math.max(0, trackBandIndex - 1);
-                const shadowElevation = ELEVATION_VALUES[shadowBandIndex] as ELEVATION;
-                this._worldRenderSystem.addShadow(key, shadowMesh, shadowElevation);
+                const shadowElevation = ELEVATION_VALUES[
+                    shadowBandIndex
+                ] as ELEVATION;
+                this._worldRenderSystem.addShadow(
+                    key,
+                    shadowMesh,
+                    shadowElevation
+                );
             }
 
             // Build bed mesh (gravel foundation) if enabled for this segment.
             if (drawData.bed) {
                 const bedMesh = this._buildBedMeshForDrawData(drawData);
                 if (bedMesh !== null) {
-                    const bedElevation = this._worldRenderSystem.resolveElevationLevel(
-                        Math.max(drawData.elevation.from, drawData.elevation.to)
-                    );
+                    const bedElevation =
+                        this._worldRenderSystem.resolveElevationLevel(
+                            Math.max(
+                                drawData.elevation.from,
+                                drawData.elevation.to
+                            )
+                        );
                     this._worldRenderSystem.addBed(key, bedMesh, bedElevation);
                     this._bedMeshMap.set(key, bedMesh);
                 }
@@ -1825,22 +2193,42 @@ export class TrackRenderSystem {
             this._drawableKeys.add(key);
 
             // Determine band index for this segment.
-            const rawElevation = Math.max(drawData.elevation.from, drawData.elevation.to);
-            const bandIndex = this._worldRenderSystem.getElevationBandIndex(rawElevation);
+            const rawElevation = Math.max(
+                drawData.elevation.from,
+                drawData.elevation.to
+            );
+            const bandIndex =
+                this._worldRenderSystem.getElevationBandIndex(rawElevation);
 
-            this._worldRenderSystem.addToBand(key, segmentsContainer, bandIndex, 'drawable');
+            this._worldRenderSystem.addToBand(
+                key,
+                segmentsContainer,
+                bandIndex,
+                'drawable'
+            );
 
             // Add rail to same band.
             const railContainer = this._offsetRailMap.get(key);
             if (railContainer !== undefined) {
-                this._worldRenderSystem.addToBand(`__rail__${key}`, railContainer, bandIndex, 'rail');
+                this._worldRenderSystem.addToBand(
+                    `__rail__${key}`,
+                    railContainer,
+                    bandIndex,
+                    'rail'
+                );
             }
 
             // Build catenary poles if this segment is electrified.
             if (drawData.electrified) {
-                const catenaryContainer = this._buildCatenaryForDrawData(drawData);
+                const catenaryContainer =
+                    this._buildCatenaryForDrawData(drawData);
                 const catenaryKey = `__catenary__${key}`;
-                this._worldRenderSystem.addToBand(catenaryKey, catenaryContainer, bandIndex, 'catenary');
+                this._worldRenderSystem.addToBand(
+                    catenaryKey,
+                    catenaryContainer,
+                    bandIndex,
+                    'catenary'
+                );
                 this._catenaryMap.set(key, catenaryContainer);
             }
 
@@ -1848,13 +2236,23 @@ export class TrackRenderSystem {
             const cuttingResult = this._buildCuttingForDrawData(drawData);
             if (cuttingResult !== null) {
                 const cuttingKey = `__cutting__${key}`;
-                this._worldRenderSystem.addToBand(cuttingKey, cuttingResult.mesh, cuttingResult.surfaceBandIndex, 'drawable');
+                this._worldRenderSystem.addToBand(
+                    cuttingKey,
+                    cuttingResult.mesh,
+                    cuttingResult.surfaceBandIndex,
+                    'drawable'
+                );
                 this._cuttingMap.set(key, cuttingResult.mesh);
             }
             const coverResult = this._buildCuttingCoverForDrawData(drawData);
             if (coverResult !== null) {
                 const coverKey = `__cutting_cover__${key}`;
-                this._worldRenderSystem.addToBand(coverKey, coverResult.mesh, coverResult.surfaceBandIndex, 'catenary');
+                this._worldRenderSystem.addToBand(
+                    coverKey,
+                    coverResult.mesh,
+                    coverResult.surfaceBandIndex,
+                    'catenary'
+                );
                 this._cuttingCoverMap.set(key, coverResult.mesh);
             }
 
@@ -1862,13 +2260,23 @@ export class TrackRenderSystem {
             const tunnelWalls = this._buildTunnelWallsForDrawData(drawData);
             if (tunnelWalls !== null) {
                 const wallKey = `__tunnel_wall__${key}`;
-                this._worldRenderSystem.addToBand(wallKey, tunnelWalls, bandIndex, 'drawable');
+                this._worldRenderSystem.addToBand(
+                    wallKey,
+                    tunnelWalls,
+                    bandIndex,
+                    'drawable'
+                );
                 this._tunnelWallMap.set(key, tunnelWalls);
             }
             const tunnelCeiling = this._buildTunnelCeilingForDrawData(drawData);
             if (tunnelCeiling !== null) {
                 const ceilingKey = `__tunnel_ceiling__${key}`;
-                this._worldRenderSystem.addToBand(ceilingKey, tunnelCeiling, bandIndex, 'catenary');
+                this._worldRenderSystem.addToBand(
+                    ceilingKey,
+                    tunnelCeiling,
+                    bandIndex,
+                    'catenary'
+                );
                 this._tunnelCeilingMap.set(key, tunnelCeiling);
             }
         });
@@ -1890,13 +2298,31 @@ export class TrackRenderSystem {
 
         // Group draw data by elevation band, then sort within each band
         // by minimum elevation so ramps draw below constant-elevation tracks.
-        const bandGroups = new Map<number, { drawData: TrackSegmentDrawData; key: string; minElevation: number }[]>();
+        const bandGroups = new Map<
+            number,
+            {
+                drawData: TrackSegmentDrawData;
+                key: string;
+                minElevation: number;
+            }[]
+        >();
 
-        drawDataOrder.forEach((drawData) => {
-            const rawElevation = Math.max(drawData.elevation.from, drawData.elevation.to);
-            const bandIndex = this._worldRenderSystem.getElevationBandIndex(rawElevation);
-            const key = JSON.stringify({ trackSegmentNumber: drawData.originalTrackSegment.trackSegmentNumber, tValInterval: drawData.originalTrackSegment.tValInterval });
-            const minElevation = Math.min(drawData.elevation.from, drawData.elevation.to);
+        drawDataOrder.forEach(drawData => {
+            const rawElevation = Math.max(
+                drawData.elevation.from,
+                drawData.elevation.to
+            );
+            const bandIndex =
+                this._worldRenderSystem.getElevationBandIndex(rawElevation);
+            const key = JSON.stringify({
+                trackSegmentNumber:
+                    drawData.originalTrackSegment.trackSegmentNumber,
+                tValInterval: drawData.originalTrackSegment.tValInterval,
+            });
+            const minElevation = Math.min(
+                drawData.elevation.from,
+                drawData.elevation.to
+            );
 
             let group = bandGroups.get(bandIndex);
             if (!group) {
@@ -1926,7 +2352,9 @@ export class TrackRenderSystem {
         if (state === null) {
             return;
         }
-        const curve = this._trackCurveManager.getTrackSegment(state.segmentNumber);
+        const curve = this._trackCurveManager.getTrackSegment(
+            state.segmentNumber
+        );
         if (curve === null) {
             return;
         }
@@ -1955,7 +2383,9 @@ export class TrackRenderSystem {
         if (state === null) {
             return;
         }
-        const curve = this._trackCurveManager.getTrackSegment(state.segmentNumber);
+        const curve = this._trackCurveManager.getTrackSegment(
+            state.segmentNumber
+        );
         if (curve === null) {
             return;
         }
@@ -1976,7 +2406,9 @@ export class TrackRenderSystem {
         if (state === null) {
             return;
         }
-        const curve = this._trackCurveManager.getTrackSegment(state.segmentNumber);
+        const curve = this._trackCurveManager.getTrackSegment(
+            state.segmentNumber
+        );
         if (curve === null) {
             return;
         }
@@ -2003,7 +2435,9 @@ export class TrackRenderSystem {
             return;
         }
 
-        const curve = this._trackCurveManager.getTrackSegment(state.segmentNumber);
+        const curve = this._trackCurveManager.getTrackSegment(
+            state.segmentNumber
+        );
         if (curve === null) {
             return;
         }
@@ -2012,10 +2446,13 @@ export class TrackRenderSystem {
         const curveLength = curve.fullLength;
         const poleSpacing = 25;
         const poleCount = Math.max(1, Math.floor(curveLength / poleSpacing));
-        const visualProps = this._trackCurveManager.getVisualPropsForSegment(state.segmentNumber);
+        const visualProps = this._trackCurveManager.getVisualPropsForSegment(
+            state.segmentNumber
+        );
         const gauge = visualProps?.gauge ?? 1.067;
         const tieOverhang = 4;
-        const tieHw = (gauge / 2) * ((TRACK_TEX_SIZE + tieOverhang * 2) / TRACK_TEX_SIZE);
+        const tieHw =
+            (gauge / 2) * ((TRACK_TEX_SIZE + tieOverhang * 2) / TRACK_TEX_SIZE);
         const bHw = tieHw + 0.15;
         const mastOffset = visualProps?.bed
             ? Math.max(bHw, (visualProps.bedWidth ?? 3) / 2)
@@ -2053,7 +2490,17 @@ export class TrackRenderSystem {
         g.stroke({ color: 0x43a047, width: 0.05, alpha: 0.5 });
     }
 
-    private _onPreviewDrawDataChange(drawDataList: { index: number, drawData: TrackSegmentDrawData & { positiveOffsets: Point[]; negativeOffsets: Point[] } }[] | undefined) {
+    private _onPreviewDrawDataChange(
+        drawDataList:
+            | {
+                  index: number;
+                  drawData: TrackSegmentDrawData & {
+                      positiveOffsets: Point[];
+                      negativeOffsets: Point[];
+                  };
+              }[]
+            | undefined
+    ) {
         this._latestPreviewDrawDataList = drawDataList;
         this._previewKeys.forEach(key => {
             const container = this._worldRenderSystem.removeFromBand(key);
@@ -2061,7 +2508,9 @@ export class TrackRenderSystem {
         });
         this._previewKeys = [];
         this._previewRailContainers.forEach((c, idx) => {
-            const removed = this._worldRenderSystem.removeFromBand(`__preview_rail__${idx}`);
+            const removed = this._worldRenderSystem.removeFromBand(
+                `__preview_rail__${idx}`
+            );
             removed?.destroy({ children: true });
         });
         this._previewRailContainers = [];
@@ -2124,7 +2573,8 @@ export class TrackRenderSystem {
             ballastNode.addChild(elevationMeshContainer);
 
             const solidBallastMeshContainer = new Container();
-            const solidBallastMesh = this._buildSolidBallastMeshForDrawData(drawData);
+            const solidBallastMesh =
+                this._buildSolidBallastMeshForDrawData(drawData);
             if (solidBallastMesh !== null) {
                 solidBallastMeshContainer.addChild(solidBallastMesh);
             }
@@ -2138,10 +2588,18 @@ export class TrackRenderSystem {
                 const bedMesh = this._buildBedMeshForDrawData(drawData);
                 if (bedMesh !== null) {
                     const bedKey = `__preview_bed__${this._previewBedKeys.length}`;
-                    const bedElevation = this._worldRenderSystem.resolveElevationLevel(
-                        Math.max(drawData.elevation.from, drawData.elevation.to)
+                    const bedElevation =
+                        this._worldRenderSystem.resolveElevationLevel(
+                            Math.max(
+                                drawData.elevation.from,
+                                drawData.elevation.to
+                            )
+                        );
+                    this._worldRenderSystem.addBed(
+                        bedKey,
+                        bedMesh,
+                        bedElevation
                     );
-                    this._worldRenderSystem.addBed(bedKey, bedMesh, bedElevation);
                     this._previewBedKeys.push(bedKey);
                 }
             }
@@ -2152,10 +2610,16 @@ export class TrackRenderSystem {
                 const railContainer = new Container();
                 railContainer.addChild(railMesh);
                 const railKey = `__preview_rail__${this._previewRailContainers.length}`;
-                const railBandIndex = this._worldRenderSystem.getElevationBandIndex(
-                    Math.max(drawData.elevation.from, drawData.elevation.to)
+                const railBandIndex =
+                    this._worldRenderSystem.getElevationBandIndex(
+                        Math.max(drawData.elevation.from, drawData.elevation.to)
+                    );
+                this._worldRenderSystem.addToBand(
+                    railKey,
+                    railContainer,
+                    railBandIndex,
+                    'rail'
                 );
-                this._worldRenderSystem.addToBand(railKey, railContainer, railBandIndex, 'rail');
                 this._previewRailContainers.push(railContainer);
             }
 
@@ -2165,58 +2629,97 @@ export class TrackRenderSystem {
                 // For straight lines, arc fitting is not meaningful (circle radius -> ∞)
                 // and can produce noisy results. Skip entirely.
                 if (!curveIsNearlyStraight(drawData.curve)) {
-                const arcs = drawData.curve.getArcs(0.5);
-                for (const arc of arcs) {
-                    const a0 = Math.atan2(arc.startPoint.y - arc.center.y, arc.startPoint.x - arc.center.x);
-                    const a1 = Math.atan2(arc.endPoint.y - arc.center.y, arc.endPoint.x - arc.center.x);
+                    const arcs = drawData.curve.getArcs(0.5);
+                    for (const arc of arcs) {
+                        const a0 = Math.atan2(
+                            arc.startPoint.y - arc.center.y,
+                            arc.startPoint.x - arc.center.x
+                        );
+                        const a1 = Math.atan2(
+                            arc.endPoint.y - arc.center.y,
+                            arc.endPoint.x - arc.center.x
+                        );
 
-                    // Choose direction that best matches the curve by sampling a midpoint.
-                    const midT = (arc.startT + arc.endT) / 2;
-                    const midPoint = drawData.curve.get(midT);
-                    const am = Math.atan2(midPoint.y - arc.center.y, midPoint.x - arc.center.x);
+                        // Choose direction that best matches the curve by sampling a midpoint.
+                        const midT = (arc.startT + arc.endT) / 2;
+                        const midPoint = drawData.curve.get(midT);
+                        const am = Math.atan2(
+                            midPoint.y - arc.center.y,
+                            midPoint.x - arc.center.x
+                        );
 
-                    const cwErr = arcDirectionFitError(arc.center, arc.radius, a0, a1, am, 'cw');
-                    const ccwErr = arcDirectionFitError(arc.center, arc.radius, a0, a1, am, 'ccw');
-                    const direction: 'cw' | 'ccw' = cwErr <= ccwErr ? 'cw' : 'ccw';
+                        const cwErr = arcDirectionFitError(
+                            arc.center,
+                            arc.radius,
+                            a0,
+                            a1,
+                            am,
+                            'cw'
+                        );
+                        const ccwErr = arcDirectionFitError(
+                            arc.center,
+                            arc.radius,
+                            a0,
+                            a1,
+                            am,
+                            'ccw'
+                        );
+                        const direction: 'cw' | 'ccw' =
+                            cwErr <= ccwErr ? 'cw' : 'ccw';
 
-                    const wedge = new Graphics();
-                    // Build a "fan" (sector) shape: center -> start -> arc -> back to center.
-                    // Use polyline instead of Graphics.arc() to avoid full-circle ambiguity.
-                    const span = angleDelta(a0, a1, direction);
-                    if (span > Math.PI * 1.9) continue; // Skip near-full-circle arcs
-                    wedge.moveTo(arc.center.x, arc.center.y);
-                    wedge.lineTo(arc.startPoint.x, arc.startPoint.y);
-                    drawArcPolyline(wedge, arc.center, arc.radius, a0, a1, direction);
-                    wedge.lineTo(arc.center.x, arc.center.y);
-                    wedge.closePath();
-                    wedge.fill({ color: 0x1d4ed8, alpha: 0.18 });
-                    wedge.stroke({ color: 0x1d4ed8, alpha: 0.55, pixelLine: true, width: 1 });
-                    arcFanContainer.addChild(wedge);
+                        const wedge = new Graphics();
+                        // Build a "fan" (sector) shape: center -> start -> arc -> back to center.
+                        // Use polyline instead of Graphics.arc() to avoid full-circle ambiguity.
+                        const span = angleDelta(a0, a1, direction);
+                        if (span > Math.PI * 1.9) continue; // Skip near-full-circle arcs
+                        wedge.moveTo(arc.center.x, arc.center.y);
+                        wedge.lineTo(arc.startPoint.x, arc.startPoint.y);
+                        drawArcPolyline(
+                            wedge,
+                            arc.center,
+                            arc.radius,
+                            a0,
+                            a1,
+                            direction
+                        );
+                        wedge.lineTo(arc.center.x, arc.center.y);
+                        wedge.closePath();
+                        wedge.fill({ color: 0x1d4ed8, alpha: 0.18 });
+                        wedge.stroke({
+                            color: 0x1d4ed8,
+                            alpha: 0.55,
+                            pixelLine: true,
+                            width: 1,
+                        });
+                        arcFanContainer.addChild(wedge);
 
-                    // CAD-style radius label: position near the arc (not at center).
-                    const labelDist = arc.radius * 0.7; // ~70% from center toward arc
-                    const midAngle = direction === 'ccw' ? a0 + span / 2 : a0 - span / 2;
-                    const labelX = arc.center.x + Math.cos(midAngle) * labelDist;
-                    const labelY = arc.center.y + Math.sin(midAngle) * labelDist;
-                    const zoomLevel = this._camera.zoomLevel;
-                    // Use fixed pixel font + scale container by 1/zoom so text stays crisp and constant screen size.
-                    const labelContainer = new Container();
-                    labelContainer.position.set(labelX, labelY);
-                    labelContainer.scale.set(1 / zoomLevel, 1 / zoomLevel);
-                    const radiusLabel = new Text({
-                        text: `R ${arc.radius.toFixed(1)}`,
-                        style: {
-                            fontFamily: 'sans-serif',
-                            fontSize: 14,
-                            fill: 0x1d4ed8,
-                            fontWeight: '600',
-                        },
-                    });
-                    radiusLabel.anchor.set(0.5, 0.5);
-                    radiusLabel.position.set(0, 0);
-                    labelContainer.addChild(radiusLabel);
-                    arcFanContainer.addChild(labelContainer);
-                }
+                        // CAD-style radius label: position near the arc (not at center).
+                        const labelDist = arc.radius * 0.7; // ~70% from center toward arc
+                        const midAngle =
+                            direction === 'ccw' ? a0 + span / 2 : a0 - span / 2;
+                        const labelX =
+                            arc.center.x + Math.cos(midAngle) * labelDist;
+                        const labelY =
+                            arc.center.y + Math.sin(midAngle) * labelDist;
+                        const zoomLevel = this._camera.zoomLevel;
+                        // Use fixed pixel font + scale container by 1/zoom so text stays crisp and constant screen size.
+                        const labelContainer = new Container();
+                        labelContainer.position.set(labelX, labelY);
+                        labelContainer.scale.set(1 / zoomLevel, 1 / zoomLevel);
+                        const radiusLabel = new Text({
+                            text: `R ${arc.radius.toFixed(1)}`,
+                            style: {
+                                fontFamily: 'sans-serif',
+                                fontSize: 14,
+                                fill: 0x1d4ed8,
+                                fontWeight: '600',
+                            },
+                        });
+                        radiusLabel.anchor.set(0.5, 0.5);
+                        radiusLabel.position.set(0, 0);
+                        labelContainer.addChild(radiusLabel);
+                        arcFanContainer.addChild(labelContainer);
+                    }
                 }
                 // Put the fan wedges behind the preview meshes.
                 segmentsContainer.addChildAt(arcFanContainer, 0);
@@ -2225,7 +2728,12 @@ export class TrackRenderSystem {
             const bandIndex = this._worldRenderSystem.getElevationBandIndex(
                 Math.max(drawData.elevation.from, drawData.elevation.to)
             );
-            this._worldRenderSystem.addToBand(key, segmentsContainer, bandIndex, 'drawable');
+            this._worldRenderSystem.addToBand(
+                key,
+                segmentsContainer,
+                bandIndex,
+                'drawable'
+            );
             this._worldRenderSystem.setOrderInBand(key, index);
             this._previewKeys.push(key);
 
@@ -2233,13 +2741,23 @@ export class TrackRenderSystem {
             const cuttingResult = this._buildCuttingForDrawData(drawData);
             if (cuttingResult !== null) {
                 const cuttingKey = `__preview_cutting__${i}`;
-                this._worldRenderSystem.addToBand(cuttingKey, cuttingResult.mesh, cuttingResult.surfaceBandIndex, 'drawable');
+                this._worldRenderSystem.addToBand(
+                    cuttingKey,
+                    cuttingResult.mesh,
+                    cuttingResult.surfaceBandIndex,
+                    'drawable'
+                );
                 this._previewCuttingKeys.push(cuttingKey);
             }
             const coverResult = this._buildCuttingCoverForDrawData(drawData);
             if (coverResult !== null) {
                 const coverKey = `__preview_cover__${i}`;
-                this._worldRenderSystem.addToBand(coverKey, coverResult.mesh, coverResult.surfaceBandIndex, 'catenary');
+                this._worldRenderSystem.addToBand(
+                    coverKey,
+                    coverResult.mesh,
+                    coverResult.surfaceBandIndex,
+                    'catenary'
+                );
                 this._previewCoverKeys.push(coverKey);
             }
 
@@ -2247,13 +2765,23 @@ export class TrackRenderSystem {
             const tunnelWalls = this._buildTunnelWallsForDrawData(drawData);
             if (tunnelWalls !== null) {
                 const wallKey = `__preview_tunnel_wall__${i}`;
-                this._worldRenderSystem.addToBand(wallKey, tunnelWalls, bandIndex, 'drawable');
+                this._worldRenderSystem.addToBand(
+                    wallKey,
+                    tunnelWalls,
+                    bandIndex,
+                    'drawable'
+                );
                 this._previewTunnelWallKeys.push(wallKey);
             }
             const tunnelCeiling = this._buildTunnelCeilingForDrawData(drawData);
             if (tunnelCeiling !== null) {
                 const ceilingKey = `__preview_tunnel_ceiling__${i}`;
-                this._worldRenderSystem.addToBand(ceilingKey, tunnelCeiling, bandIndex, 'catenary');
+                this._worldRenderSystem.addToBand(
+                    ceilingKey,
+                    tunnelCeiling,
+                    bandIndex,
+                    'catenary'
+                );
                 this._previewTunnelCeilingKeys.push(ceilingKey);
             }
         });
@@ -2268,7 +2796,10 @@ export class TrackRenderSystem {
      * @param drawDataIdentifier - Identifier of the draw data the object sits on
      * @returns The elevation band index, or null if the identifier is unknown
      */
-    getTrackBandIndex(drawDataIdentifier: { trackSegmentNumber: number, tValInterval: { start: number, end: number } }): number | null {
+    getTrackBandIndex(drawDataIdentifier: {
+        trackSegmentNumber: number;
+        tValInterval: { start: number; end: number };
+    }): number | null {
         const key = JSON.stringify(drawDataIdentifier);
         return this._drawDataBandMap.get(key) ?? null;
     }
@@ -2281,7 +2812,11 @@ const normalizeAngle0ToTau = (a: number): number => {
     return x;
 };
 
-const angleDelta = (from: number, to: number, direction: 'cw' | 'ccw'): number => {
+const angleDelta = (
+    from: number,
+    to: number,
+    direction: 'cw' | 'ccw'
+): number => {
     const TAU = Math.PI * 2;
     const a0 = normalizeAngle0ToTau(from);
     const a1 = normalizeAngle0ToTau(to);
@@ -2299,16 +2834,14 @@ const drawArcPolyline = (
     radius: number,
     startAngle: number,
     endAngle: number,
-    direction: 'cw' | 'ccw',
+    direction: 'cw' | 'ccw'
 ): void => {
     const span = angleDelta(startAngle, endAngle, direction);
     const steps = Math.max(8, Math.ceil((span * radius) / 8)); // ~1 point per 8px of arc length
     for (let i = 0; i <= steps; i++) {
         const t = steps === 0 ? 0 : i / steps;
         const a =
-            direction === 'ccw'
-                ? startAngle + span * t
-                : startAngle - span * t;
+            direction === 'ccw' ? startAngle + span * t : startAngle - span * t;
         const x = center.x + Math.cos(a) * radius;
         const y = center.y + Math.sin(a) * radius;
         if (i === 0) g.moveTo(x, y);
@@ -2322,14 +2855,12 @@ const arcDirectionFitError = (
     startAngle: number,
     endAngle: number,
     desiredMidAngle: number,
-    direction: 'cw' | 'ccw',
+    direction: 'cw' | 'ccw'
 ): number => {
     // Compare the mid-angle produced by traversing the arc to the curve’s mid-angle.
     const span = angleDelta(startAngle, endAngle, direction);
     const candidateMidAngle =
-        direction === 'ccw'
-            ? startAngle + span / 2
-            : startAngle - span / 2;
+        direction === 'ccw' ? startAngle + span / 2 : startAngle - span / 2;
     const a = normalizeAngle0ToTau(candidateMidAngle);
     const b = normalizeAngle0ToTau(desiredMidAngle);
     const d = Math.abs(a - b);
@@ -2365,7 +2896,10 @@ const curveIsNearlyStraight = (curve: BCurve): boolean => {
 };
 
 type ShadowRecord = {
-    drawData: TrackSegmentDrawData & { positiveOffsets: Point[]; negativeOffsets: Point[] };
+    drawData: TrackSegmentDrawData & {
+        positiveOffsets: Point[];
+        negativeOffsets: Point[];
+    };
     mesh: MeshSimple;
     /** True when from === to and elevation > 0 — position-only update is sufficient. */
     constantElevation: boolean;
@@ -2381,19 +2915,25 @@ type ShadowRecord = {
     elevationFactors?: Float32Array;
 };
 
-const cutBezierCurveIntoEqualSegments = (curve: BCurve, segmentElevation: { from: number, to: number }, length: number) => {
-    const segments: { point: Point, elevation: number }[] = [];
+const cutBezierCurveIntoEqualSegments = (
+    curve: BCurve,
+    segmentElevation: { from: number; to: number },
+    length: number
+) => {
+    const segments: { point: Point; elevation: number }[] = [];
     const cps = curve.getControlPoints();
     segments.push({ point: cps[0], elevation: segmentElevation.from });
     const steps = Math.ceil(curve.fullLength / length);
     for (let i = 0; i <= steps; i++) {
         const percentage = i / steps;
         const point = curve.getPointbyPercentage(percentage);
-        const elevation = segmentElevation.from + (segmentElevation.to - segmentElevation.from) * percentage;
+        const elevation =
+            segmentElevation.from +
+            (segmentElevation.to - segmentElevation.from) * percentage;
         segments.push({ point, elevation });
     }
     return segments;
-}
+};
 
 /** RGB components 0–255 for interpolation. */
 export type Rgb = { r: number; g: number; b: number };
@@ -2420,7 +2960,11 @@ const findElevationColorStop = (elevation: number): Rgb => {
         return { r: 0, g: 0, b: 0 };
     }
 
-    return interpolateRgb(getElevationColorRgb(interval.interval[0]), getElevationColorRgb(interval.interval[1]), interval.ratio);
+    return interpolateRgb(
+        getElevationColorRgb(interval.interval[0]),
+        getElevationColorRgb(interval.interval[1]),
+        interval.ratio
+    );
 };
 
 /** Elevation colors as RGB (0–255) for interpolation. */
@@ -2456,13 +3000,15 @@ function seededRng(seed: number): () => number {
     };
 }
 
-const getProjectionTypeColor = (type: ProjectionPositiveResult['hitType']): number => {
+const getProjectionTypeColor = (
+    type: ProjectionPositiveResult['hitType']
+): number => {
     switch (type) {
         case 'joint':
-            return 0x3BA429;
+            return 0x3ba429;
         case 'curve':
-            return 0xB23737;
+            return 0xb23737;
         case 'edge':
-            return 0x2711EE;
+            return 0x2711ee;
     }
 };

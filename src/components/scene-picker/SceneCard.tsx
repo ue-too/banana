@@ -1,7 +1,7 @@
 import { useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Pencil, Trash2, X } from '@/assets/icons';
 
+import { Pencil, Trash2, X } from '@/assets/icons';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import type { SceneMetadata } from '@/storage';
@@ -76,13 +76,13 @@ export function SceneCard({
                         ref={inputRef}
                         className="bg-background w-full rounded border px-1 text-sm font-medium"
                         value={editName}
-                        onChange={(e) => setEditName(e.target.value)}
+                        onChange={e => setEditName(e.target.value)}
                         onBlur={commitRename}
-                        onKeyDown={(e) => {
+                        onKeyDown={e => {
                             if (e.key === 'Enter') commitRename();
                             if (e.key === 'Escape') setEditing(false);
                         }}
-                        onClick={(e) => e.stopPropagation()}
+                        onClick={e => e.stopPropagation()}
                     />
                 ) : (
                     <span className="truncate text-sm font-medium">
@@ -104,7 +104,7 @@ export function SceneCard({
                     <Button
                         variant="destructive"
                         size="sm"
-                        onClick={(e) => {
+                        onClick={e => {
                             e.stopPropagation();
                             onDelete();
                         }}
@@ -115,7 +115,7 @@ export function SceneCard({
                         variant="ghost"
                         size="icon"
                         className="size-7"
-                        onClick={(e) => {
+                        onClick={e => {
                             e.stopPropagation();
                             onCancelDelete();
                         }}
@@ -129,7 +129,7 @@ export function SceneCard({
                         variant="ghost"
                         size="icon"
                         className="text-muted-foreground hover:text-foreground size-7 shrink-0"
-                        onClick={(e) => {
+                        onClick={e => {
                             e.stopPropagation();
                             startEditing();
                         }}
@@ -140,7 +140,7 @@ export function SceneCard({
                         variant="ghost"
                         size="icon"
                         className="text-muted-foreground hover:text-destructive size-7 shrink-0"
-                        onClick={(e) => {
+                        onClick={e => {
                             e.stopPropagation();
                             onDelete();
                         }}

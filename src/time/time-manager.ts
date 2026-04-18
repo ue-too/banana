@@ -1,12 +1,21 @@
-import { Observable, Observer, SubscriptionOptions, SynchronousObservable } from "@ue-too/board";
-import { Application } from "pixi.js";
+import {
+    Observable,
+    Observer,
+    SubscriptionOptions,
+    SynchronousObservable,
+} from '@ue-too/board';
+import { Application } from 'pixi.js';
 
 class TimeManager {
-
     private _currentTime: number = Date.now(); // the current time in epoch milliseconds
-    private _syncTimeObservable: Observable<[number, number]> = new SynchronousObservable<[number, number]>();
-    private _pauseObservable: Observable<[boolean]> = new SynchronousObservable<[boolean]>();
-    private _speedObservable: Observable<[number]> = new SynchronousObservable<[number]>();
+    private _syncTimeObservable: Observable<[number, number]> =
+        new SynchronousObservable<[number, number]>();
+    private _pauseObservable: Observable<[boolean]> = new SynchronousObservable<
+        [boolean]
+    >();
+    private _speedObservable: Observable<[number]> = new SynchronousObservable<
+        [number]
+    >();
 
     private _lastTime: number = 0;
     private _interval: number = 0;
@@ -39,7 +48,7 @@ class TimeManager {
         };
         document.addEventListener('visibilitychange', this._visibilityHandler);
 
-        this._tickerCallback = (time) => {
+        this._tickerCallback = time => {
             this.update(time.deltaMS);
         };
         pixixApp.ticker.add(this._tickerCallback);
@@ -91,21 +100,33 @@ class TimeManager {
         }
     }
 
-    subscribe(observer: Observer<[number, number]>, options?: SubscriptionOptions): () => void {
+    subscribe(
+        observer: Observer<[number, number]>,
+        options?: SubscriptionOptions
+    ): () => void {
         return this._syncTimeObservable.subscribe(observer, options);
     }
 
-    subscribePause(observer: Observer<[boolean]>, options?: SubscriptionOptions): () => void {
+    subscribePause(
+        observer: Observer<[boolean]>,
+        options?: SubscriptionOptions
+    ): () => void {
         return this._pauseObservable.subscribe(observer, options);
     }
 
-    subscribeSpeed(observer: Observer<[number]>, options?: SubscriptionOptions): () => void {
+    subscribeSpeed(
+        observer: Observer<[number]>,
+        options?: SubscriptionOptions
+    ): () => void {
         return this._speedObservable.subscribe(observer, options);
     }
 
     /** Remove the visibilitychange listener and ticker callback. */
     dispose(): void {
-        document.removeEventListener('visibilitychange', this._visibilityHandler);
+        document.removeEventListener(
+            'visibilitychange',
+            this._visibilityHandler
+        );
         clearInterval(this._interval);
         this._app.ticker.remove(this._tickerCallback);
     }

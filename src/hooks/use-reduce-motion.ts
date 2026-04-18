@@ -6,7 +6,10 @@ const STORAGE_KEY = 'banana-reduce-motion';
  * Persists the reduce-motion preference in localStorage so it stays
  * in sync across the landing page, 404 page, and any future consumer.
  */
-export function useReduceMotion(): [boolean, (v: boolean | ((prev: boolean) => boolean)) => void] {
+export function useReduceMotion(): [
+    boolean,
+    (v: boolean | ((prev: boolean) => boolean)) => void,
+] {
     const [reduceMotion, setReduceMotionRaw] = useState(() => {
         try {
             return localStorage.getItem(STORAGE_KEY) === 'true';
@@ -27,7 +30,7 @@ export function useReduceMotion(): [boolean, (v: boolean | ((prev: boolean) => b
                 return next;
             });
         },
-        [],
+        []
     );
 
     useEffect(() => {

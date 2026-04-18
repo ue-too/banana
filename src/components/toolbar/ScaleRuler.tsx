@@ -6,9 +6,14 @@ import { useBananaApp } from '@/contexts/pixi';
  * Picks a "nice" round distance for the ruler bar so that the bar width
  * stays roughly between 60–160 px on screen.
  */
-const NICE_STEPS = [1, 2, 5, 10, 20, 50, 100, 200, 500, 1000, 2000, 5000, 10000];
+const NICE_STEPS = [
+    1, 2, 5, 10, 20, 50, 100, 200, 500, 1000, 2000, 5000, 10000,
+];
 
-function pickNiceDistance(zoomLevel: number): { distance: number; pixels: number } {
+function pickNiceDistance(zoomLevel: number): {
+    distance: number;
+    pixels: number;
+} {
     const targetMinPx = 60;
     const targetMaxPx = 160;
 
@@ -57,7 +62,7 @@ export function ScaleRuler() {
     const { distance, pixels } = pickNiceDistance(zoom);
 
     return (
-        <div className="flex select-none items-center gap-2">
+        <div className="flex items-center gap-2 select-none">
             {/* Ruler bar */}
             <div className="flex flex-col items-center">
                 <div

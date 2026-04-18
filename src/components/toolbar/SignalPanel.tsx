@@ -1,15 +1,21 @@
-import { useState, useEffect, useCallback, useRef } from 'react';
-import { Plus, X } from '@/assets/icons';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
+import { Plus, X } from '@/assets/icons';
 import { Button } from '@/components/ui/button';
 import { DraggablePanel } from '@/components/ui/draggable-panel';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import {
+    Select,
+    SelectContent,
+    SelectItem,
+    SelectTrigger,
+    SelectValue,
+} from '@/components/ui/select';
 import { Separator } from '@/components/ui/separator';
 import type { BlockSignalManager } from '@/signals/block-signal-manager';
 import type { SignalRenderSystem } from '@/signals/signal-render-system';
 import type { SignalStateEngine } from '@/signals/signal-state-engine';
-import type { SignalAspect, BlockSegmentEntry } from '@/signals/types';
+import type { BlockSegmentEntry, SignalAspect } from '@/signals/types';
 import type { TrackGraph } from '@/trains/tracks/track';
 
 type SignalPanelProps = {
@@ -28,7 +34,9 @@ function AspectDot({ aspect }: { aspect: SignalAspect }) {
             : aspect === 'yellow'
               ? 'bg-yellow-400'
               : 'bg-green-500';
-    return <span className={`inline-block h-2.5 w-2.5 rounded-full ${color}`} />;
+    return (
+        <span className={`inline-block h-2.5 w-2.5 rounded-full ${color}`} />
+    );
 }
 
 /** Format a segment entry for display: "10" for full, "10 [0.3-1]" for partial. */
@@ -73,7 +81,9 @@ export function SignalPanel({
     // -- signal form state -----------------------------------------------------
     const [sigSeg, setSigSeg] = useState('');
     const [sigT, setSigT] = useState('0.5');
-    const [sigDir, setSigDir] = useState<'tangent' | 'reverseTangent'>('tangent');
+    const [sigDir, setSigDir] = useState<'tangent' | 'reverseTangent'>(
+        'tangent'
+    );
 
     const handleAddSignal = useCallback(() => {
         const seg = Number(sigSeg);
@@ -100,7 +110,11 @@ export function SignalPanel({
             return;
         }
 
-        const segments = blockSignalManager.computeBlockSegments(entryId, exitId, trackGraph);
+        const segments = blockSignalManager.computeBlockSegments(
+            entryId,
+            exitId,
+            trackGraph
+        );
         if (!segments) {
             setAutoFillError(t('noPathBetweenSignals'));
             return;
@@ -122,7 +136,11 @@ export function SignalPanel({
             return;
         }
 
-        const segments = blockSignalManager.computeBlockSegments(entryId, exitId, trackGraph);
+        const segments = blockSignalManager.computeBlockSegments(
+            entryId,
+            exitId,
+            trackGraph
+        );
         if (!segments) {
             setAutoFillError(t('noPathBetweenSignals'));
             return;
@@ -130,7 +148,8 @@ export function SignalPanel({
 
         const text = segments
             .map(s => {
-                if (s.fromT === 0 && s.toT === 1) return String(s.segmentNumber);
+                if (s.fromT === 0 && s.toT === 1)
+                    return String(s.segmentNumber);
                 return `${s.segmentNumber}:${fmtT(s.fromT)}-${fmtT(s.toT)}`;
             })
             .join(',');
@@ -144,7 +163,10 @@ export function SignalPanel({
         if (exitId !== null && !Number.isFinite(exitId)) return;
 
         // Parse segments: "10,11,12" or "10:0.5-1,11:0-1,12:0-0.8"
-        const rawSegs = blockSegs.split(',').map(s => s.trim()).filter(Boolean);
+        const rawSegs = blockSegs
+            .split(',')
+            .map(s => s.trim())
+            .filter(Boolean);
         const segments: BlockSegmentEntry[] = [];
         for (const raw of rawSegs) {
             if (raw.includes(':')) {
@@ -192,7 +214,9 @@ export function SignalPanel({
 
             {/* ---- Add Signal ---- */}
             <div className="mb-2">
-                <div className="text-xs font-semibold text-foreground mb-1">{t('addSignal')}</div>
+                <div className="text-foreground mb-1 text-xs font-semibold">
+                    {t('addSignal')}
+                </div>
                 <div className="flex flex-col gap-1">
                     <div className="flex gap-1">
                         <input
@@ -200,7 +224,7 @@ export function SignalPanel({
                             placeholder={t('segmentNumber')}
                             value={sigSeg}
                             onChange={e => setSigSeg(e.target.value)}
-                            className="w-20 rounded border bg-background px-1.5 py-0.5 text-xs"
+                            className="bg-background w-20 rounded border px-1.5 py-0.5 text-xs"
                         />
                         <input
                             type="number"
@@ -210,19 +234,31 @@ export function SignalPanel({
                             placeholder="t"
                             value={sigT}
                             onChange={e => setSigT(e.target.value)}
-                            className="w-14 rounded border bg-background px-1.5 py-0.5 text-xs"
+                            className="bg-background w-14 rounded border px-1.5 py-0.5 text-xs"
                         />
-                        <Select value={sigDir} onValueChange={(val) => setSigDir(val as 'tangent' | 'reverseTangent')}>
+                        <Select
+                            value={sigDir}
+                            onValueChange={val =>
+                                setSigDir(val as 'tangent' | 'reverseTangent')
+                            }
+                        >
                             <SelectTrigger size="sm">
                                 <SelectValue />
                             </SelectTrigger>
                             <SelectContent>
                                 <SelectItem value="tangent">tan</SelectItem>
-                                <SelectItem value="reverseTangent">rev</SelectItem>
+                                <SelectItem value="reverseTangent">
+                                    rev
+                                </SelectItem>
                             </SelectContent>
                         </Select>
                     </div>
-                    <Button size="sm" variant="outline" className="h-6 text-xs" onClick={handleAddSignal}>
+                    <Button
+                        size="sm"
+                        variant="outline"
+                        className="h-6 text-xs"
+                        onClick={handleAddSignal}
+                    >
                         <Plus className="mr-1 h-3 w-3" /> {t('addSignal')}
                     </Button>
                 </div>
@@ -231,18 +267,37 @@ export function SignalPanel({
             {/* ---- Signals List ---- */}
             {signals.length > 0 && (
                 <div className="mb-2">
-                    <div className="text-xs font-semibold text-foreground mb-1">{t('signalsList')}</div>
-                    <div className="flex flex-col gap-0.5 max-h-32 overflow-y-auto">
+                    <div className="text-foreground mb-1 text-xs font-semibold">
+                        {t('signalsList')}
+                    </div>
+                    <div className="flex max-h-32 flex-col gap-0.5 overflow-y-auto">
                         {signals.map(sig => (
-                            <div key={sig.id} className="flex items-center justify-between rounded bg-muted/50 px-1.5 py-0.5 text-xs min-w-0">
-                                <span className="flex items-center gap-1.5 min-w-0 truncate">
-                                    <AspectDot aspect={signalStateEngine.getAspect(sig.id)} />
-                                    <span className="font-mono shrink-0">#{sig.id}</span>
-                                    <span className="text-muted-foreground truncate">seg {sig.segmentNumber} t={fmtT(sig.tValue)} {sig.direction === 'tangent' ? 'T' : 'R'}</span>
+                            <div
+                                key={sig.id}
+                                className="bg-muted/50 flex min-w-0 items-center justify-between rounded px-1.5 py-0.5 text-xs"
+                            >
+                                <span className="flex min-w-0 items-center gap-1.5 truncate">
+                                    <AspectDot
+                                        aspect={signalStateEngine.getAspect(
+                                            sig.id
+                                        )}
+                                    />
+                                    <span className="shrink-0 font-mono">
+                                        #{sig.id}
+                                    </span>
+                                    <span className="text-muted-foreground truncate">
+                                        seg {sig.segmentNumber} t=
+                                        {fmtT(sig.tValue)}{' '}
+                                        {sig.direction === 'tangent'
+                                            ? 'T'
+                                            : 'R'}
+                                    </span>
                                 </span>
                                 <button
                                     className="text-muted-foreground hover:text-destructive"
-                                    onClick={() => blockSignalManager.removeSignal(sig.id)}
+                                    onClick={() =>
+                                        blockSignalManager.removeSignal(sig.id)
+                                    }
                                 >
                                     <X className="h-3 w-3" />
                                 </button>
@@ -256,7 +311,9 @@ export function SignalPanel({
 
             {/* ---- Add Block ---- */}
             <div className="mb-2">
-                <div className="text-xs font-semibold text-foreground mb-1">{t('addBlock')}</div>
+                <div className="text-foreground mb-1 text-xs font-semibold">
+                    {t('addBlock')}
+                </div>
                 <div className="flex flex-col gap-1">
                     <div className="flex gap-1">
                         <input
@@ -264,14 +321,14 @@ export function SignalPanel({
                             placeholder={t('entrySignal')}
                             value={blockEntry}
                             onChange={e => setBlockEntry(e.target.value)}
-                            className="min-w-0 flex-1 rounded border bg-background px-1.5 py-0.5 text-xs"
+                            className="bg-background min-w-0 flex-1 rounded border px-1.5 py-0.5 text-xs"
                         />
                         <input
                             type="number"
                             placeholder={t('exitSignal')}
                             value={blockExit}
                             onChange={e => setBlockExit(e.target.value)}
-                            className="min-w-0 flex-1 rounded border bg-background px-1.5 py-0.5 text-xs"
+                            className="bg-background min-w-0 flex-1 rounded border px-1.5 py-0.5 text-xs"
                         />
                     </div>
 
@@ -299,21 +356,31 @@ export function SignalPanel({
                     </div>
 
                     {autoFillError && (
-                        <div className="text-xs text-destructive">{autoFillError}</div>
+                        <div className="text-destructive text-xs">
+                            {autoFillError}
+                        </div>
                     )}
 
                     {/* Manual segment entry (collapsible) */}
                     <details className="text-xs">
-                        <summary className="cursor-pointer text-muted-foreground hover:text-foreground">{t('manualSegments')}</summary>
+                        <summary className="text-muted-foreground hover:text-foreground cursor-pointer">
+                            {t('manualSegments')}
+                        </summary>
                         <div className="mt-1 flex flex-col gap-1">
                             <input
                                 placeholder="10,11 or 10:0.5-1,11:0-0.8"
                                 value={blockSegs}
                                 onChange={e => setBlockSegs(e.target.value)}
-                                className="w-full rounded border bg-background px-1.5 py-0.5 text-xs"
+                                className="bg-background w-full rounded border px-1.5 py-0.5 text-xs"
                             />
-                            <Button size="sm" variant="outline" className="h-6 text-xs" onClick={handleAddBlock}>
-                                <Plus className="mr-1 h-3 w-3" /> {t('addBlock')}
+                            <Button
+                                size="sm"
+                                variant="outline"
+                                className="h-6 text-xs"
+                                onClick={handleAddBlock}
+                            >
+                                <Plus className="mr-1 h-3 w-3" />{' '}
+                                {t('addBlock')}
                             </Button>
                         </div>
                     </details>
@@ -323,25 +390,38 @@ export function SignalPanel({
             {/* ---- Blocks List ---- */}
             {blocks.length > 0 && (
                 <div>
-                    <div className="text-xs font-semibold text-foreground mb-1">{t('blocksList')}</div>
-                    <div className="flex flex-col gap-0.5 max-h-40 overflow-y-auto">
+                    <div className="text-foreground mb-1 text-xs font-semibold">
+                        {t('blocksList')}
+                    </div>
+                    <div className="flex max-h-40 flex-col gap-0.5 overflow-y-auto">
                         {blocks.map(block => (
-                            <div key={block.id} className="flex items-center justify-between rounded bg-muted/50 px-1.5 py-0.5 text-xs">
-                                <div className="flex flex-col min-w-0">
+                            <div
+                                key={block.id}
+                                className="bg-muted/50 flex items-center justify-between rounded px-1.5 py-0.5 text-xs"
+                            >
+                                <div className="flex min-w-0 flex-col">
                                     <span>
-                                        <span className="font-mono">B#{block.id}</span>{' '}
+                                        <span className="font-mono">
+                                            B#{block.id}
+                                        </span>{' '}
                                         <span className="text-muted-foreground">
                                             S{block.entrySignalId}
-                                            {block.exitSignalId !== null ? ` \u2192 S${block.exitSignalId}` : ''}
+                                            {block.exitSignalId !== null
+                                                ? ` \u2192 S${block.exitSignalId}`
+                                                : ''}
                                         </span>
                                     </span>
                                     <span className="text-muted-foreground truncate">
-                                        {block.segments.map(formatSegEntry).join(', ')}
+                                        {block.segments
+                                            .map(formatSegEntry)
+                                            .join(', ')}
                                     </span>
                                 </div>
                                 <button
-                                    className="ml-1 flex-shrink-0 text-muted-foreground hover:text-destructive"
-                                    onClick={() => blockSignalManager.removeBlock(block.id)}
+                                    className="text-muted-foreground hover:text-destructive ml-1 flex-shrink-0"
+                                    onClick={() =>
+                                        blockSignalManager.removeBlock(block.id)
+                                    }
                                 >
                                     <X className="h-3 w-3" />
                                 </button>

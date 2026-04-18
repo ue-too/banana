@@ -7,18 +7,16 @@ import { COLOR_STOPS } from '@/terrain/terrain-colors';
 export function TerrainLegend() {
     // Gradient: bottom = lowest elevation, top = highest.
     // CSS linear-gradient "to top" paints the first color at the bottom.
-    const gradientStops = COLOR_STOPS
-        .map((stop, i) => {
-            const pct = (i / (COLOR_STOPS.length - 1)) * 100;
-            return `rgb(${stop.color.r},${stop.color.g},${stop.color.b}) ${pct}%`;
-        })
-        .join(', ');
+    const gradientStops = COLOR_STOPS.map((stop, i) => {
+        const pct = (i / (COLOR_STOPS.length - 1)) * 100;
+        return `rgb(${stop.color.r},${stop.color.g},${stop.color.b}) ${pct}%`;
+    }).join(', ');
 
     // Labels: highest elevation at top, lowest at bottom.
     const labelsTopToBottom = [...COLOR_STOPS].reverse();
 
     return (
-        <div className="pointer-events-auto flex items-stretch gap-1.5 rounded bg-background/80 px-2 py-1.5 text-[10px] backdrop-blur-sm">
+        <div className="bg-background/80 pointer-events-auto flex items-stretch gap-1.5 rounded px-2 py-1.5 text-[10px] backdrop-blur-sm">
             {/* Gradient bar */}
             <div
                 className="w-3 rounded-sm"
@@ -27,8 +25,8 @@ export function TerrainLegend() {
                 }}
             />
             {/* Labels */}
-            <div className="flex flex-col justify-between text-muted-foreground">
-                {labelsTopToBottom.map((stop) => (
+            <div className="text-muted-foreground flex flex-col justify-between">
+                {labelsTopToBottom.map(stop => (
                     <span key={stop.height} className="leading-none">
                         {stop.height >= 0 ? `+${stop.height}` : stop.height}m
                     </span>

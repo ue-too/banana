@@ -15,7 +15,13 @@ import {
 import { CarDefinitionLibraryDialog } from '@/components/car-definition-library/CarDefinitionLibraryDialog';
 import { SaveCarDefinitionDialog } from '@/components/car-definition-library/SaveCarDefinitionDialog';
 import { Button } from '@/components/ui/button';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import {
+    Select,
+    SelectContent,
+    SelectItem,
+    SelectTrigger,
+    SelectValue,
+} from '@/components/ui/select';
 import { Separator } from '@/components/ui/separator';
 import {
     Tooltip,
@@ -376,14 +382,19 @@ export function TrainEditorToolbar() {
 
                     {/* Car type */}
                     <div className="w-full px-1">
-                        <span className="text-muted-foreground text-[9px] font-medium uppercase tracking-wider">
+                        <span className="text-muted-foreground text-[9px] font-medium tracking-wider uppercase">
                             {t('carType')}
                         </span>
                         <Select
                             value={carType}
-                            onValueChange={(value: string) => setCarType(value as CarType)}
+                            onValueChange={(value: string) =>
+                                setCarType(value as CarType)
+                            }
                         >
-                            <SelectTrigger size="sm" className="h-6 w-full text-[10px]">
+                            <SelectTrigger
+                                size="sm"
+                                className="h-6 w-full text-[10px]"
+                            >
                                 <SelectValue />
                             </SelectTrigger>
                             <SelectContent>

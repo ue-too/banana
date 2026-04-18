@@ -1,6 +1,19 @@
-import { Point, PointCal } from "@ue-too/math";
-import { BogieEditContext } from "./bogie-kmt-state-machine";
-import { Canvas, convertFromCanvas2ViewPort, convertFromViewPort2Canvas, convertFromCanvas2Window, convertFromWorld2Viewport, convertFromViewport2World, convertFromWindow2Canvas, ObservableBoardCamera, SynchronousObservable, Observer, SubscriptionOptions } from "@ue-too/board";
+import {
+    Canvas,
+    ObservableBoardCamera,
+    Observer,
+    SubscriptionOptions,
+    SynchronousObservable,
+    convertFromCanvas2ViewPort,
+    convertFromCanvas2Window,
+    convertFromViewPort2Canvas,
+    convertFromViewport2World,
+    convertFromWindow2Canvas,
+    convertFromWorld2Viewport,
+} from '@ue-too/board';
+import { Point, PointCal } from '@ue-too/math';
+
+import { BogieEditContext } from './bogie-kmt-state-machine';
 
 const BOGIE_RADIUS = 0.5;
 
@@ -8,7 +21,11 @@ const BOGIE_RADIUS = 0.5;
  * Projects a point onto a line defined by a point and direction.
  * Returns the closest point on the line to the given point.
  */
-function projectPointOnLine(point: Point, lineOrigin: Point, lineDirection: Point): Point {
+function projectPointOnLine(
+    point: Point,
+    lineOrigin: Point,
+    lineDirection: Point
+): Point {
     const dx = point.x - lineOrigin.x;
     const dy = point.y - lineOrigin.y;
     const dot = dx * lineDirection.x + dy * lineDirection.y;
@@ -26,7 +43,6 @@ function projectPointOnLine(point: Point, lineOrigin: Point, lineDirection: Poin
  * The line is defined by an origin point and a unit direction vector.
  */
 export class BogieEditorEngine implements BogieEditContext {
-
     private _currentPosition: Point = { x: 0, y: 0 };
     private _bogies: Point[] = [];
     private _currentBogie: number | null = null;
@@ -44,7 +60,9 @@ export class BogieEditorEngine implements BogieEditContext {
         this._camera = camera;
         this._canvas = canvas;
         this._positionObservable = new SynchronousObservable<[number, Point]>();
-        this._bogieAddedObservable = new SynchronousObservable<[number, Point]>();
+        this._bogieAddedObservable = new SynchronousObservable<
+            [number, Point]
+        >();
         this._bogieRemovedObservable = new SynchronousObservable<[number]>();
     }
 
@@ -60,18 +78,25 @@ export class BogieEditorEngine implements BogieEditContext {
      * Sets the constraint line. Direction will be normalized.
      */
     setLine(origin: Point, direction: Point): void {
-        const mag = Math.sqrt(direction.x * direction.x + direction.y * direction.y);
+        const mag = Math.sqrt(
+            direction.x * direction.x + direction.y * direction.y
+        );
         this._lineOrigin = { ...origin };
-        this._lineDirection = mag > 0
-            ? { x: direction.x / mag, y: direction.y / mag }
-            : { x: 1, y: 0 };
+        this._lineDirection =
+            mag > 0
+                ? { x: direction.x / mag, y: direction.y / mag }
+                : { x: 1, y: 0 };
     }
 
     /**
      * Projects a world-space point onto the constraint line.
      */
     projectOnLine(position: Point): Point {
-        return projectPointOnLine(position, this._lineOrigin, this._lineDirection);
+        return projectPointOnLine(
+            position,
+            this._lineOrigin,
+            this._lineDirection
+        );
     }
 
     /**
@@ -86,7 +111,10 @@ export class BogieEditorEngine implements BogieEditContext {
      * If a bogie is within BOGIE_RADIUS, it becomes the current selection.
      */
     projectOnBogie(position: Point): boolean {
-        const res = this._bogies.findIndex(bogie => PointCal.distanceBetweenPoints(position, bogie) < BOGIE_RADIUS);
+        const res = this._bogies.findIndex(
+            bogie =>
+                PointCal.distanceBetweenPoints(position, bogie) < BOGIE_RADIUS
+        );
         if (res !== -1) {
             this._currentBogie = res;
             return true;
@@ -100,22 +128,34 @@ export class BogieEditorEngine implements BogieEditContext {
      */
     setCurrentPosition(position: Point) {
         const projected = this.projectOnLine(position);
-        if (this._currentBogie !== null && this._bogies[this._currentBogie] !== undefined) {
+        if (
+            this._currentBogie !== null &&
+            this._bogies[this._currentBogie] !== undefined
+        ) {
             this._bogies[this._currentBogie] = projected;
             this._positionObservable.notify(this._currentBogie, projected);
         }
         this._currentPosition = projected;
     }
 
-    onBogiePositionChanged(observer: Observer<[number, Point]>, options?: SubscriptionOptions) {
+    onBogiePositionChanged(
+        observer: Observer<[number, Point]>,
+        options?: SubscriptionOptions
+    ) {
         return this._positionObservable.subscribe(observer, options);
     }
 
-    onBogieAdded(observer: Observer<[number, Point]>, options?: SubscriptionOptions) {
+    onBogieAdded(
+        observer: Observer<[number, Point]>,
+        options?: SubscriptionOptions
+    ) {
         return this._bogieAddedObservable.subscribe(observer, options);
     }
 
-    onBogieRemoved(observer: Observer<[number]>, options?: SubscriptionOptions) {
+    onBogieRemoved(
+        observer: Observer<[number]>,
+        options?: SubscriptionOptions
+    ) {
         return this._bogieRemovedObservable.subscribe(observer, options);
     }
 
@@ -139,23 +179,39 @@ export class BogieEditorEngine implements BogieEditContext {
         return true;
     }
 
+    setup(): void {}
 
-    setup(): void {
-    }
-
-    cleanup(): void {
-    }
+    cleanup(): void {}
 
     convert2WorldPosition(pointInWindow: Point): Point {
-        const pointInCanvas = convertFromWindow2Canvas(pointInWindow, this._canvas);
-        const pointInViewport = convertFromCanvas2ViewPort(pointInCanvas, { x: this._canvas.width / 2, y: this._canvas.height / 2 });
+        const pointInCanvas = convertFromWindow2Canvas(
+            pointInWindow,
+            this._canvas
+        );
+        const pointInViewport = convertFromCanvas2ViewPort(pointInCanvas, {
+            x: this._canvas.width / 2,
+            y: this._canvas.height / 2,
+        });
 
-        return convertFromViewport2World(pointInViewport, this._camera.position, this._camera.zoomLevel, this._camera.rotation);
+        return convertFromViewport2World(
+            pointInViewport,
+            this._camera.position,
+            this._camera.zoomLevel,
+            this._camera.rotation
+        );
     }
 
     convert2WindowPosition(pointInWorld: Point): Point {
-        const pointInViewport = convertFromWorld2Viewport(pointInWorld, this._camera.position, this._camera.zoomLevel, this._camera.rotation);
-        const pointInCanvas = convertFromViewPort2Canvas(pointInViewport, { x: this._canvas.width / 2, y: this._canvas.height / 2 });
+        const pointInViewport = convertFromWorld2Viewport(
+            pointInWorld,
+            this._camera.position,
+            this._camera.zoomLevel,
+            this._camera.rotation
+        );
+        const pointInCanvas = convertFromViewPort2Canvas(pointInViewport, {
+            x: this._canvas.width / 2,
+            y: this._canvas.height / 2,
+        });
         return convertFromCanvas2Window(pointInCanvas, this._canvas);
     }
 
@@ -177,7 +233,10 @@ export class BogieEditorEngine implements BogieEditContext {
      * @param edgeToBogie - Distance from leading car edge to first bogie (default 2.5)
      * @param bogieToEdge - Distance from last bogie to trailing car edge (default 2.5)
      */
-    exportCarDefinition(edgeToBogie: number = 2.5, bogieToEdge: number = 2.5): {
+    exportCarDefinition(
+        edgeToBogie: number = 2.5,
+        bogieToEdge: number = 2.5
+    ): {
         bogieOffsets: number[];
         edgeToBogie: number;
         bogieToEdge: number;

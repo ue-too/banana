@@ -1,14 +1,18 @@
-import { describe, it, expect, beforeEach } from 'bun:test';
-import { Car, CarType, getDefaultGangway, seedIdGeneratorsFromSerialized } from '../src/trains/cars';
+import { beforeEach, describe, expect, it } from 'bun:test';
+
+import {
+    Car,
+    CarType,
+    getDefaultGangway,
+    seedIdGeneratorsFromSerialized,
+} from '../src/trains/cars';
 import { Formation } from '../src/trains/formation';
 import type {
     SerializedCar,
     SerializedFormation,
     SerializedTrainData,
 } from '../src/trains/train-serialization';
-import {
-    validateSerializedTrainData,
-} from '../src/trains/train-serialization';
+import { validateSerializedTrainData } from '../src/trains/train-serialization';
 
 /**
  * Mirror of the private serializeCar — we replicate the logic here so the
@@ -24,14 +28,18 @@ function serializeCar(car: Car): SerializedCar {
         edgeToBogie: car.edgeToBogie,
         bogieToEdge: car.bogieToEdge,
         ...(car.type !== CarType.COACH ? { type: car.type } : {}),
-        ...(car.headHasGangway !== gangwayDefaults.head ? { headHasGangway: car.headHasGangway } : {}),
-        ...(car.tailHasGangway !== gangwayDefaults.tail ? { tailHasGangway: car.tailHasGangway } : {}),
+        ...(car.headHasGangway !== gangwayDefaults.head
+            ? { headHasGangway: car.headHasGangway }
+            : {}),
+        ...(car.tailHasGangway !== gangwayDefaults.tail
+            ? { tailHasGangway: car.tailHasGangway }
+            : {}),
         flipped: car.flipped,
     };
 }
 
 function serializeFormation(formation: Formation): SerializedFormation {
-    const children = formation.children.map((child) => {
+    const children = formation.children.map(child => {
         if (child.depth === 0) {
             return { type: 'car' as const, id: child.id };
         }
@@ -47,7 +55,14 @@ function serializeFormation(formation: Formation): SerializedFormation {
 
 function deserializeCar(data: SerializedCar): Car {
     const type = (data.type as CarType | undefined) ?? CarType.COACH;
-    const car = new Car(data.id, [...data.bogieOffsets], data.edgeToBogie, data.bogieToEdge, undefined, type);
+    const car = new Car(
+        data.id,
+        [...data.bogieOffsets],
+        data.edgeToBogie,
+        data.bogieToEdge,
+        undefined,
+        type
+    );
     if (data.name !== undefined) {
         car.name = data.name;
     }
@@ -66,9 +81,9 @@ function deserializeCar(data: SerializedCar): Car {
 function deserializeFormation(
     data: SerializedFormation,
     carById: Map<string, Car>,
-    formationById: Map<string, Formation>,
+    formationById: Map<string, Formation>
 ): Formation {
-    const children = data.children.map((child) => {
+    const children = data.children.map(child => {
         if (child.type === 'car') {
             const car = carById.get(child.id);
             if (!car) throw new Error(`Car not found: ${child.id}`);
@@ -78,7 +93,7 @@ function deserializeFormation(
         if (!nested) throw new Error(`Formation not found: ${child.id}`);
         return nested;
     });
-    const depth = 1 + Math.max(0, ...children.map((c) => c.depth));
+    const depth = 1 + Math.max(0, ...children.map(c => c.depth));
     const formation = new Formation(data.id, children, depth);
     if (data.name !== undefined) {
         formation.name = data.name;
@@ -90,7 +105,6 @@ function deserializeFormation(
 }
 
 describe('Car name serialization', () => {
-
     beforeEach(() => {
         seedIdGeneratorsFromSerialized([], []);
     });
@@ -113,7 +127,12 @@ describe('Car name serialization', () => {
 
     it('should restore car name on deserialization', () => {
         const data: SerializedCar = {
-            id: 'car-0', name: 'My Car', bogieOffsets: [20], edgeToBogie: 2.5, bogieToEdge: 2.5, flipped: false,
+            id: 'car-0',
+            name: 'My Car',
+            bogieOffsets: [20],
+            edgeToBogie: 2.5,
+            bogieToEdge: 2.5,
+            flipped: false,
         };
 
         const car = deserializeCar(data);
@@ -123,7 +142,11 @@ describe('Car name serialization', () => {
 
     it('should default car name to id when name is omitted (backwards compatibility)', () => {
         const data: SerializedCar = {
-            id: 'car-5', bogieOffsets: [15], edgeToBogie: 3, bogieToEdge: 3, flipped: false,
+            id: 'car-5',
+            bogieOffsets: [15],
+            edgeToBogie: 3,
+            bogieToEdge: 3,
+            flipped: false,
         };
 
         const car = deserializeCar(data);
@@ -166,7 +189,6 @@ describe('Car name serialization', () => {
 });
 
 describe('Formation name serialization', () => {
-
     beforeEach(() => {
         seedIdGeneratorsFromSerialized([], []);
     });
@@ -191,25 +213,48 @@ describe('Formation name serialization', () => {
 
     it('should restore formation name on deserialization', () => {
         const carData: SerializedCar = {
-            id: 'car-0', bogieOffsets: [20], edgeToBogie: 2.5, bogieToEdge: 2.5, flipped: false,
+            id: 'car-0',
+            bogieOffsets: [20],
+            edgeToBogie: 2.5,
+            bogieToEdge: 2.5,
+            flipped: false,
         };
         const car = deserializeCar(carData);
 
         const formationData: SerializedFormation = {
-            id: 'formation-0', name: 'Shinkansen', children: [{ type: 'car', id: 'car-0' }], flipped: false,
+            id: 'formation-0',
+            name: 'Shinkansen',
+            children: [{ type: 'car', id: 'car-0' }],
+            flipped: false,
         };
         const carById = new Map([['car-0', car]]);
-        const formation = deserializeFormation(formationData, carById, new Map());
+        const formation = deserializeFormation(
+            formationData,
+            carById,
+            new Map()
+        );
 
         expect(formation.name).toBe('Shinkansen');
     });
 
     it('should default formation name to id when name is omitted (backwards compatibility)', () => {
-        const car = deserializeCar({ id: 'car-0', bogieOffsets: [20], edgeToBogie: 2.5, bogieToEdge: 2.5, flipped: false });
+        const car = deserializeCar({
+            id: 'car-0',
+            bogieOffsets: [20],
+            edgeToBogie: 2.5,
+            bogieToEdge: 2.5,
+            flipped: false,
+        });
         const formationData: SerializedFormation = {
-            id: 'formation-0', children: [{ type: 'car', id: 'car-0' }], flipped: false,
+            id: 'formation-0',
+            children: [{ type: 'car', id: 'car-0' }],
+            flipped: false,
         };
-        const formation = deserializeFormation(formationData, new Map([['car-0', car]]), new Map());
+        const formation = deserializeFormation(
+            formationData,
+            new Map([['car-0', car]]),
+            new Map()
+        );
 
         expect(formation.name).toBe('formation-0');
     });
@@ -223,14 +268,17 @@ describe('Formation name serialization', () => {
         const parsed: SerializedFormation = JSON.parse(json);
 
         const restoredCar = new Car('car-0', [20], 2.5, 2.5);
-        const restored = deserializeFormation(parsed, new Map([['car-0', restoredCar]]), new Map());
+        const restored = deserializeFormation(
+            parsed,
+            new Map([['car-0', restoredCar]]),
+            new Map()
+        );
 
         expect(restored.name).toBe('Rapid Service');
     });
 });
 
 describe('Car and formation names together', () => {
-
     it('should preserve both car and formation names in a round-trip', () => {
         const carA = new Car('car-0', [20], 2.5, 2.5);
         carA.name = 'Motor Car A';
@@ -243,11 +291,18 @@ describe('Car and formation names together', () => {
         formation.name = 'Local 4-car';
 
         // Serialize
-        const serializedCars = [serializeCar(carA), serializeCar(carB), serializeCar(carC)];
+        const serializedCars = [
+            serializeCar(carA),
+            serializeCar(carB),
+            serializeCar(carC),
+        ];
         const serializedFormation = serializeFormation(formation);
 
         // JSON round-trip
-        const json = JSON.stringify({ cars: serializedCars, formation: serializedFormation });
+        const json = JSON.stringify({
+            cars: serializedCars,
+            formation: serializedFormation,
+        });
         const parsed = JSON.parse(json);
 
         // Deserialize cars
@@ -258,7 +313,11 @@ describe('Car and formation names together', () => {
         }
 
         // Deserialize formation
-        const restoredFormation = deserializeFormation(parsed.formation, restoredCarById, new Map());
+        const restoredFormation = deserializeFormation(
+            parsed.formation,
+            restoredCarById,
+            new Map()
+        );
 
         expect(restoredFormation.name).toBe('Local 4-car');
         const formationCars = restoredFormation.flatCars();
@@ -271,7 +330,6 @@ describe('Car and formation names together', () => {
 });
 
 describe('Nested formation name serialization', () => {
-
     it('should preserve names on nested formations', () => {
         const carA = new Car('car-0', [20], 2.5, 2.5);
         carA.name = 'Head Car';
@@ -285,11 +343,21 @@ describe('Nested formation name serialization', () => {
         outer.name = 'Full Set';
 
         // Serialize all
-        const serializedCars = [serializeCar(carA), serializeCar(carB), serializeCar(carC)];
-        const serializedFormations = [serializeFormation(inner), serializeFormation(outer)];
+        const serializedCars = [
+            serializeCar(carA),
+            serializeCar(carB),
+            serializeCar(carC),
+        ];
+        const serializedFormations = [
+            serializeFormation(inner),
+            serializeFormation(outer),
+        ];
 
         // JSON round-trip
-        const json = JSON.stringify({ cars: serializedCars, formations: serializedFormations });
+        const json = JSON.stringify({
+            cars: serializedCars,
+            formations: serializedFormations,
+        });
         const parsed = JSON.parse(json);
 
         // Deserialize
@@ -299,10 +367,18 @@ describe('Nested formation name serialization', () => {
         }
         const formationById = new Map<string, Formation>();
         // Inner first (no nested deps)
-        const restoredInner = deserializeFormation(parsed.formations[0], carById, formationById);
+        const restoredInner = deserializeFormation(
+            parsed.formations[0],
+            carById,
+            formationById
+        );
         formationById.set(restoredInner.id, restoredInner);
         // Outer depends on inner
-        const restoredOuter = deserializeFormation(parsed.formations[1], carById, formationById);
+        const restoredOuter = deserializeFormation(
+            parsed.formations[1],
+            carById,
+            formationById
+        );
 
         expect(restoredOuter.name).toBe('Full Set');
 
@@ -316,10 +392,18 @@ describe('Nested formation name serialization', () => {
 });
 
 describe('validateSerializedTrainData with names', () => {
-
     it('should accept data with car name field', () => {
         const data: SerializedTrainData = {
-            cars: [{ id: 'car-0', name: 'Named Car', bogieOffsets: [20], edgeToBogie: 2.5, bogieToEdge: 2.5, flipped: false }],
+            cars: [
+                {
+                    id: 'car-0',
+                    name: 'Named Car',
+                    bogieOffsets: [20],
+                    edgeToBogie: 2.5,
+                    bogieToEdge: 2.5,
+                    flipped: false,
+                },
+            ],
             formations: [],
             carStockIds: ['car-0'],
             formationManagerIds: [],
@@ -330,7 +414,15 @@ describe('validateSerializedTrainData with names', () => {
 
     it('should accept data without car name field', () => {
         const data: SerializedTrainData = {
-            cars: [{ id: 'car-0', bogieOffsets: [20], edgeToBogie: 2.5, bogieToEdge: 2.5, flipped: false }],
+            cars: [
+                {
+                    id: 'car-0',
+                    bogieOffsets: [20],
+                    edgeToBogie: 2.5,
+                    bogieToEdge: 2.5,
+                    flipped: false,
+                },
+            ],
             formations: [],
             carStockIds: ['car-0'],
             formationManagerIds: [],
@@ -341,8 +433,23 @@ describe('validateSerializedTrainData with names', () => {
 
     it('should accept data with formation name field', () => {
         const data: SerializedTrainData = {
-            cars: [{ id: 'car-0', bogieOffsets: [20], edgeToBogie: 2.5, bogieToEdge: 2.5, flipped: false }],
-            formations: [{ id: 'formation-0', name: 'Express', children: [{ type: 'car', id: 'car-0' }], flipped: false }],
+            cars: [
+                {
+                    id: 'car-0',
+                    bogieOffsets: [20],
+                    edgeToBogie: 2.5,
+                    bogieToEdge: 2.5,
+                    flipped: false,
+                },
+            ],
+            formations: [
+                {
+                    id: 'formation-0',
+                    name: 'Express',
+                    children: [{ type: 'car', id: 'car-0' }],
+                    flipped: false,
+                },
+            ],
             carStockIds: [],
             formationManagerIds: ['formation-0'],
             placedTrains: [],
@@ -352,7 +459,6 @@ describe('validateSerializedTrainData with names', () => {
 });
 
 describe('Car type and gangway serialization', () => {
-
     it('should omit type when COACH (default)', () => {
         const car = new Car('car-0', [20], 2.5, 2.5);
         const serialized = serializeCar(car);
@@ -360,20 +466,41 @@ describe('Car type and gangway serialization', () => {
     });
 
     it('should include type when not COACH', () => {
-        const car = new Car('car-0', [20], 2.5, 2.5, undefined, CarType.LOCOMOTIVE);
+        const car = new Car(
+            'car-0',
+            [20],
+            2.5,
+            2.5,
+            undefined,
+            CarType.LOCOMOTIVE
+        );
         const serialized = serializeCar(car);
         expect(serialized.type).toBe('locomotive');
     });
 
     it('should omit gangway flags when matching type defaults', () => {
-        const coach = new Car('car-0', [20], 2.5, 2.5, undefined, CarType.COACH);
+        const coach = new Car(
+            'car-0',
+            [20],
+            2.5,
+            2.5,
+            undefined,
+            CarType.COACH
+        );
         const serialized = serializeCar(coach);
         expect(serialized.headHasGangway).toBeUndefined();
         expect(serialized.tailHasGangway).toBeUndefined();
     });
 
     it('should include gangway flags when overridden from type defaults', () => {
-        const coach = new Car('car-0', [20], 2.5, 2.5, undefined, CarType.COACH);
+        const coach = new Car(
+            'car-0',
+            [20],
+            2.5,
+            2.5,
+            undefined,
+            CarType.COACH
+        );
         coach.headHasGangway = false; // override from default true
         const serialized = serializeCar(coach);
         expect(serialized.headHasGangway).toBe(false);
@@ -381,7 +508,14 @@ describe('Car type and gangway serialization', () => {
     });
 
     it('should round-trip car type and gangway overrides', () => {
-        const car = new Car('car-0', [20], 2.5, 2.5, undefined, CarType.CAB_CAR);
+        const car = new Car(
+            'car-0',
+            [20],
+            2.5,
+            2.5,
+            undefined,
+            CarType.CAB_CAR
+        );
         car.tailHasGangway = false; // override from default true
 
         const json = JSON.stringify(serializeCar(car));
@@ -395,7 +529,11 @@ describe('Car type and gangway serialization', () => {
 
     it('should default to COACH when type is absent (backwards compatibility)', () => {
         const data: SerializedCar = {
-            id: 'car-0', bogieOffsets: [20], edgeToBogie: 2.5, bogieToEdge: 2.5, flipped: false,
+            id: 'car-0',
+            bogieOffsets: [20],
+            edgeToBogie: 2.5,
+            bogieToEdge: 2.5,
+            flipped: false,
         };
         const car = deserializeCar(data);
         expect(car.type).toBe(CarType.COACH);

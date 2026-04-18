@@ -2,7 +2,6 @@
  * Shared SFD parsing + rasterization for Cubic 11 glyph extraction.
  * Used by extract-sfd-bitmaps.ts (CJK) and extract-sfd-bitmaps-latin.ts (ASCII + extras).
  */
-
 import { resolve } from 'path';
 
 export const ROOT = resolve(import.meta.dir, '..');
@@ -38,8 +37,8 @@ export function parseGlyph(
     const splineBlock = sfdContent.substring(splineStart + 10, splineEnd);
     const lines = splineBlock
         .split('\n')
-        .map((l) => l.trim())
-        .filter((l) => l.length > 0);
+        .map(l => l.trim())
+        .filter(l => l.length > 0);
 
     const contours: number[][][] = [];
     let currentContour: number[][] = [];
@@ -52,9 +51,7 @@ export function parseGlyph(
             if (currentContour.length > 0) {
                 contours.push(currentContour);
             }
-            currentContour = [
-                [parseInt(moveMatch[1]), parseInt(moveMatch[2])],
-            ];
+            currentContour = [[parseInt(moveMatch[1]), parseInt(moveMatch[2])]];
         } else if (lineMatch) {
             currentContour.push([
                 parseInt(lineMatch[1]),
@@ -73,10 +70,7 @@ export function parseGlyph(
 // Rasterize via ray casting
 // ---------------------------------------------------------------------------
 
-export function rasterize(
-    contours: number[][][],
-    width: number
-): boolean[][] {
+export function rasterize(contours: number[][][], width: number): boolean[][] {
     const minY = -200;
     const maxY = 900;
     const cols = Math.ceil(width / UNIT);
@@ -100,7 +94,7 @@ export function rasterize(
                     const [x2, y2] = contour[(i + 1) % n];
 
                     if (
-                        (y1 > py) !== (y2 > py) &&
+                        y1 > py !== y2 > py &&
                         px < ((x2 - x1) * (py - y1)) / (y2 - y1) + x1
                     ) {
                         inside = !inside;
@@ -117,11 +111,9 @@ export function rasterize(
 
 export function trimGrid(grid: boolean[][]): string[] {
     let firstRow = 0;
-    while (firstRow < grid.length && grid[firstRow].every((v) => !v))
-        firstRow++;
+    while (firstRow < grid.length && grid[firstRow].every(v => !v)) firstRow++;
     let lastRow = grid.length - 1;
-    while (lastRow > firstRow && grid[lastRow].every((v) => !v))
-        lastRow--;
+    while (lastRow > firstRow && grid[lastRow].every(v => !v)) lastRow--;
 
     const trimmedRows = grid.slice(firstRow, lastRow + 1);
     if (trimmedRows.length === 0) return [];
@@ -137,10 +129,10 @@ export function trimGrid(grid: boolean[][]): string[] {
         }
     }
 
-    return trimmedRows.map((row) =>
+    return trimmedRows.map(row =>
         row
             .slice(firstCol, lastCol + 1)
-            .map((v) => (v ? '#' : '.'))
+            .map(v => (v ? '#' : '.'))
             .join('')
     );
 }

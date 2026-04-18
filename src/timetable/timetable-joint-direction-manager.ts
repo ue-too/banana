@@ -55,7 +55,10 @@ export class TimetableJointDirectionManager implements JointDirectionManager {
         this._trackGraph = trackGraph;
         this._routeJoints = routeJoints;
         this._currentIndex = startIndex;
-        this._fallback = new DefaultJointDirectionManager(trackGraph, preferenceMap);
+        this._fallback = new DefaultJointDirectionManager(
+            trackGraph,
+            preferenceMap
+        );
     }
 
     /** Current position in the route's joint sequence. */

@@ -1,6 +1,6 @@
-import { ChevronLeft, ChevronRight, Pause, Play } from '@/assets/icons';
 import { useCallback, useEffect, useRef, useState } from 'react';
 
+import { ChevronLeft, ChevronRight, Pause, Play } from '@/assets/icons';
 import { useBananaApp } from '@/contexts/pixi';
 import { DayOfWeek } from '@/timetable/types';
 
@@ -19,7 +19,10 @@ const DAY_NAMES: Record<DayOfWeek, string> = {
 /** Format epoch ms into the virtual schedule clock time with date. */
 function formatScheduleTime(
     epochMs: number,
-    toVirtualDateTime: (ms: number) => { day: DayOfWeek; time: { hours: number; minutes: number; seconds: number } },
+    toVirtualDateTime: (ms: number) => {
+        day: DayOfWeek;
+        time: { hours: number; minutes: number; seconds: number };
+    }
 ): string {
     const vdt = toVirtualDateTime(epochMs);
     const day = DAY_NAMES[vdt.day] ?? '???';
@@ -52,15 +55,21 @@ export function TimeDisplay() {
                 setTime(currentTime);
             }
         });
-        const unsubPause = app.timeManager.subscribePause((isPaused: boolean) => {
-            setPaused(isPaused);
-        });
+        const unsubPause = app.timeManager.subscribePause(
+            (isPaused: boolean) => {
+                setPaused(isPaused);
+            }
+        );
         const unsubSpeed = app.timeManager.subscribeSpeed((s: number) => {
             setSpeed(s);
         });
         setPaused(app.timeManager.paused);
         setSpeed(app.timeManager.speed);
-        return () => { unsubTime(); unsubPause(); unsubSpeed(); };
+        return () => {
+            unsubTime();
+            unsubPause();
+            unsubSpeed();
+        };
     }, [app]);
 
     const togglePause = useCallback(() => {
@@ -81,25 +90,31 @@ export function TimeDisplay() {
     const faster = useCallback(() => {
         if (!app) return;
         const idx = SPEED_STEPS.indexOf(app.timeManager.speed);
-        if (idx < SPEED_STEPS.length - 1) app.timeManager.setSpeed(SPEED_STEPS[idx + 1]);
+        if (idx < SPEED_STEPS.length - 1)
+            app.timeManager.setSpeed(SPEED_STEPS[idx + 1]);
     }, [app]);
 
     return (
-        <div className="pointer-events-auto absolute left-1/2 top-3 -translate-x-1/2 flex items-center gap-1">
+        <div className="pointer-events-auto absolute top-3 left-1/2 flex -translate-x-1/2 items-center gap-1">
             <button
                 onClick={slower}
                 disabled={speed === SPEED_STEPS[0]}
-                className="bg-background/60 text-muted-foreground hover:text-foreground disabled:opacity-30 rounded p-1 backdrop-blur-sm transition-colors"
+                className="bg-background/60 text-muted-foreground hover:text-foreground rounded p-1 backdrop-blur-sm transition-colors disabled:opacity-30"
             >
                 <ChevronLeft size={14} />
             </button>
-            <span className="text-muted-foreground bg-background/60 rounded px-2 py-1 text-xs font-mono backdrop-blur-sm">
-                {app ? formatScheduleTime(time, (ms) => app.scheduleClock.toVirtualDateTime(ms)) : '--'} <span className="text-[10px]">x{speed}</span>
+            <span className="text-muted-foreground bg-background/60 rounded px-2 py-1 font-mono text-xs backdrop-blur-sm">
+                {app
+                    ? formatScheduleTime(time, ms =>
+                          app.scheduleClock.toVirtualDateTime(ms)
+                      )
+                    : '--'}{' '}
+                <span className="text-[10px]">x{speed}</span>
             </span>
             <button
                 onClick={faster}
                 disabled={speed === SPEED_STEPS[SPEED_STEPS.length - 1]}
-                className="bg-background/60 text-muted-foreground hover:text-foreground disabled:opacity-30 rounded p-1 backdrop-blur-sm transition-colors"
+                className="bg-background/60 text-muted-foreground hover:text-foreground rounded p-1 backdrop-blur-sm transition-colors disabled:opacity-30"
             >
                 <ChevronRight size={14} />
             </button>

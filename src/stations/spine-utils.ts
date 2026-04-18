@@ -1,5 +1,6 @@
-import type { Point } from '@ue-too/math';
 import type { BCurve } from '@ue-too/curve';
+import type { Point } from '@ue-too/math';
+
 import type { SpineEntry } from './track-aligned-platform-types';
 import type { StopPosition } from './types';
 
@@ -33,10 +34,13 @@ export type ValidateSpineResult = ValidateSpineOk | ValidateSpineFail;
 export function validateSpine(
     spine: SpineEntry[],
     getSegment: (id: number) => SegmentLookup,
-    getJoint: (id: number) => JointLookup,
+    getJoint: (id: number) => JointLookup
 ): ValidateSpineResult {
     if (spine.length === 0) {
-        return { valid: false, error: 'Spine must contain at least one segment.' };
+        return {
+            valid: false,
+            error: 'Spine must contain at least one segment.',
+        };
     }
 
     for (let i = 0; i < spine.length - 1; i++) {
@@ -46,7 +50,7 @@ export function validateSpine(
         // Find shared joint between segA and segB
         const aJoints = [segA.t0Joint, segA.t1Joint];
         const bJoints = new Set([segB.t0Joint, segB.t1Joint]);
-        const sharedJointId = aJoints.find((j) => bJoints.has(j));
+        const sharedJointId = aJoints.find(j => bJoints.has(j));
 
         if (sharedJointId === undefined) {
             return {
@@ -90,7 +94,7 @@ export function sampleSpineEdge(
     spine: SpineEntry[],
     offset: number,
     getCurve: (segmentId: number) => BCurve,
-    stepsPerSegment?: number,
+    stepsPerSegment?: number
 ): Point[] {
     const points: Point[] = [];
 
@@ -146,7 +150,7 @@ export function computeAnchorPoint(
     entry: SpineEntry,
     end: 'start' | 'end',
     offset: number,
-    getCurve: (segmentId: number) => BCurve,
+    getCurve: (segmentId: number) => BCurve
 ): Point {
     const curve = getCurve(entry.trackSegment);
     const t = end === 'start' ? entry.tStart : entry.tEnd;
@@ -186,7 +190,7 @@ export function computeAnchorPoint(
  */
 export function computeStopPositions(
     spine: SpineEntry[],
-    getCurve: (segmentId: number) => BCurve,
+    getCurve: (segmentId: number) => BCurve
 ): StopPosition[] {
     if (spine.length === 0) return [];
 
@@ -213,15 +217,27 @@ export function computeStopPositions(
         if (accumulated + entryLength >= halfLength) {
             const entry = spine[i];
             // Fraction within this entry where the midpoint falls.
-            const fraction = entryLength > 1e-6
-                ? (halfLength - accumulated) / entryLength
-                : 0.5;
+            const fraction =
+                entryLength > 1e-6
+                    ? (halfLength - accumulated) / entryLength
+                    : 0.5;
             // Interpolate the t-value.
-            const tValue = entry.tStart + (entry.tEnd - entry.tStart) * fraction;
+            const tValue =
+                entry.tStart + (entry.tEnd - entry.tStart) * fraction;
 
             return [
-                { id: 0, trackSegmentId: entry.trackSegment, direction: 'tangent', tValue },
-                { id: 1, trackSegmentId: entry.trackSegment, direction: 'reverseTangent', tValue },
+                {
+                    id: 0,
+                    trackSegmentId: entry.trackSegment,
+                    direction: 'tangent',
+                    tValue,
+                },
+                {
+                    id: 1,
+                    trackSegmentId: entry.trackSegment,
+                    direction: 'reverseTangent',
+                    tValue,
+                },
             ];
         }
         accumulated += entryLength;
@@ -230,7 +246,17 @@ export function computeStopPositions(
     // Fallback: use the last entry's endpoint.
     const lastEntry = spine[spine.length - 1];
     return [
-        { id: 0, trackSegmentId: lastEntry.trackSegment, direction: 'tangent', tValue: lastEntry.tEnd },
-        { id: 1, trackSegmentId: lastEntry.trackSegment, direction: 'reverseTangent', tValue: lastEntry.tEnd },
+        {
+            id: 0,
+            trackSegmentId: lastEntry.trackSegment,
+            direction: 'tangent',
+            tValue: lastEntry.tEnd,
+        },
+        {
+            id: 1,
+            trackSegmentId: lastEntry.trackSegment,
+            direction: 'reverseTangent',
+            tValue: lastEntry.tEnd,
+        },
     ];
 }

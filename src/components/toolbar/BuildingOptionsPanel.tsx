@@ -1,7 +1,13 @@
 import { useTranslation } from 'react-i18next';
 
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import type { BuildingPreset } from '@/buildings/types';
+import {
+    Select,
+    SelectContent,
+    SelectItem,
+    SelectTrigger,
+    SelectValue,
+} from '@/components/ui/select';
 import { ELEVATION } from '@/trains/tracks/types';
 
 type BuildingOptionsPanelProps = {
@@ -28,7 +34,10 @@ export function BuildingOptionsPanel({
                 <span className="text-muted-foreground text-xs font-medium">
                     {t('building')}
                 </span>
-                <Select value={preset} onValueChange={(val) => onPresetChange(val as BuildingPreset)}>
+                <Select
+                    value={preset}
+                    onValueChange={val => onPresetChange(val as BuildingPreset)}
+                >
                     <SelectTrigger>
                         <SelectValue />
                     </SelectTrigger>
@@ -39,15 +48,28 @@ export function BuildingOptionsPanel({
                         <SelectItem value="l-shape">{t('lShape')}</SelectItem>
                     </SelectContent>
                 </Select>
-                <Select value={String(elevation)} onValueChange={(val) => onElevationChange(Number(val) as ELEVATION)}>
+                <Select
+                    value={String(elevation)}
+                    onValueChange={val =>
+                        onElevationChange(Number(val) as ELEVATION)
+                    }
+                >
                     <SelectTrigger>
                         <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
-                        <SelectItem value={String(ELEVATION.GROUND)}>{t('ground')}</SelectItem>
-                        <SelectItem value={String(ELEVATION.ABOVE_1)}>{t('above1')}</SelectItem>
-                        <SelectItem value={String(ELEVATION.ABOVE_2)}>{t('above2')}</SelectItem>
-                        <SelectItem value={String(ELEVATION.ABOVE_3)}>{t('above3')}</SelectItem>
+                        <SelectItem value={String(ELEVATION.GROUND)}>
+                            {t('ground')}
+                        </SelectItem>
+                        <SelectItem value={String(ELEVATION.ABOVE_1)}>
+                            {t('above1')}
+                        </SelectItem>
+                        <SelectItem value={String(ELEVATION.ABOVE_2)}>
+                            {t('above2')}
+                        </SelectItem>
+                        <SelectItem value={String(ELEVATION.ABOVE_3)}>
+                            {t('above3')}
+                        </SelectItem>
                     </SelectContent>
                 </Select>
                 <label className="flex flex-col gap-1 text-xs">
@@ -58,9 +80,7 @@ export function BuildingOptionsPanel({
                         max={5}
                         step={0.5}
                         value={height}
-                        onChange={e =>
-                            onHeightChange(Number(e.target.value))
-                        }
+                        onChange={e => onHeightChange(Number(e.target.value))}
                         className="w-full"
                     />
                 </label>

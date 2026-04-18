@@ -1,4 +1,4 @@
-import { describe, it, expect } from 'bun:test';
+import { describe, expect, it } from 'bun:test';
 
 import { TrackAlignedPlatformManager } from '../src/stations/track-aligned-platform-manager';
 import type { Station } from '../src/stations/types';
@@ -10,8 +10,22 @@ describe('station platform list rewrite after dual-spine split', () => {
                 {
                     id: 5,
                     stationId: 1,
-                    spineA: [{ trackSegment: 10, tStart: 0, tEnd: 1, side: 1 as const }],
-                    spineB: [{ trackSegment: 20, tStart: 0, tEnd: 1, side: -1 as const }],
+                    spineA: [
+                        {
+                            trackSegment: 10,
+                            tStart: 0,
+                            tEnd: 1,
+                            side: 1 as const,
+                        },
+                    ],
+                    spineB: [
+                        {
+                            trackSegment: 20,
+                            tStart: 0,
+                            tEnd: 1,
+                            side: -1 as const,
+                        },
+                    ],
                     offset: 2,
                     outerVertices: {
                         kind: 'dual' as const,
@@ -19,14 +33,21 @@ describe('station platform list rewrite after dual-spine split', () => {
                         capB: [{ x: 10, y: 5 }],
                     },
                     stopPositions: [
-                        { trackSegmentId: 10, direction: 'tangent' as const, tValue: 0.5 },
+                        {
+                            trackSegmentId: 10,
+                            direction: 'tangent' as const,
+                            tValue: 0.5,
+                        },
                     ],
                 },
             ],
         };
         const { splitIds } = TrackAlignedPlatformManager.deserializeAny(
             legacy,
-            () => [{ x: 5, y: 0 }, { x: 5, y: 2.5 }],
+            () => [
+                { x: 5, y: 0 },
+                { x: 5, y: 2.5 },
+            ]
         );
 
         // Simulate the scene-serialization logic manually.
@@ -61,16 +82,26 @@ describe('station platform list rewrite after dual-spine split', () => {
                 {
                     id: 3,
                     stationId: 1,
-                    spine: [{ trackSegment: 10, tStart: 0, tEnd: 1, side: 1 as const }],
+                    spine: [
+                        {
+                            trackSegment: 10,
+                            tStart: 0,
+                            tEnd: 1,
+                            side: 1 as const,
+                        },
+                    ],
                     offset: 2,
-                    outerVertices: [{ x: 0, y: 5 }, { x: 10, y: 5 }],
+                    outerVertices: [
+                        { x: 0, y: 5 },
+                        { x: 10, y: 5 },
+                    ],
                     stopPositions: [],
                 },
             ],
         };
         const { splitIds } = TrackAlignedPlatformManager.deserializeAny(
             newFormat,
-            () => [],
+            () => []
         );
 
         expect(splitIds.size).toBe(0);

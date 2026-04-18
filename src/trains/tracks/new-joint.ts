@@ -63,14 +63,17 @@ export class PreviewCurveCalculator {
     private _extendAsStraightLine: boolean = false;
     private _tension: number = TENSION_DEFAULT;
 
-    constructor() { }
+    constructor() {}
 
     get tension(): number {
         return this._tension;
     }
 
     set tension(value: number) {
-        this._tension = Math.max(TENSION_MIN, Math.min(TENSION_MAX, Math.round(value * 10) / 10));
+        this._tension = Math.max(
+            TENSION_MIN,
+            Math.min(TENSION_MAX, Math.round(value * 10) / 10)
+        );
     }
 
     toggleStraightLine() {
@@ -254,9 +257,9 @@ function getStraightLinePreviewCurve(
             startJoint.type !== 'new'
                 ? startJoint.constraint.tangent
                 : PointCal.unitVectorFromA2B(
-                    startJoint.position,
-                    endJoint.position
-                ),
+                      startJoint.position,
+                      endJoint.position
+                  ),
             startJoint.position,
             endJoint.position
         );

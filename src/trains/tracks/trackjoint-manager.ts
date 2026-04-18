@@ -13,7 +13,10 @@ export class TrackJointManager {
         return this._internalTrackJointManager.createEntity(joint);
     }
 
-    createJointWithId(jointNumber: number, joint: TrackJointWithElevation): void {
+    createJointWithId(
+        jointNumber: number,
+        joint: TrackJointWithElevation
+    ): void {
         this._internalTrackJointManager.createEntityWithId(jointNumber, joint);
     }
 

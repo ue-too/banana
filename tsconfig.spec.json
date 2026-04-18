@@ -6,7 +6,7 @@
         "rootDir": "src",
         "tsBuildInfoFile": "dist/banana.tsbuildinfo"
     },
-    "types": ["bun-types/test-globals"],
     "extends": "./tsconfig.json",
-    "include": ["test/**/*"]
+    "include": ["test/**/*"],
+    "types": ["bun-types/test-globals"]
 }

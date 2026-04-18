@@ -1,4 +1,4 @@
-import { describe, it, expect } from 'bun:test';
+import { describe, expect, it } from 'bun:test';
 
 import { validateSerializedSceneData } from '../src/scene-serialization';
 
@@ -91,7 +91,9 @@ describe('validateSerializedSceneData', () => {
 
     describe('invalid tracks', () => {
         it('rejects missing tracks', () => {
-            const result = validateSerializedSceneData({ trains: VALID_TRAINS });
+            const result = validateSerializedSceneData({
+                trains: VALID_TRAINS,
+            });
             expect(result.valid).toBe(false);
             if (!result.valid) {
                 expect(result.error).toContain('tracks');

@@ -1,8 +1,15 @@
-import { Point } from "@ue-too/math";
-import { AABBIntersects, offset2 } from "@ue-too/curve";
-import { LEVEL_HEIGHT, VERTICAL_CLEARANCE } from "./constants";
-import { TrackJointManager } from "./trackjoint-manager";
-import { ELEVATION, TrackSegmentDrawData, TrackSegmentSplit, TrackSegmentWithCollision, TrackSegmentWithElevation } from "./types";
+import { AABBIntersects, offset2 } from '@ue-too/curve';
+import { Point } from '@ue-too/math';
+
+import { LEVEL_HEIGHT, VERTICAL_CLEARANCE } from './constants';
+import { TrackJointManager } from './trackjoint-manager';
+import {
+    ELEVATION,
+    TrackSegmentDrawData,
+    TrackSegmentSplit,
+    TrackSegmentWithCollision,
+    TrackSegmentWithElevation,
+} from './types';
 
 export function getElevationAtT(
     t: number,
@@ -15,7 +22,7 @@ export function getElevationAtT(
         startElevationLevel + (endElevationLevel - startElevationLevel) * t;
 
     return elevation;
-};
+}
 
 export function trackIsSlopedByJoints(
     trackSegment: TrackSegmentWithElevation,
@@ -32,13 +39,13 @@ export function trackIsSlopedByJoints(
     }
 
     return startJoint.elevation !== endJoint.elevation;
-};
+}
 
 export function trackIsSloped(trackSegment: {
     elevation: { from: ELEVATION; to: ELEVATION };
 }): boolean {
     return trackSegment.elevation.from !== trackSegment.elevation.to;
-};
+}
 
 export function satisfiesVerticalClearance(elevation: number): boolean {
     if (elevation >= VERTICAL_CLEARANCE) {
@@ -84,7 +91,7 @@ export function elevationIntervalOverlaps(
         return true;
     }
     return false;
-};
+}
 
 export const orderTest = (a: TrackSegmentDrawData, b: TrackSegmentDrawData) => {
     if (!trackIsSloped(a) && !trackIsSloped(b)) {
@@ -136,7 +143,10 @@ export const orderTest = (a: TrackSegmentDrawData, b: TrackSegmentDrawData) => {
     return aElevation - bElevation;
 };
 
-export const orderTestWithoutCollisionCheck = (a: TrackSegmentDrawData, b: TrackSegmentDrawData) => {
+export const orderTestWithoutCollisionCheck = (
+    a: TrackSegmentDrawData,
+    b: TrackSegmentDrawData
+) => {
     if (!trackIsSloped(a) && !trackIsSloped(b)) {
         return a.elevation.from - b.elevation.from;
     }
@@ -186,7 +196,10 @@ export const orderTestWithoutCollisionCheck = (a: TrackSegmentDrawData, b: Track
     return aElevation - bElevation;
 };
 
-export const trackSegmentDrawDataInsertIndex = (drawDataList: TrackSegmentDrawData[], drawData: TrackSegmentDrawData) => {
+export const trackSegmentDrawDataInsertIndex = (
+    drawDataList: TrackSegmentDrawData[],
+    drawData: TrackSegmentDrawData
+) => {
     let left = 0;
     let right = drawDataList.length - 1;
 
@@ -206,9 +219,22 @@ export const trackSegmentDrawDataInsertIndex = (drawDataList: TrackSegmentDrawDa
     return left;
 };
 
-export const makeTrackSegmentDrawDataFromSplit = (split: TrackSegmentSplit, originalTrackSegment: TrackSegmentWithCollision, trackSegmentNumber: number): TrackSegmentDrawData & { positiveOffsets: Point[]; negativeOffsets: Point[] } => {
-    const positiveOffsets = offset2(split.curve, originalTrackSegment.gauge / 2).points;
-    const negativeOffsets = offset2(split.curve, -originalTrackSegment.gauge / 2).points;
+export const makeTrackSegmentDrawDataFromSplit = (
+    split: TrackSegmentSplit,
+    originalTrackSegment: TrackSegmentWithCollision,
+    trackSegmentNumber: number
+): TrackSegmentDrawData & {
+    positiveOffsets: Point[];
+    negativeOffsets: Point[];
+} => {
+    const positiveOffsets = offset2(
+        split.curve,
+        originalTrackSegment.gauge / 2
+    ).points;
+    const negativeOffsets = offset2(
+        split.curve,
+        -originalTrackSegment.gauge / 2
+    ).points;
     return {
         curve: split.curve,
         elevation: split.elevation,
@@ -217,9 +243,16 @@ export const makeTrackSegmentDrawDataFromSplit = (split: TrackSegmentSplit, orig
         excludeSegmentsForCollisionCheck: new Set(),
         originalTrackSegment: {
             trackSegmentNumber: trackSegmentNumber,
-            tValInterval: { start: split.tValInterval.start, end: split.tValInterval.end },
-            startJointPosition: originalTrackSegment.curve.getControlPoints()[0],
-            endJointPosition: originalTrackSegment.curve.getControlPoints()[originalTrackSegment.curve.getControlPoints().length - 1],
+            tValInterval: {
+                start: split.tValInterval.start,
+                end: split.tValInterval.end,
+            },
+            startJointPosition:
+                originalTrackSegment.curve.getControlPoints()[0],
+            endJointPosition:
+                originalTrackSegment.curve.getControlPoints()[
+                    originalTrackSegment.curve.getControlPoints().length - 1
+                ],
         },
         positiveOffsets,
         negativeOffsets,
@@ -228,5 +261,5 @@ export const makeTrackSegmentDrawDataFromSplit = (split: TrackSegmentSplit, orig
         electrified: originalTrackSegment.electrified,
         catenarySide: originalTrackSegment.catenarySide,
         bed: originalTrackSegment.bed,
-    }
+    };
 };

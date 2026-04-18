@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach } from 'bun:test';
+import { beforeEach, describe, expect, it } from 'bun:test';
 
 import type {
     SceneMetadata,
@@ -17,7 +17,7 @@ class InMemorySceneStorage implements SceneStorage {
 
     async listScenes(): Promise<SceneMetadata[]> {
         return [...this.scenes.values()]
-            .map((s) => s.metadata)
+            .map(s => s.metadata)
             .sort((a, b) => b.updatedAt - a.updatedAt);
     }
 
@@ -123,7 +123,7 @@ describe('SceneStorage (in-memory)', () => {
             await storage.saveScene(makeScene('mid', 'Mid', 2000));
 
             const list = await storage.listScenes();
-            expect(list.map((s) => s.id)).toEqual(['new', 'mid', 'old']);
+            expect(list.map(s => s.id)).toEqual(['new', 'mid', 'old']);
         });
 
         it('overwrites existing scene on save', async () => {

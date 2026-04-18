@@ -7,7 +7,7 @@ export type TrackWidthSource = { bedWidth?: number; gauge: number };
  */
 export function computeParallelSpacing(
     a: TrackWidthSource,
-    b: TrackWidthSource,
+    b: TrackWidthSource
 ): number {
     const widthA = a.bedWidth ?? a.gauge;
     const widthB = b.bedWidth ?? b.gauge;

@@ -1,17 +1,33 @@
-import { TemplateStateMachine } from "@ue-too/being";
-import { LayoutEvents, LayoutContext, LayoutStateMachine, LayoutStates, LayoutIDLEState, LayoutHoverForStartingPointState, LayoutHoverForEndingPointState, LayoutHoverForCurveDeletionState } from "../layout-kmt-state-machine";
-import { CurveCreationEngine } from "../curve-engine";
-import { TrainPlacementEngine } from "../train-kmt-state-machine";
-import { TrackGraph } from "@/trains/tracks";
-import { Canvas, ObservableBoardCamera } from "@ue-too/board";
+import { TemplateStateMachine } from '@ue-too/being';
+import { Canvas, ObservableBoardCamera } from '@ue-too/board';
 
-const createCurveCreationEngine = (canvas: Canvas, camera: ObservableBoardCamera): CurveCreationEngine => {
+import { TrackGraph } from '@/trains/tracks';
+
+import { CurveCreationEngine } from '../curve-engine';
+import {
+    LayoutContext,
+    LayoutEvents,
+    LayoutHoverForCurveDeletionState,
+    LayoutHoverForEndingPointState,
+    LayoutHoverForStartingPointState,
+    LayoutIDLEState,
+    LayoutStateMachine,
+    LayoutStates,
+} from '../layout-kmt-state-machine';
+import { TrainPlacementEngine } from '../train-kmt-state-machine';
+
+const createCurveCreationEngine = (
+    canvas: Canvas,
+    camera: ObservableBoardCamera
+): CurveCreationEngine => {
     const curveEngine = new CurveCreationEngine(canvas, camera);
 
     return curveEngine;
 };
 
-const createLayoutStateMachine = (curveEngine: CurveCreationEngine): LayoutStateMachine => {
+const createLayoutStateMachine = (
+    curveEngine: CurveCreationEngine
+): LayoutStateMachine => {
     const stateMachine = new TemplateStateMachine<
         LayoutEvents,
         LayoutContext,
@@ -29,10 +45,13 @@ const createLayoutStateMachine = (curveEngine: CurveCreationEngine): LayoutState
     return stateMachine;
 };
 
-const createLayouyStateMachineWithDefaultContext = (canvas: Canvas, camera: ObservableBoardCamera): LayoutStateMachine => {
+const createLayouyStateMachineWithDefaultContext = (
+    canvas: Canvas,
+    camera: ObservableBoardCamera
+): LayoutStateMachine => {
     const context = createCurveCreationEngine(canvas, camera);
     return createLayoutStateMachine(context);
-}
+};
 
 export {
     createCurveCreationEngine,
