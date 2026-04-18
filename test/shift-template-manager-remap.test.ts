@@ -1,19 +1,28 @@
-import { describe, it, expect } from 'bun:test';
-import { ShiftTemplateManager } from '../src/timetable/shift-template-manager';
+import { describe, expect, it } from 'bun:test';
+
 import { StationManager } from '../src/stations/station-manager';
 import { TrackAlignedPlatformManager } from '../src/stations/track-aligned-platform-manager';
 import type { PlatformMigrationMap } from '../src/stations/track-aligned-platform-migration';
+import { ShiftTemplateManager } from '../src/timetable/shift-template-manager';
 import type { SerializedShiftTemplate } from '../src/timetable/types';
 
 function makeSerializedTemplate(
     platformId: number,
-    stopPositionIndex: number,
+    stopPositionIndex: number
 ): SerializedShiftTemplate[] {
     return [
         {
             id: 's1',
             name: 'S1',
-            activeDays: { '0': true, '1': false, '2': false, '3': false, '4': false, '5': false, '6': false },
+            activeDays: {
+                '0': true,
+                '1': false,
+                '2': false,
+                '3': false,
+                '4': false,
+                '5': false,
+                '6': false,
+            },
             stops: [
                 {
                     stationId: 1,
@@ -34,14 +43,19 @@ describe('ShiftTemplateManager.deserialize with platformMigrationMap', () => {
         const stationMgr = new StationManager();
         const tapMgr = new TrackAlignedPlatformManager();
         const map: PlatformMigrationMap = new Map([
-            [5, new Map([[2, { newPlatformId: 11, newStopIndex: 0, newStopId: 7 }]])],
+            [
+                5,
+                new Map([
+                    [2, { newPlatformId: 11, newStopIndex: 0, newStopId: 7 }],
+                ]),
+            ],
         ]);
 
         const restored = ShiftTemplateManager.deserialize(
             makeSerializedTemplate(5, 2),
             stationMgr,
             tapMgr,
-            map,
+            map
         );
         const t = restored.getTemplate('s1')!;
         expect(t.stops[0].platformId).toBe(11);
@@ -52,14 +66,19 @@ describe('ShiftTemplateManager.deserialize with platformMigrationMap', () => {
         const stationMgr = new StationManager();
         const tapMgr = new TrackAlignedPlatformManager();
         const map: PlatformMigrationMap = new Map([
-            [5, new Map([[2, { newPlatformId: 11, newStopIndex: -1, newStopId: -1 }]])],
+            [
+                5,
+                new Map([
+                    [2, { newPlatformId: 11, newStopIndex: -1, newStopId: -1 }],
+                ]),
+            ],
         ]);
 
         const restored = ShiftTemplateManager.deserialize(
             makeSerializedTemplate(5, 2),
             stationMgr,
             tapMgr,
-            map,
+            map
         );
         const t = restored.getTemplate('s1')!;
         expect(t.stops[0].platformId).toBe(11);
@@ -76,7 +95,7 @@ describe('ShiftTemplateManager.deserialize with platformMigrationMap', () => {
             makeSerializedTemplate(99, 0),
             stationMgr,
             tapMgr,
-            map,
+            map
         );
         const t = restored.getTemplate('s1')!;
         expect(t.stops[0].platformId).toBe(99);

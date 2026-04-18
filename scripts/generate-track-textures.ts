@@ -6,10 +6,9 @@
  *
  * Usage:  bun run apps/banana/scripts/generate-track-textures.ts
  */
-
-import { deflateSync } from 'zlib';
 import { writeFileSync } from 'fs';
 import { resolve } from 'path';
+import { deflateSync } from 'zlib';
 
 // =====================================================================
 // Minimal software rasteriser
@@ -29,7 +28,10 @@ class SoftCanvas {
     private _blend(idx: number, r: number, g: number, b: number, a: number) {
         const dst = this.data;
         if (a >= 255) {
-            dst[idx] = r; dst[idx + 1] = g; dst[idx + 2] = b; dst[idx + 3] = 255;
+            dst[idx] = r;
+            dst[idx + 1] = g;
+            dst[idx + 2] = b;
+            dst[idx + 3] = 255;
             return;
         }
         const srcA = a / 255;
@@ -40,14 +42,30 @@ class SoftCanvas {
         dst[idx + 3] = Math.min(255, Math.round(a + dst[idx + 3] * invA));
     }
 
-    setPixel(x: number, y: number, r: number, g: number, b: number, a: number = 255) {
+    setPixel(
+        x: number,
+        y: number,
+        r: number,
+        g: number,
+        b: number,
+        a: number = 255
+    ) {
         const ix = Math.round(x);
         const iy = Math.round(y);
         if (ix < 0 || iy < 0 || ix >= this.width || iy >= this.height) return;
         this._blend((iy * this.width + ix) * 4, r, g, b, a);
     }
 
-    fillRect(x: number, y: number, w: number, h: number, r: number, g: number, b: number, a: number = 255) {
+    fillRect(
+        x: number,
+        y: number,
+        w: number,
+        h: number,
+        r: number,
+        g: number,
+        b: number,
+        a: number = 255
+    ) {
         const x0 = Math.max(0, Math.round(x));
         const y0 = Math.max(0, Math.round(y));
         const x1 = Math.min(this.width, Math.round(x + w));
@@ -60,7 +78,16 @@ class SoftCanvas {
         }
     }
 
-    fillEllipse(cx: number, cy: number, rx: number, ry: number, r: number, g: number, b: number, a: number = 255) {
+    fillEllipse(
+        cx: number,
+        cy: number,
+        rx: number,
+        ry: number,
+        r: number,
+        g: number,
+        b: number,
+        a: number = 255
+    ) {
         const x0 = Math.max(0, Math.floor(cx - rx));
         const y0 = Math.max(0, Math.floor(cy - ry));
         const x1 = Math.min(this.width - 1, Math.ceil(cx + rx));
@@ -80,9 +107,20 @@ class SoftCanvas {
         }
     }
 
-    drawLine(x0: number, y0: number, x1: number, y1: number, r: number, g: number, b: number, a: number = 255) {
-        let ix0 = Math.round(x0), iy0 = Math.round(y0);
-        const ix1 = Math.round(x1), iy1 = Math.round(y1);
+    drawLine(
+        x0: number,
+        y0: number,
+        x1: number,
+        y1: number,
+        r: number,
+        g: number,
+        b: number,
+        a: number = 255
+    ) {
+        let ix0 = Math.round(x0),
+            iy0 = Math.round(y0);
+        const ix1 = Math.round(x1),
+            iy1 = Math.round(y1);
         const dx = Math.abs(ix1 - ix0);
         const dy = -Math.abs(iy1 - iy0);
         const sx = ix0 < ix1 ? 1 : -1;
@@ -92,14 +130,31 @@ class SoftCanvas {
             this.setPixel(ix0, iy0, r, g, b, a);
             if (ix0 === ix1 && iy0 === iy1) break;
             const e2 = 2 * err;
-            if (e2 >= dy) { err += dy; ix0 += sx; }
-            if (e2 <= dx) { err += dx; iy0 += sy; }
+            if (e2 >= dy) {
+                err += dy;
+                ix0 += sx;
+            }
+            if (e2 <= dx) {
+                err += dx;
+                iy0 += sy;
+            }
         }
     }
 
-    strokeRect(x: number, y: number, w: number, h: number, r: number, g: number, b: number, a: number = 255) {
-        const x0 = Math.round(x), y0 = Math.round(y);
-        const x1 = Math.round(x + w), y1 = Math.round(y + h);
+    strokeRect(
+        x: number,
+        y: number,
+        w: number,
+        h: number,
+        r: number,
+        g: number,
+        b: number,
+        a: number = 255
+    ) {
+        const x0 = Math.round(x),
+            y0 = Math.round(y);
+        const x1 = Math.round(x + w),
+            y1 = Math.round(y + h);
         this.drawLine(x0, y0, x1, y0, r, g, b, a);
         this.drawLine(x1, y0, x1, y1, r, g, b, a);
         this.drawLine(x1, y1, x0, y1, r, g, b, a);
@@ -133,14 +188,18 @@ function encodePNG(w: number, h: number, rgba: Uint8ClampedArray): Buffer {
     const chunks: Buffer[] = [];
     chunks.push(Buffer.from([137, 80, 78, 71, 13, 10, 26, 10]));
     function writeChunk(type: string, data: Buffer) {
-        const len = Buffer.alloc(4); len.writeUInt32BE(data.length);
+        const len = Buffer.alloc(4);
+        len.writeUInt32BE(data.length);
         const typeB = Buffer.from(type, 'ascii');
-        const crcB = Buffer.alloc(4); crcB.writeUInt32BE(crc32(Buffer.concat([typeB, data])) >>> 0);
+        const crcB = Buffer.alloc(4);
+        crcB.writeUInt32BE(crc32(Buffer.concat([typeB, data])) >>> 0);
         chunks.push(len, typeB, data, crcB);
     }
     const ihdr = Buffer.alloc(13);
-    ihdr.writeUInt32BE(w, 0); ihdr.writeUInt32BE(h, 4);
-    ihdr[8] = 8; ihdr[9] = 6;
+    ihdr.writeUInt32BE(w, 0);
+    ihdr.writeUInt32BE(h, 4);
+    ihdr[8] = 8;
+    ihdr[9] = 6;
     writeChunk('IHDR', ihdr);
     writeChunk('IDAT', compressed);
     writeChunk('IEND', Buffer.alloc(0));
@@ -155,7 +214,8 @@ for (let n = 0; n < 256; n++) {
 }
 function crc32(buf: Buffer): number {
     let crc = 0xffffffff;
-    for (let i = 0; i < buf.length; i++) crc = crcTable[(crc ^ buf[i]) & 0xff] ^ (crc >>> 8);
+    for (let i = 0; i < buf.length; i++)
+        crc = crcTable[(crc ^ buf[i]) & 0xff] ^ (crc >>> 8);
     return (crc ^ 0xffffffff) >>> 0;
 }
 
@@ -196,7 +256,7 @@ function drawBallastBed(c: SoftCanvas) {
 
     // Scale rock count to canvas area (original: 300 per 256×256 = 65536 px²)
     const area = c.width * c.height;
-    const count = Math.round(300 * area / 65536);
+    const count = Math.round((300 * area) / 65536);
 
     for (let r = 0; r < count; r++) {
         const rw = 3 + rng() * 6;
@@ -211,9 +271,19 @@ function drawBallastBed(c: SoftCanvas) {
         c.fillEllipse(rx, ry, rw + 1, rh + 1, or_, og, ob, 102);
         c.fillEllipse(rx, ry, rw, rh, cr, cg, cb);
         if (rng() > 0.3) {
-            const hc = highlightColors[Math.floor(rng() * highlightColors.length)];
+            const hc =
+                highlightColors[Math.floor(rng() * highlightColors.length)];
             const [hr, hg, hb] = hexRgb(hc);
-            c.fillEllipse(rx - rw * 0.2, ry - rh * 0.25, rw * 0.5, rh * 0.4, hr, hg, hb, 128);
+            c.fillEllipse(
+                rx - rw * 0.2,
+                ry - rh * 0.25,
+                rw * 0.5,
+                rh * 0.4,
+                hr,
+                hg,
+                hb,
+                128
+            );
         }
     }
 }
@@ -226,7 +296,7 @@ function drawSlabBed(c: SoftCanvas) {
     const rng = seededRng(91);
     const speckleColors = [0xb5afa5, 0xccc6bc, 0xada79d, 0xd1cbc3];
     const area = c.width * c.height;
-    const count = Math.round(200 * area / 65536);
+    const count = Math.round((200 * area) / 65536);
     for (let s = 0; s < count; s++) {
         const sx = 2 + rng() * (c.width - 4);
         const sy = 2 + rng() * (c.height - 4);
@@ -250,14 +320,30 @@ function drawSlabBed(c: SoftCanvas) {
 // Rail overlays
 // =====================================================================
 
-function drawRails(c: SoftCanvas, ox: number, oy: number, railL: number, railR: number, railW: number) {
+function drawRails(
+    c: SoftCanvas,
+    ox: number,
+    oy: number,
+    railL: number,
+    railR: number,
+    railW: number
+) {
     const [rr, rg, rb] = hexRgb(0x6b3a1f);
     const [er, eg, eb] = hexRgb(0x4a2810);
     const [sr, sg, sb] = hexRgb(0xd0d0d0);
     for (const rx of [railL, railR]) {
         c.fillRect(ox + rx - railW / 2, oy, railW, TRACK_TEX_SIZE, rr, rg, rb);
         c.fillRect(ox + rx - railW / 2, oy, 1, TRACK_TEX_SIZE, er, eg, eb, 153);
-        c.fillRect(ox + rx + railW / 2 - 1, oy, 1, TRACK_TEX_SIZE, er, eg, eb, 153);
+        c.fillRect(
+            ox + rx + railW / 2 - 1,
+            oy,
+            1,
+            TRACK_TEX_SIZE,
+            er,
+            eg,
+            eb,
+            153
+        );
         c.fillRect(ox + rx - 0.5, oy, 1, TRACK_TEX_SIZE, sr, sg, sb, 204);
     }
 }
@@ -268,13 +354,30 @@ function drawBallastRailTile(c: SoftCanvas, ox: number, oy: number) {
     const tieY = oy + TRACK_TEX_SIZE * 0.5 - 6;
 
     const [tr, tg, tb] = hexRgb(0xa8a8a0);
-    c.fillRect(ox - tieOverhang, tieY, TRACK_TEX_SIZE + tieOverhang * 2, 12, tr, tg, tb);
+    c.fillRect(
+        ox - tieOverhang,
+        tieY,
+        TRACK_TEX_SIZE + tieOverhang * 2,
+        12,
+        tr,
+        tg,
+        tb
+    );
 
     const [tlr, tlg, tlb] = hexRgb(0x8a8a82);
     for (let i = 0; i < 5; i++) {
         const gy = tieY + 2 + rng() * 8;
         const endY = gy + rng() * 2 - 1;
-        c.drawLine(ox - tieOverhang, gy, ox + TRACK_TEX_SIZE + tieOverhang, endY, tlr, tlg, tlb, 102);
+        c.drawLine(
+            ox - tieOverhang,
+            gy,
+            ox + TRACK_TEX_SIZE + tieOverhang,
+            endY,
+            tlr,
+            tlg,
+            tlb,
+            102
+        );
     }
 
     const railW = 5;
@@ -285,16 +388,49 @@ function drawSlabRailTile(c: SoftCanvas, ox: number, oy: number) {
     const railW = 5;
     const railL = railW / 2;
     const railR = TRACK_TEX_SIZE - railW / 2;
-    const tieBlockW = 14, tieBlockH = 8;
+    const tieBlockW = 14,
+        tieBlockH = 8;
     const tieY = oy + TRACK_TEX_SIZE * 0.5 - tieBlockH / 2;
 
     const [tbr, tbg, tbb] = hexRgb(0xa09a90);
     const [tsr, tsg, tsb] = hexRgb(0x888278);
 
-    c.fillRect(ox + railL - tieBlockW / 2, tieY, tieBlockW, tieBlockH, tbr, tbg, tbb);
-    c.strokeRect(ox + railL - tieBlockW / 2, tieY, tieBlockW, tieBlockH, tsr, tsg, tsb);
-    c.fillRect(ox + railR - tieBlockW / 2, tieY, tieBlockW, tieBlockH, tbr, tbg, tbb);
-    c.strokeRect(ox + railR - tieBlockW / 2, tieY, tieBlockW, tieBlockH, tsr, tsg, tsb);
+    c.fillRect(
+        ox + railL - tieBlockW / 2,
+        tieY,
+        tieBlockW,
+        tieBlockH,
+        tbr,
+        tbg,
+        tbb
+    );
+    c.strokeRect(
+        ox + railL - tieBlockW / 2,
+        tieY,
+        tieBlockW,
+        tieBlockH,
+        tsr,
+        tsg,
+        tsb
+    );
+    c.fillRect(
+        ox + railR - tieBlockW / 2,
+        tieY,
+        tieBlockW,
+        tieBlockH,
+        tbr,
+        tbg,
+        tbb
+    );
+    c.strokeRect(
+        ox + railR - tieBlockW / 2,
+        tieY,
+        tieBlockW,
+        tieBlockH,
+        tsr,
+        tsg,
+        tsb
+    );
 
     drawRails(c, ox, oy, railL, railR, railW);
 }

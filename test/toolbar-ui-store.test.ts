@@ -1,8 +1,8 @@
-import { describe, it, expect, beforeEach } from 'bun:test';
+import { beforeEach, describe, expect, it } from 'bun:test';
 
 import {
-    useToolbarUIStore,
     type PanelName,
+    useToolbarUIStore,
 } from '../src/stores/toolbar-ui-store';
 
 const ALL_PANELS: PanelName[] = [

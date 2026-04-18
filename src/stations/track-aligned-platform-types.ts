@@ -1,4 +1,5 @@
 import type { Point } from '@ue-too/math';
+
 import type { StopPosition } from './types';
 
 // ---------------------------------------------------------------------------
@@ -83,11 +84,17 @@ export type SerializedTrackAlignedPlatformData = {
  */
 export type LegacySerializedOuterVertices =
     | { kind: 'single'; vertices: { x: number; y: number }[] }
-    | { kind: 'dual'; capA: { x: number; y: number }[]; capB: { x: number; y: number }[] };
+    | {
+          kind: 'dual';
+          capA: { x: number; y: number }[];
+          capB: { x: number; y: number }[];
+      };
 
 /** Stop position as it may appear in legacy serialized data — `id` is optional
  * because old saves were written before the field was introduced. */
-export type LegacySerializedStopPosition = Omit<StopPosition, 'id'> & { id?: number };
+export type LegacySerializedStopPosition = Omit<StopPosition, 'id'> & {
+    id?: number;
+};
 
 export type LegacySerializedTrackAlignedPlatform = {
     id: number;
@@ -114,7 +121,7 @@ export type AnySerializedTrackAlignedPlatformData = {
 
 /** Type guard: does this entry use the legacy dual/single union shape? */
 export function isLegacySerializedPlatform(
-    p: AnySerializedTrackAlignedPlatform,
+    p: AnySerializedTrackAlignedPlatform
 ): p is LegacySerializedTrackAlignedPlatform {
     return (p as LegacySerializedTrackAlignedPlatform).spineA !== undefined;
 }

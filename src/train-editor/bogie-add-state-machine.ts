@@ -1,24 +1,39 @@
-import { BaseContext, EventReactions, NO_OP, StateMachine, TemplateState, TemplateStateMachine } from "@ue-too/being";
-import { Point } from "@ue-too/math";
+import {
+    BaseContext,
+    EventReactions,
+    NO_OP,
+    StateMachine,
+    TemplateState,
+    TemplateStateMachine,
+} from '@ue-too/being';
+import { Point } from '@ue-too/math';
 
 export type BogieAddStates = 'INACTIVE' | 'READY';
 
 export type BogieAddEvents = {
-    'startAdding': {};
-    'endAdding': {};
-    'leftPointerDown': Point;
-    'leftPointerUp': Point;
-    'pointerMove': Point;
-}
+    startAdding: {};
+    endAdding: {};
+    leftPointerDown: Point;
+    leftPointerUp: Point;
+    pointerMove: Point;
+};
 
 export type BogieAddContext = BaseContext & {
     addBogie: (position: Point) => number;
     convert2WorldPosition: (pointInWindow: Point) => Point;
-}
+};
 
-export type BogieAddStateMachine = StateMachine<BogieAddEvents, BogieAddContext, BogieAddStates>;
+export type BogieAddStateMachine = StateMachine<
+    BogieAddEvents,
+    BogieAddContext,
+    BogieAddStates
+>;
 
-class BogieAddInactiveState extends TemplateState<BogieAddEvents, BogieAddContext, BogieAddStates> {
+class BogieAddInactiveState extends TemplateState<
+    BogieAddEvents,
+    BogieAddContext,
+    BogieAddStates
+> {
     protected _eventReactions = {
         startAdding: {
             action: NO_OP,
@@ -27,7 +42,11 @@ class BogieAddInactiveState extends TemplateState<BogieAddEvents, BogieAddContex
     } as EventReactions<BogieAddEvents, BogieAddContext, BogieAddStates>;
 }
 
-class BogieAddReadyState extends TemplateState<BogieAddEvents, BogieAddContext, BogieAddStates> {
+class BogieAddReadyState extends TemplateState<
+    BogieAddEvents,
+    BogieAddContext,
+    BogieAddStates
+> {
     protected _eventReactions = {
         leftPointerDown: {
             action: this.leftPointerDown.bind(this),
@@ -44,8 +63,14 @@ class BogieAddReadyState extends TemplateState<BogieAddEvents, BogieAddContext, 
     }
 }
 
-export const createBogieAddStateMachine = (context: BogieAddContext): BogieAddStateMachine => {
-    return new TemplateStateMachine<BogieAddEvents, BogieAddContext, BogieAddStates>(
+export const createBogieAddStateMachine = (
+    context: BogieAddContext
+): BogieAddStateMachine => {
+    return new TemplateStateMachine<
+        BogieAddEvents,
+        BogieAddContext,
+        BogieAddStates
+    >(
         {
             INACTIVE: new BogieAddInactiveState(),
             READY: new BogieAddReadyState(),
@@ -53,4 +78,4 @@ export const createBogieAddStateMachine = (context: BogieAddContext): BogieAddSt
         'INACTIVE',
         context
     );
-}
+};

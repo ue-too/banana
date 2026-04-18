@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach } from 'bun:test';
+import { beforeEach, describe, expect, it } from 'bun:test';
 
 import { DefaultJointDirectionManager } from '../src/trains/input-state-machine/train-kmt-state-machine';
 import { JointDirectionPreferenceMap } from '../src/trains/tracks/joint-direction-preference-map';

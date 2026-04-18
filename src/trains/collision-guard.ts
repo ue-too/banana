@@ -1,7 +1,7 @@
-import type { OccupancyRegistry } from './occupancy-registry';
-import type { PlacedTrainEntry } from './train-manager';
-import type { TrackGraph } from './tracks/track';
 import type { TrainPosition } from './formation';
+import type { OccupancyRegistry } from './occupancy-registry';
+import type { TrackGraph } from './tracks/track';
+import type { PlacedTrainEntry } from './train-manager';
 
 // ---------------------------------------------------------------------------
 // Constants
@@ -46,9 +46,22 @@ export class CrossingMap {
      * Record a crossing between two track segments.
      * Inserts a pair of symmetric entries so both segments know about each other.
      */
-    addCrossing(segmentA: number, tA: number, segmentB: number, tB: number): void {
-        this._getOrCreate(segmentA).push({ crossingSegment: segmentB, selfT: tA, otherT: tB });
-        this._getOrCreate(segmentB).push({ crossingSegment: segmentA, selfT: tB, otherT: tA });
+    addCrossing(
+        segmentA: number,
+        tA: number,
+        segmentB: number,
+        tB: number
+    ): void {
+        this._getOrCreate(segmentA).push({
+            crossingSegment: segmentB,
+            selfT: tA,
+            otherT: tB,
+        });
+        this._getOrCreate(segmentB).push({
+            crossingSegment: segmentA,
+            selfT: tB,
+            otherT: tA,
+        });
     }
 
     /**
@@ -61,7 +74,9 @@ export class CrossingMap {
             for (const entry of entries) {
                 const partner = this._map.get(entry.crossingSegment);
                 if (partner) {
-                    const filtered = partner.filter(e => e.crossingSegment !== segmentNumber);
+                    const filtered = partner.filter(
+                        e => e.crossingSegment !== segmentNumber
+                    );
                     if (filtered.length === 0) {
                         this._map.delete(entry.crossingSegment);
                     } else {
@@ -125,7 +140,10 @@ export class CollisionGuard {
      * Run one frame of collision detection and response.
      * Call after all trains have moved and after `OccupancyRegistry.updateFromTrains()`.
      */
-    update(placedTrains: readonly PlacedTrainEntry[], occupancyRegistry: OccupancyRegistry): void {
+    update(
+        placedTrains: readonly PlacedTrainEntry[],
+        occupancyRegistry: OccupancyRegistry
+    ): void {
         // Build a fast ID → entry lookup for this frame.
         const trainMap = new Map<number, PlacedTrainEntry>();
         for (const entry of placedTrains) {
@@ -146,11 +164,22 @@ export class CollisionGuard {
             const entryB = trainMap.get(idB);
             if (!entryA || !entryB) continue;
 
-            this._checkSameTrack(idA, entryA.train, idB, entryB.train, dangerousThisFrame);
+            this._checkSameTrack(
+                idA,
+                entryA.train,
+                idB,
+                entryB.train,
+                dangerousThisFrame
+            );
         }
 
         // --- Crossing detection ---
-        this._checkCrossings(placedTrains, occupancyRegistry, trainMap, dangerousThisFrame);
+        this._checkCrossings(
+            placedTrains,
+            occupancyRegistry,
+            trainMap,
+            dangerousThisFrame
+        );
 
         // --- Clear locks for trains no longer in danger ---
         for (const lockedId of this._lockedTrains) {
@@ -173,7 +202,7 @@ export class CollisionGuard {
         trainA: PlacedTrainEntry['train'],
         idB: number,
         trainB: PlacedTrainEntry['train'],
-        dangerousThisFrame: Set<number>,
+        dangerousThisFrame: Set<number>
     ): void {
         const posA = trainA.position;
         const posB = trainB.position;
@@ -185,14 +214,23 @@ export class CollisionGuard {
         // Skip if both stopped.
         if (trainA.speed === 0 && trainB.speed === 0) return;
 
-        const seg = this._trackGraph.getTrackSegmentWithJoints(posA.trackSegment);
+        const seg = this._trackGraph.getTrackSegmentWithJoints(
+            posA.trackSegment
+        );
         if (!seg) return;
 
         const arcA = seg.curve.lengthAtT(posA.tValue);
         const arcB = seg.curve.lengthAtT(posB.tValue);
 
         // Compute closing speed (positive = gap is shrinking). Returns 0 if not closing.
-        const closingSpeed = this._closingSpeed(posA, posB, arcA, arcB, trainA.speed, trainB.speed);
+        const closingSpeed = this._closingSpeed(
+            posA,
+            posB,
+            arcA,
+            arcB,
+            trainA.speed,
+            trainB.speed
+        );
         if (closingSpeed <= 0) return;
 
         // For head-on collisions, head-to-head distance is correct (heads approach each other).
@@ -200,7 +238,13 @@ export class CollisionGuard {
         // front train's tail (last bogie on this segment). Using head-to-head would miss
         // collisions because the front train's body extends far behind its head.
         const distance = this._effectiveDistance(
-            posA, posB, trainA, trainB, arcA, arcB, seg,
+            posA,
+            posB,
+            trainA,
+            trainB,
+            arcA,
+            arcB,
+            seg
         );
 
         if (distance <= CRITICAL_DISTANCE) {
@@ -212,7 +256,8 @@ export class CollisionGuard {
             dangerousThisFrame.add(idA);
             dangerousThisFrame.add(idB);
         } else {
-            const brakingDistance = (closingSpeed * closingSpeed) / (2 * EMERGENCY_BRAKE_DECEL);
+            const brakingDistance =
+                (closingSpeed * closingSpeed) / (2 * EMERGENCY_BRAKE_DECEL);
             if (distance <= brakingDistance * BRAKING_SAFETY_MARGIN) {
                 // Tier 1: reduce throttle to emergency brake without locking
                 trainA.setThrottleStep('er');
@@ -238,7 +283,7 @@ export class CollisionGuard {
         trainB: PlacedTrainEntry['train'],
         arcA: number,
         arcB: number,
-        seg: { curve: { lengthAtT(t: number): number } },
+        seg: { curve: { lengthAtT(t: number): number } }
     ): number {
         // Head-on: opposite directions → use head-to-head distance.
         if (posA.direction !== posB.direction) {
@@ -275,7 +320,11 @@ export class CollisionGuard {
         }
 
         // Find the front train's tail: the last bogie on this segment.
-        const frontTailArc = this._tailArcOnSegment(frontTrain, posA.trackSegment, seg);
+        const frontTailArc = this._tailArcOnSegment(
+            frontTrain,
+            posA.trackSegment,
+            seg
+        );
         if (frontTailArc === null) {
             // Couldn't determine tail → fall back to head-to-head.
             return Math.abs(arcA - arcB);
@@ -293,7 +342,7 @@ export class CollisionGuard {
     private _tailArcOnSegment(
         train: PlacedTrainEntry['train'],
         segmentNumber: number,
-        seg: { curve: { lengthAtT(t: number): number } },
+        seg: { curve: { lengthAtT(t: number): number } }
     ): number | null {
         const bogies = train.getBogiePositions();
         if (!bogies || bogies.length === 0) return null;
@@ -328,7 +377,7 @@ export class CollisionGuard {
         arcA: number,
         arcB: number,
         speedA: number,
-        speedB: number,
+        speedB: number
     ): number {
         // Identify which train is lower / higher along the arc.
         let lowerDir: 'tangent' | 'reverseTangent';
@@ -377,10 +426,13 @@ export class CollisionGuard {
         placedTrains: readonly PlacedTrainEntry[],
         occupancyRegistry: OccupancyRegistry,
         trainMap: Map<number, PlacedTrainEntry>,
-        dangerousThisFrame: Set<number>,
+        dangerousThisFrame: Set<number>
     ): void {
         // Build segment → trains lookup (keyed by head position segment).
-        const segmentToTrains = new Map<number, { id: number; train: PlacedTrainEntry['train'] }[]>();
+        const segmentToTrains = new Map<
+            number,
+            { id: number; train: PlacedTrainEntry['train'] }[]
+        >();
         for (const entry of placedTrains) {
             const pos = entry.train.position;
             if (!pos) continue;
@@ -404,12 +456,15 @@ export class CollisionGuard {
             if (!segData) continue;
 
             for (const crossing of crossings) {
-                const partnerTrains = segmentToTrains.get(crossing.crossingSegment);
+                const partnerTrains = segmentToTrains.get(
+                    crossing.crossingSegment
+                );
                 if (!partnerTrains || partnerTrains.length === 0) continue;
 
-                const partnerSegData = this._trackGraph.getTrackSegmentWithJoints(
-                    crossing.crossingSegment,
-                );
+                const partnerSegData =
+                    this._trackGraph.getTrackSegmentWithJoints(
+                        crossing.crossingSegment
+                    );
                 if (!partnerSegData) continue;
 
                 for (const trainA of trainsOnSeg) {
@@ -425,17 +480,26 @@ export class CollisionGuard {
                         if (!posA || !posB) continue;
 
                         const distA = this._distanceToCrossingOrOccupying(
-                            trainA.train, posA, crossing.selfT, segData,
+                            trainA.train,
+                            posA,
+                            crossing.selfT,
+                            segData
                         );
                         const distB = this._distanceToCrossingOrOccupying(
-                            trainB.train, posB, crossing.otherT, partnerSegData,
+                            trainB.train,
+                            posB,
+                            crossing.otherT,
+                            partnerSegData
                         );
 
                         // If either train is past the crossing AND not occupying it, skip.
                         if (distA === null || distB === null) continue;
 
                         // Tier 2: both within critical distance → emergencyStop.
-                        if (distA <= CRITICAL_DISTANCE && distB <= CRITICAL_DISTANCE) {
+                        if (
+                            distA <= CRITICAL_DISTANCE &&
+                            distB <= CRITICAL_DISTANCE
+                        ) {
                             trainA.train.emergencyStop();
                             trainB.train.emergencyStop();
                             this._lockedTrains.add(trainA.id);
@@ -449,8 +513,10 @@ export class CollisionGuard {
                         // other must brake regardless of time-to-arrival.
                         const speedA = trainA.train.speed;
                         const speedB = trainB.train.speed;
-                        const aAtCrossing = distA <= CRITICAL_DISTANCE && speedA === 0;
-                        const bAtCrossing = distB <= CRITICAL_DISTANCE && speedB === 0;
+                        const aAtCrossing =
+                            distA <= CRITICAL_DISTANCE && speedA === 0;
+                        const bAtCrossing =
+                            distB <= CRITICAL_DISTANCE && speedB === 0;
 
                         if (aAtCrossing && speedB > 0) {
                             trainB.train.setThrottleStep('er');
@@ -471,7 +537,11 @@ export class CollisionGuard {
                         const timeA = distA / speedA;
                         const timeB = distB / speedB;
 
-                        if (isFinite(timeA) && isFinite(timeB) && Math.abs(timeA - timeB) < CROSSING_TIME_WINDOW) {
+                        if (
+                            isFinite(timeA) &&
+                            isFinite(timeB) &&
+                            Math.abs(timeA - timeB) < CROSSING_TIME_WINDOW
+                        ) {
                             trainA.train.setThrottleStep('er');
                             trainB.train.setThrottleStep('er');
                             dangerousThisFrame.add(trainA.id);
@@ -496,7 +566,7 @@ export class CollisionGuard {
         train: PlacedTrainEntry['train'],
         pos: TrainPosition,
         crossingT: number,
-        segData: { curve: { lengthAtT(t: number): number } },
+        segData: { curve: { lengthAtT(t: number): number } }
     ): number | null {
         const posLen = segData.curve.lengthAtT(pos.tValue);
         const crossingLen = segData.curve.lengthAtT(crossingT);
@@ -516,7 +586,10 @@ export class CollisionGuard {
                 const bogieLen = segData.curve.lengthAtT(bogie.tValue);
                 const bogieDiff = crossingLen - bogieLen;
                 // Head and bogie are on opposite sides of the crossing → occupying
-                if ((diff < 0 && bogieDiff >= 0) || (diff > 0 && bogieDiff <= 0)) {
+                if (
+                    (diff < 0 && bogieDiff >= 0) ||
+                    (diff > 0 && bogieDiff <= 0)
+                ) {
                     return 0; // occupying the crossing
                 }
             }

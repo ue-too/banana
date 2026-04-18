@@ -1,7 +1,7 @@
-import { CheckIcon, ChevronRightIcon, CircleIcon } from '@/assets/icons';
 import { DropdownMenu as DropdownMenuPrimitive } from 'radix-ui';
 import * as React from 'react';
 
+import { CheckIcon, ChevronRightIcon, CircleIcon } from '@/assets/icons';
 import { cn } from '@/lib/utils';
 
 function DropdownMenu({

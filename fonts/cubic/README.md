@@ -26,12 +26,11 @@
 - 本字型基於 SIL Open Font License 1.1 改造 M⁺ BITMAP FONTS 所發布的 M⁺ gothic 12r 開源字型。
 
 - 本字型亦基於 SIL Open Font License 1.1 授權條款公開發布。關於授權合約的詳細內容，請詳讀授權文件檔（OFL.txt）。
-
-  - **Cubic**、**俐方體**為本專案的保留名稱。
-  - 任何人可以無償使用此字型，包含商用。無須告知原作者。
-  - 您可自由傳送、分享此字型，或與其他軟體綑綁發行、銷售。捆包中必須同時包含授權文件檔（OFL.txt）。
-  - 您可自由改造、衍生此字型並公開。修改後的字型必須同樣以 [SIL OFL](https://scripts.sil.org/OFL) 進行發布，勿使用字型的保留名稱。
-  - 依照 [SIL OFL](https://scripts.sil.org/OFL) 規定，**禁止單獨出售字型檔**。
+    - **Cubic**、**俐方體**為本專案的保留名稱。
+    - 任何人可以無償使用此字型，包含商用。無須告知原作者。
+    - 您可自由傳送、分享此字型，或與其他軟體綑綁發行、銷售。捆包中必須同時包含授權文件檔（OFL.txt）。
+    - 您可自由改造、衍生此字型並公開。修改後的字型必須同樣以 [SIL OFL](https://scripts.sil.org/OFL) 進行發布，勿使用字型的保留名稱。
+    - 依照 [SIL OFL](https://scripts.sil.org/OFL) 規定，**禁止單獨出售字型檔**。
 
 ## 下載方式
 
@@ -48,4 +47,3 @@
 目前提供以下的贊助管道，有意願斗內的就拜託了 ;-; 感謝大家！
 
 ![贊助的部分](https://user-images.githubusercontent.com/98224334/151159873-8b97ca31-4ba1-4e43-abc7-e021b05e36e7.png)
-

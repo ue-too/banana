@@ -1,12 +1,18 @@
-import { TrainFront } from '@/assets/icons';
 import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { TrainFront } from '@/assets/icons';
+import {
+    Select,
+    SelectContent,
+    SelectItem,
+    SelectTrigger,
+    SelectValue,
+} from '@/components/ui/select';
 import type { FormationManager } from '@/trains/formation-manager';
+import type { TrainPlacementEngine } from '@/trains/input-state-machine/train-kmt-state-machine';
 
 const NONE = '__none__';
-import type { TrainPlacementEngine } from '@/trains/input-state-machine/train-kmt-state-machine';
 
 type FormationSelectorProps = {
     formationManager: FormationManager;
@@ -18,7 +24,9 @@ export function FormationSelector({
     trainPlacementEngine,
 }: FormationSelectorProps) {
     const { t } = useTranslation();
-    const [formations, setFormations] = useState(formationManager.getFormations());
+    const [formations, setFormations] = useState(
+        formationManager.getFormations()
+    );
     // Derive selected value from the engine so it stays in sync after placement resets
     const selectedId = trainPlacementEngine.pendingFormation?.id ?? '';
 
@@ -32,15 +40,16 @@ export function FormationSelector({
         <div className="pointer-events-auto absolute bottom-3 left-1/2 -translate-x-1/2">
             <div className="bg-background/80 flex items-center gap-2 rounded-xl border p-2 shadow-lg backdrop-blur-sm">
                 <TrainFront className="text-muted-foreground size-4" />
-                <span className="text-muted-foreground whitespace-nowrap text-xs font-medium">
+                <span className="text-muted-foreground text-xs font-medium whitespace-nowrap">
                     {t('formation')}
                 </span>
                 <Select
                     value={selectedId || NONE}
-                    onValueChange={(val) => {
-                        const formation = val === NONE
-                            ? null
-                            : formationManager.getFormation(val);
+                    onValueChange={val => {
+                        const formation =
+                            val === NONE
+                                ? null
+                                : formationManager.getFormation(val);
                         trainPlacementEngine.setFormation(formation);
                     }}
                 >
@@ -48,11 +57,15 @@ export function FormationSelector({
                         <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
-                        <SelectItem value={NONE}>{t('defaultFormation')}</SelectItem>
+                        <SelectItem value={NONE}>
+                            {t('defaultFormation')}
+                        </SelectItem>
                         {formations.map(entry => (
                             <SelectItem key={entry.id} value={entry.id}>
                                 {entry.formation.name} (
-                                {t('car', { count: entry.formation.flatCars().length })}
+                                {t('car', {
+                                    count: entry.formation.flatCars().length,
+                                })}
                                 )
                             </SelectItem>
                         ))}

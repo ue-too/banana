@@ -1,14 +1,20 @@
-import { useCallback, useState } from 'react';
-import { Graphics, Text } from 'pixi.js';
 import {
-    Wrapper,
-    type ResolvedComponents,
-} from '@ue-too/board-pixi-react-integration';
-import {
-    baseInitApp,
     type InitAppOptions,
+    baseInitApp,
 } from '@ue-too/board-pixi-integration';
-import { MapTileLayer, MapTileLayerSync, BASE_ZOOM, type MapInstance } from '@/components/map-tile-layer';
+import {
+    type ResolvedComponents,
+    Wrapper,
+} from '@ue-too/board-pixi-react-integration';
+import { Graphics, Text } from 'pixi.js';
+import { useCallback, useState } from 'react';
+
+import {
+    BASE_ZOOM,
+    type MapInstance,
+    MapTileLayer,
+    MapTileLayerSync,
+} from '@/components/map-tile-layer';
 
 /**
  * Init function for the map overlay page.
@@ -16,7 +22,7 @@ import { MapTileLayer, MapTileLayerSync, BASE_ZOOM, type MapInstance } from '@/c
  */
 const initMapOverlayApp = async (
     canvas: HTMLCanvasElement,
-    option: Partial<InitAppOptions>,
+    option: Partial<InitAppOptions>
 ): Promise<ResolvedComponents> => {
     const components = await baseInitApp(canvas, option);
 
@@ -141,9 +147,7 @@ export function MapOverlayPage(): React.ReactNode {
                     }}
                     initFunction={initMapOverlayApp}
                 >
-                    {mapInstance && (
-                        <MapTileLayerSync map={mapInstance} />
-                    )}
+                    {mapInstance && <MapTileLayerSync map={mapInstance} />}
                 </Wrapper>
             </div>
         </div>

@@ -21,15 +21,15 @@ Calling these out so their absence is not mistaken for oversight:
 
 ## Design decisions (summary)
 
-| Question | Decision |
-|---|---|
-| Load/unload policy | Greedy: on arrival, unload everything then load up to capacity. Designed so route-level rules can replace it. |
-| Buffer location | Platform-level by default, with an opt-in "use the station's shared buffer" mode per platform. |
-| Car capacity | Per-car typed buckets keyed by resource type. Uniform default capacity across cars for MVP. |
-| Transfer timing | Rate-based: arriving starts a transfer, each tick moves `rate * dt` units per car until full / empty / departed. |
-| Seeding | Per-platform source / sink role flags, per resource type. Auto-generates into / drains from the buffer at a constant rate. |
-| Visibility | Numeric readouts in `PlatformEditorPanel` and `TrainPanel`. No new canvas rendering. |
-| Resource types | Three built-in types from day one: `passenger`, `iron-ore`, `goods`. Registry is closed in MVP but all data is keyed by `ResourceTypeId`. |
+| Question           | Decision                                                                                                                                  |
+| ------------------ | ----------------------------------------------------------------------------------------------------------------------------------------- |
+| Load/unload policy | Greedy: on arrival, unload everything then load up to capacity. Designed so route-level rules can replace it.                             |
+| Buffer location    | Platform-level by default, with an opt-in "use the station's shared buffer" mode per platform.                                            |
+| Car capacity       | Per-car typed buckets keyed by resource type. Uniform default capacity across cars for MVP.                                               |
+| Transfer timing    | Rate-based: arriving starts a transfer, each tick moves `rate * dt` units per car until full / empty / departed.                          |
+| Seeding            | Per-platform source / sink role flags, per resource type. Auto-generates into / drains from the buffer at a constant rate.                |
+| Visibility         | Numeric readouts in `PlatformEditorPanel` and `TrainPanel`. No new canvas rendering.                                                      |
+| Resource types     | Three built-in types from day one: `passenger`, `iron-ore`, `goods`. Registry is closed in MVP but all data is keyed by `ResourceTypeId`. |
 
 ## Architecture
 
@@ -68,19 +68,23 @@ No new input state machines. Interaction for source / sink mode is a React check
 ### Resource types
 
 ```ts
-type ResourceTypeId = string;  // branded alias
+type ResourceTypeId = string; // branded alias
 
 type ResourceType = {
     id: ResourceTypeId;
-    displayName: string;         // i18n key resolved at render time
+    displayName: string; // i18n key resolved at render time
     category: 'passenger' | 'freight';
 };
 
 // Built-in registry for MVP:
 const RESOURCE_TYPES: readonly ResourceType[] = [
-    { id: 'passenger', category: 'passenger', displayName: 'resource.passenger' },
-    { id: 'iron-ore',  category: 'freight',   displayName: 'resource.ironOre'   },
-    { id: 'goods',     category: 'freight',   displayName: 'resource.goods'     },
+    {
+        id: 'passenger',
+        category: 'passenger',
+        displayName: 'resource.passenger',
+    },
+    { id: 'iron-ore', category: 'freight', displayName: 'resource.ironOre' },
+    { id: 'goods', category: 'freight', displayName: 'resource.goods' },
 ];
 ```
 
@@ -89,7 +93,7 @@ const RESOURCE_TYPES: readonly ResourceType[] = [
 ### Shared value type
 
 ```ts
-type ResourceCounts = Record<ResourceTypeId, number>;  // absent keys mean 0
+type ResourceCounts = Record<ResourceTypeId, number>; // absent keys mean 0
 ```
 
 Plain-object is used for both cars and buffers to keep serialization direct (no `Map` → JSON transform).
@@ -98,7 +102,7 @@ Plain-object is used for both cars and buffers to keep serialization direct (no 
 
 ```ts
 type CarCargo = {
-    capacity: number;               // total units across all resource types
+    capacity: number; // total units across all resource types
     contents: ResourceCounts;
 };
 ```
@@ -134,7 +138,7 @@ The station's shared buffer lives in `PlatformBufferStore` alongside the per-pla
 type TransferState = {
     trainId: number;
     platformId: number;
-    startedAt: number;  // sim time; used for the UI progress indicator
+    startedAt: number; // sim time; used for the UI progress indicator
 };
 ```
 
@@ -175,7 +179,7 @@ idle ──arrived event──> transferring ──update(dt)──> transferrin
 Subscription wired once in `init-app.ts`:
 
 ```ts
-stationPresenceDetector.subscribe((event) => {
+stationPresenceDetector.subscribe(event => {
     if (event.type === 'arrived') {
         transferManager.begin(event.trainId, event.presence.platformId);
     } else {
@@ -240,8 +244,8 @@ update(dt: number): void {
 Constants (deliberately placeholder-looking, not tuned):
 
 ```ts
-const SOURCE_RATE = 1;  // units per second
-const SINK_RATE   = 1;  // units per second
+const SOURCE_RATE = 1; // units per second
+const SINK_RATE = 1; // units per second
 ```
 
 Writes go through the buffer store's resolver, so a source platform configured to share with its station correctly pools resources into the shared buffer.
@@ -265,9 +269,16 @@ type SceneResourcesV1 = {
         bufferMode: 'private' | 'sharedWithStation';
         roles: Record<ResourceTypeId, 'source' | 'sink' | 'neither'>;
     }>;
-    platformBuffers:       Array<{ platformId: number; contents: ResourceCounts }>;
-    stationSharedBuffers:  Array<{ stationId: number;  contents: ResourceCounts }>;
-    carCargo:              Array<{ carId: string; capacity: number; contents: ResourceCounts }>;
+    platformBuffers: Array<{ platformId: number; contents: ResourceCounts }>;
+    stationSharedBuffers: Array<{
+        stationId: number;
+        contents: ResourceCounts;
+    }>;
+    carCargo: Array<{
+        carId: string;
+        capacity: number;
+        contents: ResourceCounts;
+    }>;
     // TransferState intentionally NOT persisted — regenerates from presence on load.
 };
 ```

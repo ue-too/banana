@@ -1,9 +1,14 @@
-import { TrainManager } from '../src/trains/train-manager';
-import { Formation, Train, MAX_FORMATION_DEPTH } from '../src/trains/formation';
-import { Car, CarType, generateCarId, generateFormationId } from '../src/trains/cars';
-import type { TrackGraph } from '../src/trains/tracks/track';
+import {
+    Car,
+    CarType,
+    generateCarId,
+    generateFormationId,
+} from '../src/trains/cars';
+import { Formation, MAX_FORMATION_DEPTH, Train } from '../src/trains/formation';
 import type { JointDirectionManager } from '../src/trains/input-state-machine/train-kmt-state-machine';
 import type { ProximityMatch } from '../src/trains/proximity-detector';
+import type { TrackGraph } from '../src/trains/tracks/track';
+import { TrainManager } from '../src/trains/train-manager';
 
 const mockTrackGraph = {} as unknown as TrackGraph;
 const mockJointDirectionManager = {} as unknown as JointDirectionManager;
@@ -18,13 +23,20 @@ function makeFormation(carCount: number): Formation {
 }
 
 function makeTrain(formation: Formation): Train {
-    return new Train(null, mockTrackGraph, mockJointDirectionManager, formation);
+    return new Train(
+        null,
+        mockTrackGraph,
+        mockJointDirectionManager,
+        formation
+    );
 }
 
 function makeMatch(
-    idA: number, endA: 'head' | 'tail',
-    idB: number, endB: 'head' | 'tail',
-    distance = 1,
+    idA: number,
+    endA: 'head' | 'tail',
+    idB: number,
+    endB: 'head' | 'tail',
+    distance = 1
 ): ProximityMatch {
     return {
         trainA: { id: idA, end: endA },
@@ -34,7 +46,6 @@ function makeMatch(
 }
 
 describe('TrainManager.coupleTrains', () => {
-
     let tm: TrainManager;
 
     beforeEach(() => {
@@ -164,11 +175,17 @@ describe('TrainManager.coupleTrains', () => {
             const result = tm.coupleTrains(makeMatch(idA, 'tail', idB, 'head'));
             expect(result.success).toBe(true);
 
-            const keepTrain = tm.getPlacedTrains().find(e => e.id === idA)!.train;
+            const keepTrain = tm
+                .getPlacedTrains()
+                .find(e => e.id === idA)!.train;
             expect(keepTrain.formation.flatCars()).toHaveLength(5);
 
             // Decouple at boundary: headCarIndex=1 (last of A), tailCarIndex=2 (first of B)
-            const otherFormation = keepTrain.formation.decoupleAtCar(1, 2, 'head');
+            const otherFormation = keepTrain.formation.decoupleAtCar(
+                1,
+                2,
+                'head'
+            );
 
             // A's formation should have its original cars
             expect(keepTrain.formation.flatCars()).toHaveLength(2);
@@ -192,7 +209,9 @@ describe('TrainManager.coupleTrains', () => {
 
             tm.coupleTrains(makeMatch(idA, 'tail', idB, 'head'));
 
-            const keepTrain = tm.getPlacedTrains().find(e => e.id === idA)!.train;
+            const keepTrain = tm
+                .getPlacedTrains()
+                .find(e => e.id === idA)!.train;
             const offsets = keepTrain.formation.bogieOffsets();
 
             // 4 cars × 2 bogies = 8 bogies → 8 offset values
@@ -205,8 +224,15 @@ describe('TrainManager.coupleTrains', () => {
     describe('depth overflow rejected', () => {
         it('should return depth_exceeded when merging would exceed MAX_FORMATION_DEPTH', () => {
             // Create a formation with depth 2 (nested sub-formation)
-            const innerFormation = new Formation(generateFormationId(), [makeCar(), makeCar()]);
-            const outerFormation = new Formation(generateFormationId(), [innerFormation], 2);
+            const innerFormation = new Formation(generateFormationId(), [
+                makeCar(),
+                makeCar(),
+            ]);
+            const outerFormation = new Formation(
+                generateFormationId(),
+                [innerFormation],
+                2
+            );
             const fB = makeFormation(2);
 
             const idA = tm.addTrain(makeTrain(outerFormation));
@@ -238,7 +264,7 @@ describe('TrainManager.coupleTrains', () => {
 
         it('should not return the removed train formation to depot', () => {
             let removedFormations: Formation[] = [];
-            tm.setOnBeforeRemove((train) => {
+            tm.setOnBeforeRemove(train => {
                 removedFormations.push(train.formation);
             });
 
@@ -298,23 +324,50 @@ describe('TrainManager.coupleTrains', () => {
 });
 
 describe('Car gangway flags', () => {
-
     it('should default to type-based gangway flags', () => {
-        const coach = new Car(generateCarId(), [20], 2.5, 2.5, undefined, CarType.COACH);
+        const coach = new Car(
+            generateCarId(),
+            [20],
+            2.5,
+            2.5,
+            undefined,
+            CarType.COACH
+        );
         expect(coach.headHasGangway).toBe(true);
         expect(coach.tailHasGangway).toBe(true);
 
-        const loco = new Car(generateCarId(), [20], 2.5, 2.5, undefined, CarType.LOCOMOTIVE);
+        const loco = new Car(
+            generateCarId(),
+            [20],
+            2.5,
+            2.5,
+            undefined,
+            CarType.LOCOMOTIVE
+        );
         expect(loco.headHasGangway).toBe(false);
         expect(loco.tailHasGangway).toBe(false);
 
-        const cab = new Car(generateCarId(), [20], 2.5, 2.5, undefined, CarType.CAB_CAR);
+        const cab = new Car(
+            generateCarId(),
+            [20],
+            2.5,
+            2.5,
+            undefined,
+            CarType.CAB_CAR
+        );
         expect(cab.headHasGangway).toBe(false);
         expect(cab.tailHasGangway).toBe(true);
     });
 
     it('should swap gangway flags on switchDirection', () => {
-        const cab = new Car(generateCarId(), [20], 2.5, 2.5, undefined, CarType.CAB_CAR);
+        const cab = new Car(
+            generateCarId(),
+            [20],
+            2.5,
+            2.5,
+            undefined,
+            CarType.CAB_CAR
+        );
         expect(cab.headHasGangway).toBe(false);
         expect(cab.tailHasGangway).toBe(true);
 
@@ -325,14 +378,28 @@ describe('Car gangway flags', () => {
     });
 
     it('should allow per-side overrides', () => {
-        const coach = new Car(generateCarId(), [20], 2.5, 2.5, undefined, CarType.COACH);
+        const coach = new Car(
+            generateCarId(),
+            [20],
+            2.5,
+            2.5,
+            undefined,
+            CarType.COACH
+        );
         coach.headHasGangway = false;
         expect(coach.headHasGangway).toBe(false);
         expect(coach.tailHasGangway).toBe(true);
     });
 
     it('should reset gangway flags when type changes', () => {
-        const car = new Car(generateCarId(), [20], 2.5, 2.5, undefined, CarType.COACH);
+        const car = new Car(
+            generateCarId(),
+            [20],
+            2.5,
+            2.5,
+            undefined,
+            CarType.COACH
+        );
         car.headHasGangway = false; // override
         expect(car.headHasGangway).toBe(false);
 

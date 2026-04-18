@@ -333,8 +333,22 @@ describe('TrackAlignedPlatformManager', () => {
                     {
                         id: 5,
                         stationId: 1,
-                        spineA: [{ trackSegment: 10, tStart: 0, tEnd: 1, side: 1 as const }],
-                        spineB: [{ trackSegment: 20, tStart: 0, tEnd: 1, side: -1 as const }],
+                        spineA: [
+                            {
+                                trackSegment: 10,
+                                tStart: 0,
+                                tEnd: 1,
+                                side: 1 as const,
+                            },
+                        ],
+                        spineB: [
+                            {
+                                trackSegment: 20,
+                                tStart: 0,
+                                tEnd: 1,
+                                side: -1 as const,
+                            },
+                        ],
                         offset: 2,
                         outerVertices: {
                             kind: 'dual' as const,
@@ -342,20 +356,34 @@ describe('TrackAlignedPlatformManager', () => {
                             capB: [{ x: 10, y: 5 }],
                         },
                         stopPositions: [
-                            { trackSegmentId: 10, direction: 'tangent' as const, tValue: 0.5 },
-                            { trackSegmentId: 20, direction: 'tangent' as const, tValue: 0.5 },
+                            {
+                                trackSegmentId: 10,
+                                direction: 'tangent' as const,
+                                tValue: 0.5,
+                            },
+                            {
+                                trackSegmentId: 20,
+                                direction: 'tangent' as const,
+                                tValue: 0.5,
+                            },
                         ],
                     },
                 ],
             };
-            const { manager, migrationMap } = TrackAlignedPlatformManager.deserializeAny(
-                legacyData,
-                (_: LegacySerializedTrackAlignedPlatform) => [{ x: 5, y: 0 }, { x: 5, y: 2.5 }],
-            );
+            const { manager, migrationMap } =
+                TrackAlignedPlatformManager.deserializeAny(
+                    legacyData,
+                    (_: LegacySerializedTrackAlignedPlatform) => [
+                        { x: 5, y: 0 },
+                        { x: 5, y: 2.5 },
+                    ]
+                );
 
             const all = manager.getAllPlatforms();
             expect(all).toHaveLength(2);
-            expect(all.map((p) => p.platform.spine[0].trackSegment).sort()).toEqual([10, 20]);
+            expect(
+                all.map(p => p.platform.spine[0].trackSegment).sort()
+            ).toEqual([10, 20]);
 
             // Migration map records where each legacy index ended up.
             const entries = migrationMap.get(5);
@@ -369,8 +397,22 @@ describe('TrackAlignedPlatformManager', () => {
                     {
                         id: 5,
                         stationId: 1,
-                        spineA: [{ trackSegment: 10, tStart: 0, tEnd: 1, side: 1 as const }],
-                        spineB: [{ trackSegment: 20, tStart: 0, tEnd: 1, side: -1 as const }],
+                        spineA: [
+                            {
+                                trackSegment: 10,
+                                tStart: 0,
+                                tEnd: 1,
+                                side: 1 as const,
+                            },
+                        ],
+                        spineB: [
+                            {
+                                trackSegment: 20,
+                                tStart: 0,
+                                tEnd: 1,
+                                side: -1 as const,
+                            },
+                        ],
                         offset: 2,
                         outerVertices: {
                             kind: 'dual' as const,
@@ -378,15 +420,20 @@ describe('TrackAlignedPlatformManager', () => {
                             capB: [{ x: 10, y: 5 }],
                         },
                         stopPositions: [
-                            { trackSegmentId: 10, direction: 'tangent' as const, tValue: 0.5 },
+                            {
+                                trackSegmentId: 10,
+                                direction: 'tangent' as const,
+                                tValue: 0.5,
+                            },
                         ],
                     },
                 ],
             };
-            const { manager, splitIds } = TrackAlignedPlatformManager.deserializeAny(
-                legacyData,
-                () => [{ x: 5, y: 0 }, { x: 5, y: 2.5 }],
-            );
+            const { manager, splitIds } =
+                TrackAlignedPlatformManager.deserializeAny(legacyData, () => [
+                    { x: 5, y: 0 },
+                    { x: 5, y: 2.5 },
+                ]);
 
             expect(splitIds.size).toBe(1);
 
@@ -408,19 +455,32 @@ describe('TrackAlignedPlatformManager', () => {
                     {
                         id: 3,
                         stationId: 1,
-                        spine: [{ trackSegment: 10, tStart: 0, tEnd: 1, side: 1 as const }],
+                        spine: [
+                            {
+                                trackSegment: 10,
+                                tStart: 0,
+                                tEnd: 1,
+                                side: 1 as const,
+                            },
+                        ],
                         offset: 2,
-                        outerVertices: [{ x: 0, y: 5 }, { x: 10, y: 5 }],
+                        outerVertices: [
+                            { x: 0, y: 5 },
+                            { x: 10, y: 5 },
+                        ],
                         stopPositions: [
-                            { id: 0, trackSegmentId: 10, direction: 'tangent' as const, tValue: 0.5 },
+                            {
+                                id: 0,
+                                trackSegmentId: 10,
+                                direction: 'tangent' as const,
+                                tValue: 0.5,
+                            },
                         ],
                     },
                 ],
             };
-            const { manager, migrationMap, splitIds } = TrackAlignedPlatformManager.deserializeAny(
-                newData,
-                () => [],
-            );
+            const { manager, migrationMap, splitIds } =
+                TrackAlignedPlatformManager.deserializeAny(newData, () => []);
             expect(manager.getAllPlatforms()).toHaveLength(1);
             expect(migrationMap.size).toBe(0);
             expect(splitIds.size).toBe(0);
@@ -432,7 +492,14 @@ describe('TrackAlignedPlatformManager', () => {
                     {
                         id: 8,
                         stationId: 2,
-                        spineA: [{ trackSegment: 15, tStart: 0, tEnd: 1, side: 1 as const }],
+                        spineA: [
+                            {
+                                trackSegment: 15,
+                                tStart: 0,
+                                tEnd: 1,
+                                side: 1 as const,
+                            },
+                        ],
                         spineB: null,
                         offset: 1.5,
                         outerVertices: {
@@ -440,15 +507,20 @@ describe('TrackAlignedPlatformManager', () => {
                             vertices: [{ x: 2, y: 4 }],
                         },
                         stopPositions: [
-                            { trackSegmentId: 15, direction: 'tangent' as const, tValue: 0.3 },
+                            {
+                                trackSegmentId: 15,
+                                direction: 'tangent' as const,
+                                tValue: 0.3,
+                            },
                         ],
                     },
                 ],
             };
-            const { manager, migrationMap } = TrackAlignedPlatformManager.deserializeAny(
-                legacySingle,
-                () => [],
-            );
+            const { manager, migrationMap } =
+                TrackAlignedPlatformManager.deserializeAny(
+                    legacySingle,
+                    () => []
+                );
             const p = manager.getPlatform(8);
             expect(p).not.toBeNull();
             expect(p!.spine[0].trackSegment).toBe(15);

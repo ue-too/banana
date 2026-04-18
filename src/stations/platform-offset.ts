@@ -1,4 +1,7 @@
-import { DEFAULT_CAR_HALF_WIDTH, DEFAULT_PLATFORM_CLEARANCE } from './track-aligned-platform-types';
+import {
+    DEFAULT_CAR_HALF_WIDTH,
+    DEFAULT_PLATFORM_CLEARANCE,
+} from './track-aligned-platform-types';
 
 /** Texture size used by track rendering (must match render-system constant). */
 const TRACK_TEX_SIZE = 64;
@@ -17,10 +20,11 @@ export function computePlatformOffset(
     gauge: number,
     bedWidth: number | undefined,
     carHalfWidth: number = DEFAULT_CAR_HALF_WIDTH,
-    clearance: number = DEFAULT_PLATFORM_CLEARANCE,
+    clearance: number = DEFAULT_PLATFORM_CLEARANCE
 ): number {
     const tieOverhang = 4;
-    const tieHw = (gauge / 2) * ((TRACK_TEX_SIZE + tieOverhang * 2) / TRACK_TEX_SIZE);
+    const tieHw =
+        (gauge / 2) * ((TRACK_TEX_SIZE + tieOverhang * 2) / TRACK_TEX_SIZE);
     const ballastHw = tieHw + 0.15;
 
     const trackEdge =

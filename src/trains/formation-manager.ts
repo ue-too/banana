@@ -1,7 +1,8 @@
 import { Observable, SynchronousObservable } from '@ue-too/board';
+
+import { CarStockManager } from './car-stock-manager';
 import { TrainUnit, generateFormationId } from './cars';
 import { Formation } from './formation';
-import { CarStockManager } from './car-stock-manager';
 
 function isFormation(unit: TrainUnit): unit is Formation {
     return unit.depth > 0;
@@ -28,10 +29,12 @@ export class FormationManager {
 
     /** All saved formations. */
     getFormations(): readonly FormationEntry[] {
-        return Array.from(this._formations.entries()).map(([id, formation]) => ({
-            id,
-            formation,
-        }));
+        return Array.from(this._formations.entries()).map(
+            ([id, formation]) => ({
+                id,
+                formation,
+            })
+        );
     }
 
     /** Get a specific formation by its ID. */
@@ -326,7 +329,9 @@ export class FormationManager {
     }
 
     /** Subscribe to typed change events. Returns unsubscribe function. */
-    subscribeToChanges(listener: (id: string, type: FormationChangeType) => void): () => void {
+    subscribeToChanges(
+        listener: (id: string, type: FormationChangeType) => void
+    ): () => void {
         return this._observable.subscribe((id, { type }) => listener(id, type));
     }
 

@@ -1,8 +1,9 @@
-import { describe, it, expect, beforeEach } from 'bun:test';
+import { beforeEach, describe, expect, it } from 'bun:test';
+
 import { StationManager } from '../src/stations/station-manager';
 import { TrackAlignedPlatformManager } from '../src/stations/track-aligned-platform-manager';
-import { ELEVATION } from '../src/trains/tracks/types';
 import type { TrackAlignedPlatform } from '../src/stations/track-aligned-platform-types';
+import { ELEVATION } from '../src/trains/tracks/types';
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -20,13 +21,27 @@ function makeStation(name: string) {
     };
 }
 
-function makePlatform(stationId: number, segments: number[]): Omit<TrackAlignedPlatform, 'id'> {
+function makePlatform(
+    stationId: number,
+    segments: number[]
+): Omit<TrackAlignedPlatform, 'id'> {
     return {
         stationId,
-        spineA: segments.map((seg) => ({ trackSegment: seg, tStart: 0, tEnd: 1, side: 1 as const })),
+        spineA: segments.map(seg => ({
+            trackSegment: seg,
+            tStart: 0,
+            tEnd: 1,
+            side: 1 as const,
+        })),
         spineB: null,
         offset: 2.0,
-        outerVertices: { kind: 'single', vertices: [{ x: 0, y: 5 }, { x: 10, y: 5 }] },
+        outerVertices: {
+            kind: 'single',
+            vertices: [
+                { x: 0, y: 5 },
+                { x: 10, y: 5 },
+            ],
+        },
         stopPositions: [],
     };
 }
@@ -43,7 +58,7 @@ describe('StationManager — onDestroyStation cascade', () => {
         stationMgr = new StationManager();
         platformMgr = new TrackAlignedPlatformManager();
 
-        stationMgr.setOnDestroyStation((stationId) => {
+        stationMgr.setOnDestroyStation(stationId => {
             const platforms = platformMgr.getPlatformsByStation(stationId);
             for (const { id } of platforms) {
                 platformMgr.destroyPlatform(id);
@@ -53,7 +68,9 @@ describe('StationManager — onDestroyStation cascade', () => {
 
     it('should cascade-delete track-aligned platforms when a station is destroyed', () => {
         const stationId = stationMgr.createStation(makeStation('Test'));
-        const platId = platformMgr.createPlatform(makePlatform(stationId, [10]));
+        const platId = platformMgr.createPlatform(
+            makePlatform(stationId, [10])
+        );
 
         stationMgr.destroyStation(stationId);
 
@@ -78,7 +95,9 @@ describe('StationManager — onDestroyStation cascade', () => {
         const station1 = stationMgr.createStation(makeStation('Station 1'));
         const station2 = stationMgr.createStation(makeStation('Station 2'));
         platformMgr.createPlatform(makePlatform(station1, [10]));
-        const platId2 = platformMgr.createPlatform(makePlatform(station2, [11]));
+        const platId2 = platformMgr.createPlatform(
+            makePlatform(station2, [11])
+        );
 
         stationMgr.destroyStation(station1);
 
@@ -129,16 +148,18 @@ describe('StationManager — serialization with trackAlignedPlatforms', () => {
     it('should default trackAlignedPlatforms to empty on old data', () => {
         // Simulate old serialized data without the field
         const data = {
-            stations: [{
-                id: 0,
-                name: 'Old Station',
-                position: { x: 0, y: 0 },
-                elevation: ELEVATION.GROUND,
-                platforms: [],
-                trackSegments: [],
-                joints: [],
-                // trackAlignedPlatforms intentionally missing
-            }],
+            stations: [
+                {
+                    id: 0,
+                    name: 'Old Station',
+                    position: { x: 0, y: 0 },
+                    elevation: ELEVATION.GROUND,
+                    platforms: [],
+                    trackSegments: [],
+                    joints: [],
+                    // trackAlignedPlatforms intentionally missing
+                },
+            ],
         };
 
         const restored = StationManager.deserialize(data as any);

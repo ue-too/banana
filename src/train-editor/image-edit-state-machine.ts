@@ -1,25 +1,43 @@
-import { BaseContext, EventGuards, EventReactions, Guard, NO_OP, StateMachine, TemplateState, TemplateStateMachine } from "@ue-too/being";
-import { Point } from "@ue-too/math";
-import type { ImageEditorEngine } from "./image-editor-engine";
+import {
+    BaseContext,
+    EventGuards,
+    EventReactions,
+    Guard,
+    NO_OP,
+    StateMachine,
+    TemplateState,
+    TemplateStateMachine,
+} from '@ue-too/being';
+import { Point } from '@ue-too/math';
+
+import type { ImageEditorEngine } from './image-editor-engine';
 
 export type ImageEditStates = 'INACTIVE' | 'IDLE' | 'DRAGGING' | 'RESIZING';
 
 export type ImageEditEvents = {
-    'startImageEdit': {};
-    'endImageEdit': {};
-    'leftPointerDown': Point;
-    'leftPointerUp': Point;
-    'leftPointerMove': Point;
-    'pointerMove': Point;
-}
+    startImageEdit: {};
+    endImageEdit: {};
+    leftPointerDown: Point;
+    leftPointerUp: Point;
+    leftPointerMove: Point;
+    pointerMove: Point;
+};
 
 export type ImageEditContext = BaseContext & {
     imageEngine: ImageEditorEngine;
-}
+};
 
-export type ImageEditStateMachine = StateMachine<ImageEditEvents, ImageEditContext, ImageEditStates>;
+export type ImageEditStateMachine = StateMachine<
+    ImageEditEvents,
+    ImageEditContext,
+    ImageEditStates
+>;
 
-class ImageInactiveState extends TemplateState<ImageEditEvents, ImageEditContext, ImageEditStates> {
+class ImageInactiveState extends TemplateState<
+    ImageEditEvents,
+    ImageEditContext,
+    ImageEditStates
+> {
     protected _eventReactions = {
         startImageEdit: {
             action: NO_OP,
@@ -28,7 +46,11 @@ class ImageInactiveState extends TemplateState<ImageEditEvents, ImageEditContext
     } as EventReactions<ImageEditEvents, ImageEditContext, ImageEditStates>;
 }
 
-class ImageIdleState extends TemplateState<ImageEditEvents, ImageEditContext, ImageEditStates> {
+class ImageIdleState extends TemplateState<
+    ImageEditEvents,
+    ImageEditContext,
+    ImageEditStates
+> {
     constructor() {
         super();
     }
@@ -45,9 +67,13 @@ class ImageIdleState extends TemplateState<ImageEditEvents, ImageEditContext, Im
 
     protected _guards: Guard<ImageEditContext, 'hitHandle' | 'hitImage'> = {
         hitHandle: ((context: ImageEditContext) => {
-            return context.imageEngine.projectOnHandle(
-                context.imageEngine.convert2WorldPosition(this._lastPointerPos)
-            ) !== null;
+            return (
+                context.imageEngine.projectOnHandle(
+                    context.imageEngine.convert2WorldPosition(
+                        this._lastPointerPos
+                    )
+                ) !== null
+            );
         }).bind(this),
         hitImage: ((context: ImageEditContext) => {
             return context.imageEngine.projectOnImage(
@@ -64,17 +90,17 @@ class ImageIdleState extends TemplateState<ImageEditEvents, ImageEditContext, Im
             typeof this._guards
         >
     > = {
-            leftPointerDown: [
-                {
-                    guard: 'hitHandle',
-                    target: 'RESIZING',
-                },
-                {
-                    guard: 'hitImage',
-                    target: 'DRAGGING',
-                },
-            ],
-        };
+        leftPointerDown: [
+            {
+                guard: 'hitHandle',
+                target: 'RESIZING',
+            },
+            {
+                guard: 'hitImage',
+                target: 'DRAGGING',
+            },
+        ],
+    };
 
     private _lastPointerPos: Point = { x: 0, y: 0 };
 
@@ -90,7 +116,11 @@ class ImageIdleState extends TemplateState<ImageEditEvents, ImageEditContext, Im
     }
 }
 
-class ImageDraggingState extends TemplateState<ImageEditEvents, ImageEditContext, ImageEditStates> {
+class ImageDraggingState extends TemplateState<
+    ImageEditEvents,
+    ImageEditContext,
+    ImageEditStates
+> {
     protected _eventReactions = {
         leftPointerMove: {
             action: this.onPointerMove.bind(this),
@@ -114,7 +144,11 @@ class ImageDraggingState extends TemplateState<ImageEditEvents, ImageEditContext
     }
 }
 
-class ImageResizingState extends TemplateState<ImageEditEvents, ImageEditContext, ImageEditStates> {
+class ImageResizingState extends TemplateState<
+    ImageEditEvents,
+    ImageEditContext,
+    ImageEditStates
+> {
     protected _eventReactions = {
         leftPointerMove: {
             action: this.onPointerMove.bind(this),
@@ -138,8 +172,14 @@ class ImageResizingState extends TemplateState<ImageEditEvents, ImageEditContext
     }
 }
 
-export const createImageEditStateMachine = (context: ImageEditContext): ImageEditStateMachine => {
-    return new TemplateStateMachine<ImageEditEvents, ImageEditContext, ImageEditStates>(
+export const createImageEditStateMachine = (
+    context: ImageEditContext
+): ImageEditStateMachine => {
+    return new TemplateStateMachine<
+        ImageEditEvents,
+        ImageEditContext,
+        ImageEditStates
+    >(
         {
             INACTIVE: new ImageInactiveState(),
             IDLE: new ImageIdleState(),
@@ -149,4 +189,4 @@ export const createImageEditStateMachine = (context: ImageEditContext): ImageEdi
         'INACTIVE',
         context
     );
-}
+};

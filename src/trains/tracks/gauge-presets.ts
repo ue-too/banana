@@ -49,7 +49,7 @@ const WIDTH_EPSILON = 1e-6;
 /** Find a preset by its gauge width. Returns null for custom (non-preset) widths. */
 export function findPresetByWidth(width: number): TrackGaugePreset | null {
     return (
-        GAUGE_PRESETS.find((p) => Math.abs(p.width - width) < WIDTH_EPSILON) ??
+        GAUGE_PRESETS.find(p => Math.abs(p.width - width) < WIDTH_EPSILON) ??
         null
     );
 }

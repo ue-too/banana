@@ -1,22 +1,39 @@
+import type { Train, TrainPosition } from '../src/trains/formation';
 import { OccupancyRegistry } from '../src/trains/occupancy-registry';
 import type { PlacedTrainEntry } from '../src/trains/train-manager';
-import type { Train, TrainPosition } from '../src/trains/formation';
 
 /**
  * Minimal mock train that exposes the properties OccupancyRegistry reads.
  */
 function mockTrain(opts: {
-    occupiedSegments?: { trackNumber: number; inTrackDirection: 'tangent' | 'reverseTangent' }[];
-    occupiedJoints?: { jointNumber: number; direction: 'tangent' | 'reverseTangent' }[];
+    occupiedSegments?: {
+        trackNumber: number;
+        inTrackDirection: 'tangent' | 'reverseTangent';
+    }[];
+    occupiedJoints?: {
+        jointNumber: number;
+        direction: 'tangent' | 'reverseTangent';
+    }[];
     bogieSegments?: number[];
     headSegment?: number;
 }): Train {
     const bogiePositions = opts.bogieSegments
-        ? opts.bogieSegments.map(seg => ({ trackSegment: seg, tValue: 0, direction: 'tangent' as const, point: { x: 0, y: 0 } }))
+        ? opts.bogieSegments.map(seg => ({
+              trackSegment: seg,
+              tValue: 0,
+              direction: 'tangent' as const,
+              point: { x: 0, y: 0 },
+          }))
         : null;
-    const position = opts.headSegment != null
-        ? { trackSegment: opts.headSegment, tValue: 0, direction: 'tangent' as const, point: { x: 0, y: 0 } }
-        : null;
+    const position =
+        opts.headSegment != null
+            ? {
+                  trackSegment: opts.headSegment,
+                  tValue: 0,
+                  direction: 'tangent' as const,
+                  point: { x: 0, y: 0 },
+              }
+            : null;
     return {
         occupiedTrackSegments: opts.occupiedSegments ?? [],
         occupiedJointNumbers: opts.occupiedJoints ?? [],
@@ -30,7 +47,6 @@ function entry(id: number, train: Train): PlacedTrainEntry {
 }
 
 describe('OccupancyRegistry', () => {
-
     let registry: OccupancyRegistry;
 
     beforeEach(() => {
@@ -38,7 +54,6 @@ describe('OccupancyRegistry', () => {
     });
 
     describe('empty state', () => {
-
         it('should return empty set for any segment when no trains exist', () => {
             registry.updateFromTrains([]);
             expect(registry.getTrainsOnSegment(0).size).toBe(0);
@@ -62,7 +77,6 @@ describe('OccupancyRegistry', () => {
     });
 
     describe('single train', () => {
-
         it('should register the train on its occupied segments', () => {
             const t = mockTrain({
                 occupiedSegments: [
@@ -95,7 +109,9 @@ describe('OccupancyRegistry', () => {
 
         it('should return no colocated pairs with only one train', () => {
             const t = mockTrain({
-                occupiedSegments: [{ trackNumber: 1, inTrackDirection: 'tangent' }],
+                occupiedSegments: [
+                    { trackNumber: 1, inTrackDirection: 'tangent' },
+                ],
             });
             registry.updateFromTrains([entry(10, t)]);
             expect(registry.getColocatedPairs().size).toBe(0);
@@ -103,14 +119,17 @@ describe('OccupancyRegistry', () => {
     });
 
     describe('two trains on different segments', () => {
-
         it('sharesTrack should return false', () => {
             const t1 = mockTrain({
-                occupiedSegments: [{ trackNumber: 1, inTrackDirection: 'tangent' }],
+                occupiedSegments: [
+                    { trackNumber: 1, inTrackDirection: 'tangent' },
+                ],
                 occupiedJoints: [{ jointNumber: 1, direction: 'tangent' }],
             });
             const t2 = mockTrain({
-                occupiedSegments: [{ trackNumber: 2, inTrackDirection: 'tangent' }],
+                occupiedSegments: [
+                    { trackNumber: 2, inTrackDirection: 'tangent' },
+                ],
                 occupiedJoints: [{ jointNumber: 3, direction: 'tangent' }],
             });
             registry.updateFromTrains([entry(1, t1), entry(2, t2)]);
@@ -120,10 +139,14 @@ describe('OccupancyRegistry', () => {
 
         it('should return no colocated pairs', () => {
             const t1 = mockTrain({
-                occupiedSegments: [{ trackNumber: 1, inTrackDirection: 'tangent' }],
+                occupiedSegments: [
+                    { trackNumber: 1, inTrackDirection: 'tangent' },
+                ],
             });
             const t2 = mockTrain({
-                occupiedSegments: [{ trackNumber: 2, inTrackDirection: 'tangent' }],
+                occupiedSegments: [
+                    { trackNumber: 2, inTrackDirection: 'tangent' },
+                ],
             });
             registry.updateFromTrains([entry(1, t1), entry(2, t2)]);
 
@@ -132,10 +155,11 @@ describe('OccupancyRegistry', () => {
     });
 
     describe('two trains sharing a segment', () => {
-
         it('sharesTrack should return true', () => {
             const t1 = mockTrain({
-                occupiedSegments: [{ trackNumber: 5, inTrackDirection: 'tangent' }],
+                occupiedSegments: [
+                    { trackNumber: 5, inTrackDirection: 'tangent' },
+                ],
             });
             const t2 = mockTrain({
                 occupiedSegments: [
@@ -151,10 +175,14 @@ describe('OccupancyRegistry', () => {
 
         it('should include the pair in colocated pairs', () => {
             const t1 = mockTrain({
-                occupiedSegments: [{ trackNumber: 5, inTrackDirection: 'tangent' }],
+                occupiedSegments: [
+                    { trackNumber: 5, inTrackDirection: 'tangent' },
+                ],
             });
             const t2 = mockTrain({
-                occupiedSegments: [{ trackNumber: 5, inTrackDirection: 'tangent' }],
+                occupiedSegments: [
+                    { trackNumber: 5, inTrackDirection: 'tangent' },
+                ],
             });
             registry.updateFromTrains([entry(1, t1), entry(2, t2)]);
 
@@ -166,15 +194,20 @@ describe('OccupancyRegistry', () => {
     });
 
     describe('two trains sharing a joint (but not segment)', () => {
-
         it('sharesTrack should return true', () => {
             const t1 = mockTrain({
-                occupiedSegments: [{ trackNumber: 1, inTrackDirection: 'tangent' }],
+                occupiedSegments: [
+                    { trackNumber: 1, inTrackDirection: 'tangent' },
+                ],
                 occupiedJoints: [{ jointNumber: 10, direction: 'tangent' }],
             });
             const t2 = mockTrain({
-                occupiedSegments: [{ trackNumber: 2, inTrackDirection: 'tangent' }],
-                occupiedJoints: [{ jointNumber: 10, direction: 'reverseTangent' }],
+                occupiedSegments: [
+                    { trackNumber: 2, inTrackDirection: 'tangent' },
+                ],
+                occupiedJoints: [
+                    { jointNumber: 10, direction: 'reverseTangent' },
+                ],
             });
             registry.updateFromTrains([entry(1, t1), entry(2, t2)]);
 
@@ -183,12 +216,18 @@ describe('OccupancyRegistry', () => {
 
         it('should include the pair in colocated pairs', () => {
             const t1 = mockTrain({
-                occupiedSegments: [{ trackNumber: 1, inTrackDirection: 'tangent' }],
+                occupiedSegments: [
+                    { trackNumber: 1, inTrackDirection: 'tangent' },
+                ],
                 occupiedJoints: [{ jointNumber: 10, direction: 'tangent' }],
             });
             const t2 = mockTrain({
-                occupiedSegments: [{ trackNumber: 2, inTrackDirection: 'tangent' }],
-                occupiedJoints: [{ jointNumber: 10, direction: 'reverseTangent' }],
+                occupiedSegments: [
+                    { trackNumber: 2, inTrackDirection: 'tangent' },
+                ],
+                occupiedJoints: [
+                    { jointNumber: 10, direction: 'reverseTangent' },
+                ],
             });
             registry.updateFromTrains([entry(1, t1), entry(2, t2)]);
 
@@ -198,13 +237,16 @@ describe('OccupancyRegistry', () => {
     });
 
     describe('train removed between frames', () => {
-
         it('should clear stale entries after train is removed', () => {
             const t1 = mockTrain({
-                occupiedSegments: [{ trackNumber: 1, inTrackDirection: 'tangent' }],
+                occupiedSegments: [
+                    { trackNumber: 1, inTrackDirection: 'tangent' },
+                ],
             });
             const t2 = mockTrain({
-                occupiedSegments: [{ trackNumber: 1, inTrackDirection: 'tangent' }],
+                occupiedSegments: [
+                    { trackNumber: 1, inTrackDirection: 'tangent' },
+                ],
             });
             registry.updateFromTrains([entry(1, t1), entry(2, t2)]);
             expect(registry.getTrainsOnSegment(1).size).toBe(2);
@@ -218,10 +260,14 @@ describe('OccupancyRegistry', () => {
 
         it('should remove colocated pairs when a train is removed', () => {
             const t1 = mockTrain({
-                occupiedSegments: [{ trackNumber: 1, inTrackDirection: 'tangent' }],
+                occupiedSegments: [
+                    { trackNumber: 1, inTrackDirection: 'tangent' },
+                ],
             });
             const t2 = mockTrain({
-                occupiedSegments: [{ trackNumber: 1, inTrackDirection: 'tangent' }],
+                occupiedSegments: [
+                    { trackNumber: 1, inTrackDirection: 'tangent' },
+                ],
             });
             registry.updateFromTrains([entry(1, t1), entry(2, t2)]);
             expect(registry.getColocatedPairs().size).toBe(1);
@@ -232,7 +278,6 @@ describe('OccupancyRegistry', () => {
     });
 
     describe('multiple segments per train', () => {
-
         it('should register all segments for a train occupying many segments', () => {
             const segments = Array.from({ length: 15 }, (_, i) => ({
                 trackNumber: i,
@@ -249,7 +294,6 @@ describe('OccupancyRegistry', () => {
     });
 
     describe('three trains with partial overlap', () => {
-
         it('should detect multiple colocated pairs', () => {
             const t1 = mockTrain({
                 occupiedSegments: [
@@ -269,21 +313,24 @@ describe('OccupancyRegistry', () => {
                     { trackNumber: 4, inTrackDirection: 'tangent' },
                 ],
             });
-            registry.updateFromTrains([entry(1, t1), entry(2, t2), entry(3, t3)]);
+            registry.updateFromTrains([
+                entry(1, t1),
+                entry(2, t2),
+                entry(3, t3),
+            ]);
 
             const pairs = registry.getColocatedPairs();
-            expect(pairs.has('1:2')).toBe(true);  // share segment 2
-            expect(pairs.has('2:3')).toBe(true);  // share segment 3
-            expect(pairs.has('1:3')).toBe(false);  // no shared segment
+            expect(pairs.has('1:2')).toBe(true); // share segment 2
+            expect(pairs.has('2:3')).toBe(true); // share segment 3
+            expect(pairs.has('1:3')).toBe(false); // no shared segment
         });
     });
 
     describe('bogie-position-based occupancy (stationary trains)', () => {
-
         it('should detect shared segment from bogie positions even with empty occupiedTrackSegments', () => {
             // Simulates freshly placed trains that never moved
             const t1 = mockTrain({
-                bogieSegments: [5, 5],  // all bogies on segment 5
+                bogieSegments: [5, 5], // all bogies on segment 5
             });
             const t2 = mockTrain({
                 bogieSegments: [5, 5],
@@ -297,14 +344,14 @@ describe('OccupancyRegistry', () => {
 
         it('should detect shared segment when bogies span multiple segments', () => {
             const t1 = mockTrain({
-                bogieSegments: [5, 6],  // spans segments 5 and 6
+                bogieSegments: [5, 6], // spans segments 5 and 6
             });
             const t2 = mockTrain({
-                bogieSegments: [6, 7],  // spans segments 6 and 7
+                bogieSegments: [6, 7], // spans segments 6 and 7
             });
             registry.updateFromTrains([entry(1, t1), entry(2, t2)]);
 
-            expect(registry.sharesTrack(1, 2)).toBe(true);  // share segment 6
+            expect(registry.sharesTrack(1, 2)).toBe(true); // share segment 6
         });
 
         it('should fall back to head position when bogies are null', () => {
@@ -318,10 +365,11 @@ describe('OccupancyRegistry', () => {
     });
 
     describe('sharesTrack with non-existent train IDs', () => {
-
         it('should return false when querying train IDs not in the registry', () => {
             const t = mockTrain({
-                occupiedSegments: [{ trackNumber: 1, inTrackDirection: 'tangent' }],
+                occupiedSegments: [
+                    { trackNumber: 1, inTrackDirection: 'tangent' },
+                ],
             });
             registry.updateFromTrains([entry(1, t)]);
 

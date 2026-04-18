@@ -1,7 +1,10 @@
 import { create } from 'zustand';
 import { devtools } from 'zustand/middleware';
 
-import { GAUGE_PRESETS, DEFAULT_GAUGE_PRESET } from '@/trains/tracks/gauge-presets';
+import {
+    DEFAULT_GAUGE_PRESET,
+    GAUGE_PRESETS,
+} from '@/trains/tracks/gauge-presets';
 
 const MIN_CUSTOM_GAUGE = 0.5;
 const MAX_CUSTOM_GAUGE = 3.0;
@@ -27,7 +30,7 @@ export const useGaugeStore = create<GaugeStore>()(
             currentGauge: DEFAULT_GAUGE_PRESET.width,
 
             selectPreset: (presetId: string) => {
-                const preset = GAUGE_PRESETS.find((p) => p.id === presetId);
+                const preset = GAUGE_PRESETS.find(p => p.id === presetId);
                 if (!preset) return;
                 set({
                     selectedPresetId: preset.id,

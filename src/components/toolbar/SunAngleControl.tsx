@@ -1,6 +1,6 @@
-import { Sun } from '@/assets/icons';
 import { useTranslation } from 'react-i18next';
 
+import { Sun } from '@/assets/icons';
 import {
     Tooltip,
     TooltipContent,

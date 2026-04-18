@@ -8,12 +8,12 @@
  * Writes: public/tiles/{z}/{x}/{y}.png
  */
 import { createCanvas } from '@napi-rs/canvas';
-import { Static, paintRules, labelRules } from 'protomaps-leaflet';
 import { LIGHT } from '@protomaps/basemaps';
-import { PMTiles } from 'pmtiles';
-import { open, mkdir, stat } from 'fs/promises';
 import { writeFileSync } from 'fs';
-import { resolve, join } from 'path';
+import { mkdir, open, stat } from 'fs/promises';
+import { join, resolve } from 'path';
+import { PMTiles } from 'pmtiles';
+import { Static, labelRules, paintRules } from 'protomaps-leaflet';
 
 const TILE_SIZE = 256;
 /** Render 2 extra zoom levels beyond the vector data's max (overzoomed). */
@@ -35,7 +35,7 @@ class FileSource {
         return {
             data: buf.buffer.slice(
                 buf.byteOffset,
-                buf.byteOffset + buf.byteLength,
+                buf.byteOffset + buf.byteLength
             ),
         };
     }
@@ -55,7 +55,7 @@ function lat2tile(lat: number, z: number): number {
     return Math.floor(
         ((1 - Math.log(Math.tan(latRad) + 1 / Math.cos(latRad)) / Math.PI) /
             2) *
-        (1 << z),
+            (1 << z)
     );
 }
 
@@ -87,7 +87,7 @@ async function main() {
     };
 
     console.log(
-        `Input: ${INPUT}\nData zoom: ${minZoom}–${maxDataZoom}, render zoom: ${minZoom}–${maxRenderZoom}\nBbox: ${bbox.minLon},${bbox.minLat} → ${bbox.maxLon},${bbox.maxLat}`,
+        `Input: ${INPUT}\nData zoom: ${minZoom}–${maxDataZoom}, render zoom: ${minZoom}–${maxRenderZoom}\nBbox: ${bbox.minLon},${bbox.minLat} → ${bbox.maxLon},${bbox.maxLat}`
     );
 
     const renderer = new Static({
@@ -119,7 +119,7 @@ async function main() {
 
         const zoomTiles = (xMax - xMin + 1) * (yMax - yMin + 1);
         console.log(
-            `z${z}: ${zoomTiles} tiles (x: ${xMin}–${xMax}, y: ${yMin}–${yMax})`,
+            `z${z}: ${zoomTiles} tiles (x: ${xMin}–${xMax}, y: ${yMin}–${yMax})`
         );
 
         for (let x = xMin; x <= xMax; x++) {
@@ -128,10 +128,8 @@ async function main() {
 
             for (let y = yMin; y <= yMax; y++) {
                 // Tile center in lng/lat
-                const centerLng =
-                    (tile2lng(x, z) + tile2lng(x + 1, z)) / 2;
-                const centerLat =
-                    (tile2lat(y, z) + tile2lat(y + 1, z)) / 2;
+                const centerLng = (tile2lng(x, z) + tile2lng(x + 1, z)) / 2;
+                const centerLat = (tile2lat(y, z) + tile2lat(y + 1, z)) / 2;
 
                 const canvas = createCanvas(TILE_SIZE, TILE_SIZE);
                 const ctx = canvas.getContext('2d');
@@ -140,7 +138,7 @@ async function main() {
                     TILE_SIZE,
                     TILE_SIZE,
                     { x: centerLng, y: centerLat },
-                    z,
+                    z
                 );
 
                 const outPath = join(dir, `${y}.png`);
@@ -151,7 +149,7 @@ async function main() {
 
         const elapsed = ((Date.now() - startTime) / 1000).toFixed(1);
         console.log(
-            `  z${z} done (${rendered}/${totalTiles}, ${elapsed}s elapsed)`,
+            `  z${z} done (${rendered}/${totalTiles}, ${elapsed}s elapsed)`
         );
     }
 
@@ -159,7 +157,7 @@ async function main() {
     console.log(`\nDone: ${rendered} tiles in ${totalElapsed}s`);
 }
 
-main().catch((err) => {
+main().catch(err => {
     console.error(err);
     process.exit(1);
 });

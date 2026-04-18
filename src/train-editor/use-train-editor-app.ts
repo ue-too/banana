@@ -1,5 +1,6 @@
 import { usePixiCanvas } from '@ue-too/board-pixi-react-integration';
 import { useMemo } from 'react';
+
 import type { TrainEditorComponents } from './types';
 
 /**

@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach } from 'bun:test';
+import { beforeEach, describe, expect, it } from 'bun:test';
 
 import { useRenderSettingsStore } from '../src/stores/render-settings-store';
 
@@ -101,17 +101,17 @@ describe('render-settings-store', () => {
         for (const [setter, field] of booleanFields) {
             it(`${setter} sets ${field} to true`, () => {
                 (useRenderSettingsStore.getState() as any)[setter](true);
-                expect(
-                    (useRenderSettingsStore.getState() as any)[field]
-                ).toBe(true);
+                expect((useRenderSettingsStore.getState() as any)[field]).toBe(
+                    true
+                );
             });
 
             it(`${setter} sets ${field} back to false`, () => {
                 useRenderSettingsStore.setState({ [field]: true } as any);
                 (useRenderSettingsStore.getState() as any)[setter](false);
-                expect(
-                    (useRenderSettingsStore.getState() as any)[field]
-                ).toBe(false);
+                expect((useRenderSettingsStore.getState() as any)[field]).toBe(
+                    false
+                );
             });
         }
     });

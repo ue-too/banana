@@ -3,12 +3,12 @@ import { useTranslation } from 'react-i18next';
 import { toast } from 'sonner';
 
 import { useBananaApp } from '@/contexts/pixi';
-import { useSceneStore } from '@/stores/scene-store';
 import {
     deserializeSceneData,
     validateSerializedSceneData,
 } from '@/scene-serialization';
 import { getSceneStorage } from '@/storage';
+import { useSceneStore } from '@/stores/scene-store';
 
 /**
  * Loads the pending scene from IndexedDB after the PIXI app initializes.
@@ -17,8 +17,8 @@ import { getSceneStorage } from '@/storage';
 export function SceneRestorer(): null {
     const app = useBananaApp();
     const { t } = useTranslation();
-    const pendingSceneId = useSceneStore((s) => s.pendingSceneId);
-    const clearPendingScene = useSceneStore((s) => s.clearPendingScene);
+    const pendingSceneId = useSceneStore(s => s.pendingSceneId);
+    const clearPendingScene = useSceneStore(s => s.clearPendingScene);
     const loaded = useRef(false);
 
     useEffect(() => {
@@ -43,9 +43,9 @@ export function SceneRestorer(): null {
 
             await deserializeSceneData(app, stored.data, {
                 onProgress: (loaded, total) =>
-                    useSceneStore.getState().setSceneLoadProgress(
-                        total > 0 ? loaded / total : 1
-                    ),
+                    useSceneStore
+                        .getState()
+                        .setSceneLoadProgress(total > 0 ? loaded / total : 1),
             });
 
             useSceneStore.getState().setSceneLoading(false);
@@ -55,7 +55,7 @@ export function SceneRestorer(): null {
         };
 
         restore()
-            .catch((err) => {
+            .catch(err => {
                 console.error('Failed to restore scene:', err);
                 toast.error(t('sceneRestoreFailed'));
                 useSceneStore.getState().setSceneLoading(false);

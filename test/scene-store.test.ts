@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach, mock } from 'bun:test';
+import { beforeEach, describe, expect, it, mock } from 'bun:test';
 
 import type { SceneStorage } from '../src/storage/scene-storage';
 
@@ -98,7 +98,7 @@ describe('scene-store', () => {
         it('persists active scene id to storage', async () => {
             useSceneStore.getState().setActiveScene('xyz', 'Test');
             // setActiveSceneId is fire-and-forget; await the promise
-            await new Promise((r) => setTimeout(r, 0));
+            await new Promise(r => setTimeout(r, 0));
             expect(await storage.getActiveSceneId()).toBe('xyz');
         });
     });
@@ -143,7 +143,7 @@ describe('scene-store', () => {
 
         it('persists to storage', async () => {
             useSceneStore.getState().setAutoSaveIntervalMs(300_000);
-            await new Promise((r) => setTimeout(r, 0));
+            await new Promise(r => setTimeout(r, 0));
             expect(await storage.getPreference('autoSaveIntervalMs')).toBe(
                 '300000'
             );

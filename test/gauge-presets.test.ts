@@ -1,8 +1,8 @@
 import { describe, expect, it } from 'bun:test';
 
 import {
-    GAUGE_PRESETS,
     DEFAULT_GAUGE_PRESET,
+    GAUGE_PRESETS,
     findPresetByWidth,
 } from '../src/trains/tracks/gauge-presets';
 
@@ -12,12 +12,12 @@ describe('GAUGE_PRESETS', () => {
     });
 
     it('has unique ids', () => {
-        const ids = GAUGE_PRESETS.map((p) => p.id);
+        const ids = GAUGE_PRESETS.map(p => p.id);
         expect(new Set(ids).size).toBe(ids.length);
     });
 
     it('has unique widths', () => {
-        const widths = GAUGE_PRESETS.map((p) => p.width);
+        const widths = GAUGE_PRESETS.map(p => p.width);
         expect(new Set(widths).size).toBe(widths.length);
     });
 

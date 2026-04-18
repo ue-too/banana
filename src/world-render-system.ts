@@ -1,6 +1,7 @@
 import { Container } from 'pixi.js';
-import { ELEVATION, ELEVATION_VALUES } from './trains/tracks/types';
+
 import { LEVEL_HEIGHT } from './trains/tracks/constants';
+import { ELEVATION, ELEVATION_VALUES } from './trains/tracks/types';
 
 const getElevationIndex = (elevation: ELEVATION): number => {
     const i = ELEVATION_VALUES.indexOf(elevation);
@@ -23,15 +24,29 @@ const getElevationForLayer = (
  * @param elevation - Raw elevation in world units (e.g. 10 for ABOVE_1 when LEVEL_HEIGHT=10)
  * @returns The bounding ELEVATION interval and interpolation ratio, or null if out of range
  */
-export const findElevationInterval = (elevation: number): { interval: [ELEVATION, ELEVATION]; ratio: number } | null => {
-    const elevations = Object.values(ELEVATION).filter((v): v is number => typeof v === "number");
+export const findElevationInterval = (
+    elevation: number
+): { interval: [ELEVATION, ELEVATION]; ratio: number } | null => {
+    const elevations = Object.values(ELEVATION).filter(
+        (v): v is number => typeof v === 'number'
+    );
     let left = 0;
     let right = elevations.length - 1;
     while (left <= right) {
         const mid = left + Math.floor((right - left) / 2);
         const midValue = elevations[mid];
-        if (midValue * LEVEL_HEIGHT <= elevation && mid + 1 < elevations.length && elevations[mid + 1] * LEVEL_HEIGHT >= elevation) {
-            return { interval: [elevations[mid], elevations[mid + 1]], ratio: (elevation - midValue * LEVEL_HEIGHT) / (elevations[mid + 1] * LEVEL_HEIGHT - midValue * LEVEL_HEIGHT) };
+        if (
+            midValue * LEVEL_HEIGHT <= elevation &&
+            mid + 1 < elevations.length &&
+            elevations[mid + 1] * LEVEL_HEIGHT >= elevation
+        ) {
+            return {
+                interval: [elevations[mid], elevations[mid + 1]],
+                ratio:
+                    (elevation - midValue * LEVEL_HEIGHT) /
+                    (elevations[mid + 1] * LEVEL_HEIGHT -
+                        midValue * LEVEL_HEIGHT),
+            };
         } else if (elevation < midValue * LEVEL_HEIGHT) {
             right = mid - 1;
         } else {
@@ -101,18 +116,26 @@ const Z_INDEX_BELOW = 0;
 const Z_INDEX_OVERLAYS = 3;
 
 export class WorldRenderSystem {
-
     private _mainContainer: Container;
     /** Contains all elevation band containers. */
     private _drawDataBelow: Container;
     /** Non-banded drawables (previews, etc.) keyed by string. */
     private _drawableMap: Map<string, Container> = new Map();
     /** Shadow items keyed by string. */
-    private _shadowMap: Map<string, { container: Container; elevation: ELEVATION }> = new Map();
+    private _shadowMap: Map<
+        string,
+        { container: Container; elevation: ELEVATION }
+    > = new Map();
     /** Bed items keyed by string (shared per elevation, renders before rails). */
-    private _bedMap: Map<string, { container: Container; elevation: ELEVATION }> = new Map();
+    private _bedMap: Map<
+        string,
+        { container: Container; elevation: ELEVATION }
+    > = new Map();
     /** Band items keyed by string. */
-    private _bandItemMap: Map<string, { container: Container; bandIndex: number; sublayer: BandSublayer }> = new Map();
+    private _bandItemMap: Map<
+        string,
+        { container: Container; bandIndex: number; sublayer: BandSublayer }
+    > = new Map();
     /** Elevation bands indexed by band index. */
     private _bands: ElevationBand[] = [];
     /** Map from ELEVATION enum value to band index. */
@@ -212,7 +235,15 @@ export class WorldRenderSystem {
         catenary.zIndex = SUBLAYER_CATENARY;
         bandContainer.addChild(catenary);
 
-        return { container: bandContainer, shadow, bed, drawable, rail, onTrack, catenary };
+        return {
+            container: bandContainer,
+            shadow,
+            bed,
+            drawable,
+            rail,
+            onTrack,
+            catenary,
+        };
     }
 
     /**
@@ -220,7 +251,10 @@ export class WorldRenderSystem {
      *
      * @param options.zIndex - Custom z-index. Omit for overlays (drawn on top).
      */
-    addOverlayContainer(container: Container, options?: { zIndex?: number }): void {
+    addOverlayContainer(
+        container: Container,
+        options?: { zIndex?: number }
+    ): void {
         container.zIndex = options?.zIndex ?? Z_INDEX_OVERLAYS;
         this._mainContainer.addChild(container);
         this._mainContainer.sortChildren();
@@ -246,7 +280,9 @@ export class WorldRenderSystem {
     }
 
     getDrawable(key: string): Container | undefined {
-        return this._drawableMap.get(key) ?? this._bandItemMap.get(key)?.container;
+        return (
+            this._drawableMap.get(key) ?? this._bandItemMap.get(key)?.container
+        );
     }
 
     /**
@@ -284,10 +320,18 @@ export class WorldRenderSystem {
      * @param bandIndex - Elevation band index (from {@link getElevationBandIndex})
      * @param sublayer - Which sublayer within the band
      */
-    addToBand(key: string, container: Container, bandIndex: number, sublayer: BandSublayer): void {
+    addToBand(
+        key: string,
+        container: Container,
+        bandIndex: number,
+        sublayer: BandSublayer
+    ): void {
         const existing = this._bandItemMap.get(key);
         if (existing) {
-            if (existing.bandIndex === bandIndex && existing.sublayer === sublayer) {
+            if (
+                existing.bandIndex === bandIndex &&
+                existing.sublayer === sublayer
+            ) {
                 return; // Already in the right place
             }
             const oldBand = this._bands[existing.bandIndex];
@@ -462,7 +506,7 @@ export class WorldRenderSystem {
         });
         this._bandItemMap.clear();
 
-        this._drawableMap.forEach((container) => {
+        this._drawableMap.forEach(container => {
             this._drawDataBelow.removeChild(container);
             container.destroy({ children: true });
         });

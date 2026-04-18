@@ -1,6 +1,6 @@
-import { createReadStream, statSync } from 'fs';
 import tailwindcss from '@tailwindcss/vite';
 import react from '@vitejs/plugin-react';
+import { createReadStream, statSync } from 'fs';
 import { join, resolve } from 'path';
 import { defineConfig } from 'vite';
 

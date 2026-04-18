@@ -1,5 +1,13 @@
-import { Point } from "@ue-too/math";
-import { ELEVATION, FlatElevation, SlopedElevation, ProjectionCurveResult, ProjectionJointResult, ProjectionEdgeResult } from "../tracks/types";
+import { Point } from '@ue-too/math';
+
+import {
+    ELEVATION,
+    FlatElevation,
+    ProjectionCurveResult,
+    ProjectionEdgeResult,
+    ProjectionJointResult,
+    SlopedElevation,
+} from '../tracks/types';
 
 export type NewJointType =
     | BrandNewJoint
@@ -37,4 +45,3 @@ export type BranchCurveJoint = {
     constraint: ProjectionCurveResult;
     curveElevation: SlopedElevation | FlatElevation;
 } & BaseJoint;
-

@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { FilePlus, Trash2 } from '@/assets/icons';
 
+import { FilePlus, Trash2 } from '@/assets/icons';
 import { Button } from '@/components/ui/button';
 import {
     Dialog,
@@ -10,8 +10,8 @@ import {
     DialogHeader,
     DialogTitle,
 } from '@/components/ui/dialog';
+import { type SceneMetadata, getSceneStorage } from '@/storage';
 import { useSceneStore } from '@/stores/scene-store';
-import { getSceneStorage, type SceneMetadata } from '@/storage';
 
 import { SceneCard } from './SceneCard';
 
@@ -22,10 +22,10 @@ type ScenePickerDialogProps = {
 
 export function ScenePickerDialog({ onSceneSelected }: ScenePickerDialogProps) {
     const { t } = useTranslation();
-    const scenePickerOpen = useSceneStore((s) => s.scenePickerOpen);
-    const hideScenePicker = useSceneStore((s) => s.hideScenePicker);
-    const activeSceneId = useSceneStore((s) => s.activeSceneId);
-    const setActiveScene = useSceneStore((s) => s.setActiveScene);
+    const scenePickerOpen = useSceneStore(s => s.scenePickerOpen);
+    const hideScenePicker = useSceneStore(s => s.hideScenePicker);
+    const activeSceneId = useSceneStore(s => s.activeSceneId);
+    const setActiveScene = useSceneStore(s => s.setActiveScene);
     const [scenes, setScenes] = useState<SceneMetadata[]>([]);
     const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
 
@@ -80,7 +80,7 @@ export function ScenePickerDialog({ onSceneSelected }: ScenePickerDialogProps) {
     return (
         <Dialog
             open={scenePickerOpen}
-            onOpenChange={(open) => {
+            onOpenChange={open => {
                 if (!open) {
                     // If no scene is active and user closes dialog, create new scene
                     if (!activeSceneId) {
@@ -99,7 +99,7 @@ export function ScenePickerDialog({ onSceneSelected }: ScenePickerDialogProps) {
                 </DialogHeader>
 
                 <div className="mt-4 flex max-h-64 flex-col gap-2 overflow-y-auto">
-                    {scenes.map((scene) => (
+                    {scenes.map(scene => (
                         <SceneCard
                             key={scene.id}
                             scene={scene}
@@ -114,7 +114,7 @@ export function ScenePickerDialog({ onSceneSelected }: ScenePickerDialogProps) {
                                 }
                             }}
                             onCancelDelete={() => setConfirmDeleteId(null)}
-                            onRename={(name) => handleRename(scene.id, name)}
+                            onRename={name => handleRename(scene.id, name)}
                         />
                     ))}
 
@@ -126,10 +126,7 @@ export function ScenePickerDialog({ onSceneSelected }: ScenePickerDialogProps) {
                 </div>
 
                 <div className="mt-4 flex justify-end gap-2">
-                    <Button
-                        variant="outline"
-                        onClick={handleNewScene}
-                    >
+                    <Button variant="outline" onClick={handleNewScene}>
                         <FilePlus className="mr-2 size-4" />
                         {t('newScene')}
                     </Button>

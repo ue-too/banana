@@ -1,13 +1,21 @@
-import { describe, it, expect } from 'bun:test';
 import { BCurve } from '@ue-too/curve';
+import { describe, expect, it } from 'bun:test';
+
 import { computeTunnelEntranceGeometry } from '../src/trains/tracks/tunnel-geometry';
 import type { TrackSegmentDrawData } from '../src/trains/tracks/types';
 
 /** A 100m straight curve along +X. Terrain can be varied along x for crossing tests. */
-const makeStraightCurve = () => new BCurve([{ x: 0, y: 0 }, { x: 100, y: 0 }]);
+const makeStraightCurve = () =>
+    new BCurve([
+        { x: 0, y: 0 },
+        { x: 100, y: 0 },
+    ]);
 
 /** Minimal draw data; fields not read by the helper are filled with placeholders. */
-const makeDrawData = (elevationFrom: number, elevationTo: number): TrackSegmentDrawData => ({
+const makeDrawData = (
+    elevationFrom: number,
+    elevationTo: number
+): TrackSegmentDrawData => ({
     curve: makeStraightCurve(),
     originalTrackSegment: {
         trackSegmentNumber: 0,
@@ -33,19 +41,31 @@ describe('computeTunnelEntranceGeometry', () => {
         // Even if the flat track is below terrain, the entrance path must bail out —
         // flat underground tracks are handled by the fully-underground enclosure instead.
         const drawData = makeDrawData(10, 10);
-        const result = computeTunnelEntranceGeometry(drawData, flatTerrain(30), bandIdx);
+        const result = computeTunnelEntranceGeometry(
+            drawData,
+            flatTerrain(30),
+            bandIdx
+        );
         expect(result).toBeNull();
     });
 
     it('returns null when both ends are above terrain', () => {
         const drawData = makeDrawData(20, 25);
-        const result = computeTunnelEntranceGeometry(drawData, flatTerrain(0), bandIdx);
+        const result = computeTunnelEntranceGeometry(
+            drawData,
+            flatTerrain(0),
+            bandIdx
+        );
         expect(result).toBeNull();
     });
 
     it('returns geometry with coverEnd="end" for a ramp entering underground (above → below)', () => {
         const drawData = makeDrawData(20, 0);
-        const result = computeTunnelEntranceGeometry(drawData, flatTerrain(10), bandIdx);
+        const result = computeTunnelEntranceGeometry(
+            drawData,
+            flatTerrain(10),
+            bandIdx
+        );
         expect(result).not.toBeNull();
         expect(result!.coverEnd).toBe('end');
         expect(result!.leftInner.length).toBeGreaterThan(0);
@@ -58,7 +78,11 @@ describe('computeTunnelEntranceGeometry', () => {
 
     it('returns geometry with coverEnd="start" for a ramp exiting underground (below → above)', () => {
         const drawData = makeDrawData(0, 20);
-        const result = computeTunnelEntranceGeometry(drawData, flatTerrain(10), bandIdx);
+        const result = computeTunnelEntranceGeometry(
+            drawData,
+            flatTerrain(10),
+            bandIdx
+        );
         expect(result).not.toBeNull();
         expect(result!.coverEnd).toBe('start');
         expect(result!.leftInner.length).toBeGreaterThan(0);
@@ -70,7 +94,11 @@ describe('computeTunnelEntranceGeometry', () => {
         // Both ends are well below terrain — this should NOT generate an entrance.
         // Before the fix this returned geometry with coverEnd='both'.
         const drawData = makeDrawData(0, 5);
-        const result = computeTunnelEntranceGeometry(drawData, flatTerrain(30), bandIdx);
+        const result = computeTunnelEntranceGeometry(
+            drawData,
+            flatTerrain(30),
+            bandIdx
+        );
         expect(result).toBeNull();
     });
 
@@ -83,7 +111,7 @@ describe('computeTunnelEntranceGeometry', () => {
         const result = computeTunnelEntranceGeometry(
             drawData,
             xStepTerrain(50, 0, 30),
-            bandIdx,
+            bandIdx
         );
         expect(result).not.toBeNull();
         expect(result!.coverEnd).toBe('end');
@@ -97,7 +125,7 @@ describe('computeTunnelEntranceGeometry', () => {
         const result = computeTunnelEntranceGeometry(
             drawData,
             xStepTerrain(50, 10, 30),
-            bandIdx,
+            bandIdx
         );
         expect(result).not.toBeNull();
         expect(result!.coverEnd).toBe('end');
@@ -108,7 +136,7 @@ describe('computeTunnelEntranceGeometry', () => {
         const result = computeTunnelEntranceGeometry(
             drawData,
             xStepTerrain(50, 5, 25),
-            bandIdx,
+            bandIdx
         );
         expect(result).not.toBeNull();
         // surfaceBandIndex should come from max(startTerrainH, endTerrainH) = 25.

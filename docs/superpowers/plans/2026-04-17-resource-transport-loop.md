@@ -128,13 +128,17 @@ Create `src/resources/resource-registry.ts`:
 import type { ResourceType, ResourceTypeId } from './types';
 
 export const RESOURCE_TYPES: readonly ResourceType[] = [
-    { id: 'passenger', category: 'passenger', displayNameKey: 'resource.passenger' },
-    { id: 'iron-ore',  category: 'freight',   displayNameKey: 'resource.ironOre'   },
-    { id: 'goods',     category: 'freight',   displayNameKey: 'resource.goods'     },
+    {
+        id: 'passenger',
+        category: 'passenger',
+        displayNameKey: 'resource.passenger',
+    },
+    { id: 'iron-ore', category: 'freight', displayNameKey: 'resource.ironOre' },
+    { id: 'goods', category: 'freight', displayNameKey: 'resource.goods' },
 ] as const;
 
 const BY_ID: Map<ResourceTypeId, ResourceType> = new Map(
-    RESOURCE_TYPES.map((t) => [t.id, t]),
+    RESOURCE_TYPES.map(t => [t.id, t])
 );
 
 export function getResourceType(id: ResourceTypeId): ResourceType | null {
@@ -160,17 +164,18 @@ export * from './resource-registry';
 Create `test/resource-registry.test.ts`:
 
 ```ts
-import { describe, it, expect } from 'bun:test';
+import { describe, expect, it } from 'bun:test';
+
 import {
     RESOURCE_TYPES,
     getResourceType,
     isKnownResourceType,
 } from '@/resources/resource-registry';
-import { encodePlatformKey, decodePlatformKey } from '@/resources/types';
+import { decodePlatformKey, encodePlatformKey } from '@/resources/types';
 
 describe('resource registry', () => {
     it('contains the three built-in types', () => {
-        const ids = RESOURCE_TYPES.map((t) => t.id).sort();
+        const ids = RESOURCE_TYPES.map(t => t.id).sort();
         expect(ids).toEqual(['goods', 'iron-ore', 'passenger']);
     });
 
@@ -193,12 +198,18 @@ describe('platform key codec', () => {
     });
 
     it('round-trips the track-aligned kind', () => {
-        const handle = { kind: 'trackAligned' as const, stationId: 3, platformId: 11 };
+        const handle = {
+            kind: 'trackAligned' as const,
+            stationId: 3,
+            platformId: 11,
+        };
         expect(decodePlatformKey(encodePlatformKey(handle))).toEqual(handle);
     });
 
     it('throws on bad kind', () => {
-        expect(() => decodePlatformKey('weird:1:2')).toThrow('bad platform kind');
+        expect(() => decodePlatformKey('weird:1:2')).toThrow(
+            'bad platform kind'
+        );
     });
 });
 ```
@@ -229,7 +240,8 @@ git commit -m "feat(resources): add types, registry, and platform key codec"
 Create `test/car-cargo-store.test.ts`:
 
 ```ts
-import { describe, it, expect } from 'bun:test';
+import { describe, expect, it } from 'bun:test';
+
 import { CarCargoStore } from '@/resources/car-cargo-store';
 import { DEFAULT_CAR_CAPACITY } from '@/resources/types';
 
@@ -254,7 +266,7 @@ describe('CarCargoStore', () => {
     it('clamps add() at capacity and returns the actual amount added', () => {
         const store = new CarCargoStore();
         expect(store.add('car-0', 'iron-ore', DEFAULT_CAR_CAPACITY + 30)).toBe(
-            DEFAULT_CAR_CAPACITY,
+            DEFAULT_CAR_CAPACITY
         );
         expect(store.getTotalLoad('car-0')).toBe(DEFAULT_CAR_CAPACITY);
         // Adding more returns 0.
@@ -319,7 +331,11 @@ Create `src/resources/car-cargo-store.ts`:
 import type { CarCargo, ResourceCounts, ResourceTypeId } from './types';
 import { DEFAULT_CAR_CAPACITY } from './types';
 
-type SerializedCar = { carId: string; capacity: number; contents: ResourceCounts };
+type SerializedCar = {
+    carId: string;
+    capacity: number;
+    contents: ResourceCounts;
+};
 
 export class CarCargoStore {
     private _cargo: Map<string, CarCargo> = new Map();
@@ -430,13 +446,18 @@ git commit -m "feat(resources): add CarCargoStore with capacity and mass-conserv
 Create `test/platform-buffer-store.test.ts`:
 
 ```ts
-import { describe, it, expect } from 'bun:test';
+import { describe, expect, it } from 'bun:test';
+
 import { PlatformBufferStore } from '@/resources/platform-buffer-store';
 import type { PlatformHandle } from '@/resources/types';
 
 const pA: PlatformHandle = { kind: 'island', stationId: 1, platformId: 0 };
 const pB: PlatformHandle = { kind: 'island', stationId: 1, platformId: 1 };
-const pC: PlatformHandle = { kind: 'trackAligned', stationId: 2, platformId: 9 };
+const pC: PlatformHandle = {
+    kind: 'trackAligned',
+    stationId: 2,
+    platformId: 9,
+};
 
 describe('PlatformBufferStore', () => {
     it('returns an empty buffer for an untouched platform', () => {
@@ -514,7 +535,10 @@ describe('PlatformBufferStore', () => {
         store.add(pA, 'goods', 1);
         store.setBufferMode(pB, 'sharedWithStation');
         store.setRole(pC, 'iron-ore', 'sink');
-        const keys = store.getAllConfiguredPlatforms().map((h) => h.platformId).sort();
+        const keys = store
+            .getAllConfiguredPlatforms()
+            .map(h => h.platformId)
+            .sort();
         expect(keys).toEqual([0, 1, 9]);
     });
 
@@ -599,13 +623,16 @@ export class PlatformBufferStore {
 
     setBufferMode(
         handle: PlatformHandle,
-        mode: 'private' | 'sharedWithStation',
+        mode: 'private' | 'sharedWithStation'
     ): void {
         const config = this.getConfig(handle);
         config.bufferMode = mode;
     }
 
-    getRole(handle: PlatformHandle, type: ResourceTypeId): PlatformRole | 'neither' {
+    getRole(
+        handle: PlatformHandle,
+        type: ResourceTypeId
+    ): PlatformRole | 'neither' {
         const config = this._configs.get(encodePlatformKey(handle));
         return config?.roles[type] ?? 'neither';
     }
@@ -613,7 +640,7 @@ export class PlatformBufferStore {
     setRole(
         handle: PlatformHandle,
         type: ResourceTypeId,
-        role: PlatformRole | 'neither',
+        role: PlatformRole | 'neither'
     ): void {
         const config = this.getConfig(handle);
         if (role === 'neither') {
@@ -634,7 +661,11 @@ export class PlatformBufferStore {
         return amount;
     }
 
-    remove(handle: PlatformHandle, type: ResourceTypeId, amount: number): number {
+    remove(
+        handle: PlatformHandle,
+        type: ResourceTypeId,
+        amount: number
+    ): number {
         if (amount <= 0) return 0;
         const buf = this._resolveBuffer(handle, false);
         const have = buf[type] ?? 0;
@@ -697,7 +728,10 @@ export class PlatformBufferStore {
 
     // -------- internals --------
 
-    private _resolveBuffer(handle: PlatformHandle, createIfMissing = true): Buffer {
+    private _resolveBuffer(
+        handle: PlatformHandle,
+        createIfMissing = true
+    ): Buffer {
         const key = encodePlatformKey(handle);
         this._knownHandles.set(key, handle);
         const config = this._configs.get(key);
@@ -757,7 +791,8 @@ git commit -m "feat(resources): add PlatformBufferStore with private and shared 
 Create `test/source-sink-ticker.test.ts`:
 
 ```ts
-import { describe, it, expect } from 'bun:test';
+import { describe, expect, it } from 'bun:test';
+
 import { PlatformBufferStore } from '@/resources/platform-buffer-store';
 import { SourceSinkTicker } from '@/resources/source-sink-ticker';
 import { SINK_RATE, SOURCE_RATE } from '@/resources/types';
@@ -828,9 +863,17 @@ export class SourceSinkTicker {
             // Object.entries skips absent keys — that IS the 'neither' branch.
             for (const [resourceType, role] of Object.entries(config.roles)) {
                 if (role === 'source') {
-                    this._bufferStore.add(handle, resourceType, SOURCE_RATE * dt);
+                    this._bufferStore.add(
+                        handle,
+                        resourceType,
+                        SOURCE_RATE * dt
+                    );
                 } else if (role === 'sink') {
-                    this._bufferStore.remove(handle, resourceType, SINK_RATE * dt);
+                    this._bufferStore.remove(
+                        handle,
+                        resourceType,
+                        SINK_RATE * dt
+                    );
                 }
             }
         }
@@ -864,20 +907,25 @@ git commit -m "feat(resources): add SourceSinkTicker for placeholder producers a
 Create `test/transfer-manager.test.ts`:
 
 ```ts
-import { describe, it, expect } from 'bun:test';
+import { describe, expect, it } from 'bun:test';
+
 import { CarCargoStore } from '@/resources/car-cargo-store';
 import { PlatformBufferStore } from '@/resources/platform-buffer-store';
 import { TransferManager } from '@/resources/transfer-manager';
 import {
     DEFAULT_CAR_CAPACITY,
-    TRANSFER_RATE_UNITS_PER_CAR_PER_SEC,
     type PlatformHandle,
+    TRANSFER_RATE_UNITS_PER_CAR_PER_SEC,
 } from '@/resources/types';
 
-const platform: PlatformHandle = { kind: 'island', stationId: 1, platformId: 0 };
+const platform: PlatformHandle = {
+    kind: 'island',
+    stationId: 1,
+    platformId: 0,
+};
 
 function makeTrain(carIds: string[]): { cars: { id: string }[] } {
-    return { cars: carIds.map((id) => ({ id })) };
+    return { cars: carIds.map(id => ({ id })) };
 }
 
 function makeDeps(carIds: string[]): {
@@ -891,7 +939,7 @@ function makeDeps(carIds: string[]): {
     const manager = new TransferManager({
         carCargoStore: cargo,
         platformBufferStore: buffer,
-        getTrainById: (id) => (id === 1 ? (train as any) : null),
+        getTrainById: id => (id === 1 ? (train as any) : null),
         getSimTime: () => 0,
     });
     return { cargo, buffer, manager };
@@ -924,7 +972,7 @@ describe('TransferManager', () => {
 
     it('within one tick, unloads then loads — remaining budget fills from buffer', () => {
         const { cargo, buffer, manager } = makeDeps(['car-0']);
-        cargo.add('car-0', 'iron-ore', 2);     // small cargo, drains fast
+        cargo.add('car-0', 'iron-ore', 2); // small cargo, drains fast
         buffer.add(platform, 'goods', 100);
         manager.begin(1, platform);
         manager.update(1); // budget = 5; unload 2 iron-ore, load 3 goods
@@ -981,7 +1029,10 @@ describe('TransferManager', () => {
         const manager = new TransferManager({
             carCargoStore: cargo,
             platformBufferStore: buffer,
-            getTrainById: (id) => (trainAlive && id === 1 ? ({ cars: [{ id: 'car-0' }] } as any) : null),
+            getTrainById: id =>
+                trainAlive && id === 1
+                    ? ({ cars: [{ id: 'car-0' }] } as any)
+                    : null,
             getSimTime: () => 0,
         });
         buffer.add(platform, 'goods', 100);
@@ -1022,11 +1073,7 @@ Create `src/resources/transfer-manager.ts`:
 ```ts
 import type { CarCargoStore } from './car-cargo-store';
 import type { PlatformBufferStore } from './platform-buffer-store';
-import type {
-    PlatformHandle,
-    ResourceTypeId,
-    TransferState,
-} from './types';
+import type { PlatformHandle, ResourceTypeId, TransferState } from './types';
 import {
     TRANSFER_RATE_UNITS_PER_CAR_PER_SEC,
     encodePlatformKey,
@@ -1054,7 +1101,7 @@ export class TransferManager {
             // Arrive while already transferring — per spec, replace defensively.
             // eslint-disable-next-line no-console
             console.warn(
-                `[TransferManager] begin() while already transferring: train ${trainId}`,
+                `[TransferManager] begin() while already transferring: train ${trainId}`
             );
         }
         this._active.set(trainId, {
@@ -1090,7 +1137,8 @@ export class TransferManager {
             for (const car of train.cars) {
                 let budget = TRANSFER_RATE_UNITS_PER_CAR_PER_SEC * dt;
                 budget = this._unloadCar(car.id, state.platform, budget);
-                if (budget > 0) budget = this._loadCar(car.id, state.platform, budget);
+                if (budget > 0)
+                    budget = this._loadCar(car.id, state.platform, budget);
             }
         }
     }
@@ -1098,7 +1146,7 @@ export class TransferManager {
     private _unloadCar(
         carId: string,
         platform: PlatformHandle,
-        budget: number,
+        budget: number
     ): number {
         const cargo = this._deps.carCargoStore.getCargo(carId);
         for (const type of Object.keys(cargo.contents) as ResourceTypeId[]) {
@@ -1106,7 +1154,11 @@ export class TransferManager {
             const have = cargo.contents[type] ?? 0;
             if (have <= 0) continue;
             const amount = Math.min(have, budget);
-            const removed = this._deps.carCargoStore.remove(carId, type, amount);
+            const removed = this._deps.carCargoStore.remove(
+                carId,
+                type,
+                amount
+            );
             this._deps.platformBufferStore.add(platform, type, removed);
             budget -= removed;
         }
@@ -1116,9 +1168,10 @@ export class TransferManager {
     private _loadCar(
         carId: string,
         platform: PlatformHandle,
-        budget: number,
+        budget: number
     ): number {
-        const buffer = this._deps.platformBufferStore.getEffectiveBuffer(platform);
+        const buffer =
+            this._deps.platformBufferStore.getEffectiveBuffer(platform);
         for (const type of Object.keys(buffer) as ResourceTypeId[]) {
             if (budget <= 0) break;
             const available = buffer[type] ?? 0;
@@ -1180,7 +1233,8 @@ git commit -m "feat(resources): add TransferManager with greedy unload-then-load
 Create `test/resource-integration.test.ts`:
 
 ```ts
-import { describe, it, expect } from 'bun:test';
+import { describe, expect, it } from 'bun:test';
+
 import { CarCargoStore } from '@/resources/car-cargo-store';
 import { PlatformBufferStore } from '@/resources/platform-buffer-store';
 import { SourceSinkTicker } from '@/resources/source-sink-ticker';
@@ -1194,8 +1248,16 @@ import type { PlatformHandle } from '@/resources/types';
  */
 describe('resource transport loop (integration)', () => {
     it('moves units from a source to a sink over simulated time', () => {
-        const src: PlatformHandle = { kind: 'island', stationId: 1, platformId: 0 };
-        const dst: PlatformHandle = { kind: 'island', stationId: 2, platformId: 0 };
+        const src: PlatformHandle = {
+            kind: 'island',
+            stationId: 1,
+            platformId: 0,
+        };
+        const dst: PlatformHandle = {
+            kind: 'island',
+            stationId: 2,
+            platformId: 0,
+        };
 
         const cargo = new CarCargoStore();
         const buffer = new PlatformBufferStore();
@@ -1211,7 +1273,7 @@ describe('resource transport loop (integration)', () => {
         const manager = new TransferManager({
             carCargoStore: cargo,
             platformBufferStore: buffer,
-            getTrainById: (id) => (id === 1 ? (train as any) : null),
+            getTrainById: id => (id === 1 ? (train as any) : null),
             getSimTime: () => 0,
         });
         const ticker = new SourceSinkTicker(buffer);
@@ -1296,9 +1358,9 @@ Near the top of `src/utils/init-app.ts`, with the other `@/resources`-adjacent i
 import {
     CarCargoStore,
     PlatformBufferStore,
+    type PlatformHandle,
     SourceSinkTicker,
     TransferManager,
-    type PlatformHandle,
 } from '@/resources';
 ```
 
@@ -1307,10 +1369,10 @@ import {
 Locate the `export type BananaAppComponents` block (around line 314). Add these fields after `stationPresenceDetector`:
 
 ```ts
-    carCargoStore: CarCargoStore;
-    platformBufferStore: PlatformBufferStore;
-    transferManager: TransferManager;
-    sourceSinkTicker: SourceSinkTicker;
+carCargoStore: CarCargoStore;
+platformBufferStore: PlatformBufferStore;
+transferManager: TransferManager;
+sourceSinkTicker: SourceSinkTicker;
 ```
 
 - [ ] **Step 4: Construct the stores and wire them**
@@ -1318,31 +1380,31 @@ Locate the `export type BananaAppComponents` block (around line 314). Add these 
 Immediately after the `stationPresenceDetector` is constructed (around line 806-812), add:
 
 ```ts
-    const carCargoStore = new CarCargoStore();
-    const platformBufferStore = new PlatformBufferStore();
-    const transferManager = new TransferManager({
-        carCargoStore,
-        platformBufferStore,
-        getTrainById: (id) => trainManager.getTrainById(id),
-        getSimTime: () => timeManager.currentSimTime,
-    });
-    const sourceSinkTicker = new SourceSinkTicker(platformBufferStore);
+const carCargoStore = new CarCargoStore();
+const platformBufferStore = new PlatformBufferStore();
+const transferManager = new TransferManager({
+    carCargoStore,
+    platformBufferStore,
+    getTrainById: id => trainManager.getTrainById(id),
+    getSimTime: () => timeManager.currentSimTime,
+});
+const sourceSinkTicker = new SourceSinkTicker(platformBufferStore);
 
-    stationPresenceDetector.subscribe((event) => {
-        if (event.type === 'arrived') {
-            const handle: PlatformHandle = {
-                kind: event.presence.platformKind,
-                stationId: event.presence.stationId,
-                platformId: event.presence.platformId,
-            };
-            transferManager.begin(event.trainId, handle);
-        } else {
-            transferManager.end(event.trainId);
-        }
-    });
+stationPresenceDetector.subscribe(event => {
+    if (event.type === 'arrived') {
+        const handle: PlatformHandle = {
+            kind: event.presence.platformKind,
+            stationId: event.presence.stationId,
+            platformId: event.presence.platformId,
+        };
+        transferManager.begin(event.trainId, handle);
+    } else {
+        transferManager.end(event.trainId);
+    }
+});
 
-    trainRenderSystem.setTransferManager(transferManager);
-    trainRenderSystem.setSourceSinkTicker(sourceSinkTicker);
+trainRenderSystem.setTransferManager(transferManager);
+trainRenderSystem.setSourceSinkTicker(sourceSinkTicker);
 ```
 
 Note: `trainRenderSystem.setTransferManager` / `setSourceSinkTicker` will be added in Task 8.
@@ -1406,7 +1468,7 @@ Find the existing `setStationPresenceDetector` method (around line 442). Just be
 Add the imports at the top of the file:
 
 ```ts
-import type { TransferManager, SourceSinkTicker } from '@/resources';
+import type { SourceSinkTicker, TransferManager } from '@/resources';
 ```
 
 - [ ] **Step 3: Add the per-frame calls**
@@ -1414,9 +1476,9 @@ import type { TransferManager, SourceSinkTicker } from '@/resources';
 In the method where `this._stationPresenceDetector?.update(placed, this._occupancyRegistry);` is called, add two lines directly after it:
 
 ```ts
-    this._stationPresenceDetector?.update(placed, this._occupancyRegistry);
-    this._transferManager?.update(dt);
-    this._sourceSinkTicker?.update(dt);
+this._stationPresenceDetector?.update(placed, this._occupancyRegistry);
+this._transferManager?.update(dt);
+this._sourceSinkTicker?.update(dt);
 ```
 
 If the surrounding method does not already have `dt` in scope, trace where it gets `dt` — the render-system `update` method takes `dt` as a parameter. Check the method signature and add `dt` to the inner call chain if needed. If no `dt` reaches here, find the outer `update(dt)` and pass it through (or use the same `dt` the presence detector is called within).
@@ -1477,12 +1539,12 @@ Add a `resources?: SerializedResourcesV1` field to the main `SerializedScene` ty
 Find the `serializeScene` (or equivalent) function. Add the stores as params (e.g. `carCargoStore: CarCargoStore, platformBufferStore: PlatformBufferStore`) and emit:
 
 ```ts
-    const resources: SerializedResourcesV1 = {
-        version: 1,
-        buffers: platformBufferStore.serialize(),
-        carCargo: carCargoStore.serialize(),
-    };
-    // ... include `resources` in the returned envelope
+const resources: SerializedResourcesV1 = {
+    version: 1,
+    buffers: platformBufferStore.serialize(),
+    carCargo: carCargoStore.serialize(),
+};
+// ... include `resources` in the returned envelope
 ```
 
 At every call site of `serializeScene` (use `grep -rn "serializeScene(" src/` to find them), pass the two new stores from the app context.
@@ -1492,14 +1554,18 @@ At every call site of `serializeScene` (use `grep -rn "serializeScene(" src/` to
 Find the `deserializeScene` / `loadScene` function. After trains and platforms are hydrated, add:
 
 ```ts
-    if (scene.resources) {
-        platformBufferStore.hydrate(scene.resources.buffers);
-        carCargoStore.hydrate(scene.resources.carCargo);
-    } else {
-        // Old scene — clear to defaults so a previous load doesn't leak through.
-        platformBufferStore.hydrate({ configs: [], privateBuffers: [], sharedBuffers: [] });
-        carCargoStore.hydrate([]);
-    }
+if (scene.resources) {
+    platformBufferStore.hydrate(scene.resources.buffers);
+    carCargoStore.hydrate(scene.resources.carCargo);
+} else {
+    // Old scene — clear to defaults so a previous load doesn't leak through.
+    platformBufferStore.hydrate({
+        configs: [],
+        privateBuffers: [],
+        sharedBuffers: [],
+    });
+    carCargoStore.hydrate([]);
+}
 ```
 
 Pass the two stores into the load function signature, and update every call site (again `grep -rn` for them).
@@ -1633,11 +1699,12 @@ Imports needed:
 ```tsx
 import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
+
 import {
-    RESOURCE_TYPES,
     type PlatformBufferStore,
     type PlatformHandle,
     type PlatformRole,
+    RESOURCE_TYPES,
     type ResourceTypeId,
 } from '@/resources';
 ```
@@ -1662,7 +1729,7 @@ function PlatformResourcesSection({
     // SourceSinkTicker mutates the buffer without firing an event.
     const [, setTick] = useState(0);
     useEffect(() => {
-        const id = setInterval(() => setTick((x) => x + 1), 250);
+        const id = setInterval(() => setTick(x => x + 1), 250);
         return () => clearInterval(id);
     }, []);
 
@@ -1676,30 +1743,30 @@ function PlatformResourcesSection({
                 <input
                     type="checkbox"
                     checked={config.bufferMode === 'sharedWithStation'}
-                    onChange={(e) => {
+                    onChange={e => {
                         store.setBufferMode(
                             handle,
-                            e.target.checked ? 'sharedWithStation' : 'private',
+                            e.target.checked ? 'sharedWithStation' : 'private'
                         );
-                        setTick((x) => x + 1);
+                        setTick(x => x + 1);
                     }}
                 />
                 {t('panel.platform.resources.bufferShared')}
             </label>
             <ul>
-                {RESOURCE_TYPES.map((rt) => (
+                {RESOURCE_TYPES.map(rt => (
                     <li key={rt.id}>
                         <span>{t(rt.displayNameKey)}</span>
                         <span>{Math.floor(buffer[rt.id] ?? 0)}</span>
                         <select
                             value={store.getRole(handle, rt.id)}
-                            onChange={(e) => {
+                            onChange={e => {
                                 store.setRole(
                                     handle,
                                     rt.id as ResourceTypeId,
-                                    e.target.value as PlatformRole | 'neither',
+                                    e.target.value as PlatformRole | 'neither'
                                 );
-                                setTick((x) => x + 1);
+                                setTick(x => x + 1);
                             }}
                         >
                             <option value="neither">
@@ -1725,16 +1792,18 @@ function PlatformResourcesSection({
 In the main component, where other sections are rendered, add:
 
 ```tsx
-{editingPlatform && (
-    <PlatformResourcesSection
-        handle={{
-            kind: editingPlatform.kind,
-            stationId: editingPlatform.stationId,
-            platformId: editingPlatform.platformId,
-        }}
-        store={platformBufferStore}
-    />
-)}
+{
+    editingPlatform && (
+        <PlatformResourcesSection
+            handle={{
+                kind: editingPlatform.kind,
+                stationId: editingPlatform.stationId,
+                platformId: editingPlatform.platformId,
+            }}
+            store={platformBufferStore}
+        />
+    );
+}
 ```
 
 Substitute `editingPlatform` with whichever object/prop actually represents the currently-edited platform in this panel (from step 1).
@@ -1781,9 +1850,10 @@ Imports:
 ```tsx
 import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
+
 import {
-    RESOURCE_TYPES,
     type CarCargoStore,
+    RESOURCE_TYPES,
     type TransferManager,
 } from '@/resources';
 ```
@@ -1809,7 +1879,7 @@ function TrainCargoSection({
     const { t } = useTranslation();
     const [, setTick] = useState(0);
     useEffect(() => {
-        const id = setInterval(() => setTick((x) => x + 1), 250);
+        const id = setInterval(() => setTick(x => x + 1), 250);
         return () => clearInterval(id);
     }, []);
 
@@ -1836,12 +1906,14 @@ function TrainCargoSection({
                             ) : (
                                 <ul>
                                     {RESOURCE_TYPES.filter(
-                                        (rt) => (cargo.contents[rt.id] ?? 0) > 0,
-                                    ).map((rt) => (
+                                        rt => (cargo.contents[rt.id] ?? 0) > 0
+                                    ).map(rt => (
                                         <li key={rt.id}>
                                             <span>{t(rt.displayNameKey)}</span>
                                             <span>
-                                                {Math.floor(cargo.contents[rt.id] ?? 0)}
+                                                {Math.floor(
+                                                    cargo.contents[rt.id] ?? 0
+                                                )}
                                             </span>
                                         </li>
                                     ))}
@@ -1861,14 +1933,16 @@ function TrainCargoSection({
 Where the selected train's other per-car info is rendered, add:
 
 ```tsx
-{selectedTrain && (
-    <TrainCargoSection
-        trainId={selectedTrainId}
-        carIds={selectedTrain.cars.map((c) => c.id)}
-        carCargoStore={carCargoStore}
-        transferManager={transferManager}
-    />
-)}
+{
+    selectedTrain && (
+        <TrainCargoSection
+            trainId={selectedTrainId}
+            carIds={selectedTrain.cars.map(c => c.id)}
+            carCargoStore={carCargoStore}
+            transferManager={transferManager}
+        />
+    );
+}
 ```
 
 Adapt `selectedTrain`, `selectedTrainId` to the panel's actual variable names (from Step 1).

@@ -48,15 +48,16 @@ The stop index is a `Map<segmentId, StopIndexEntry[]>` pre-built from all platfo
 Create `test/station-presence-detector.test.ts`:
 
 ```ts
-import { describe, it, expect } from 'bun:test';
-import {
-    buildStopIndex,
-    findNearestStop,
-    type StopIndexEntry,
-    type StationPresence,
-} from '../src/trains/station-presence-detector';
+import { describe, expect, it } from 'bun:test';
+
 import type { StationManager } from '../src/stations/station-manager';
 import type { TrackAlignedPlatformManager } from '../src/stations/track-aligned-platform-manager';
+import {
+    type StationPresence,
+    type StopIndexEntry,
+    buildStopIndex,
+    findNearestStop,
+} from '../src/trains/station-presence-detector';
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -65,13 +66,22 @@ import type { TrackAlignedPlatformManager } from '../src/stations/track-aligned-
 function makeStationManager(
     stations: {
         id: number;
-        platforms: { id: number; track: number; stopPositions: { id: number; trackSegmentId: number; tValue: number; direction: 'tangent' | 'reverseTangent' }[] }[];
+        platforms: {
+            id: number;
+            track: number;
+            stopPositions: {
+                id: number;
+                trackSegmentId: number;
+                tValue: number;
+                direction: 'tangent' | 'reverseTangent';
+            }[];
+        }[];
         trackAlignedPlatforms: number[];
-    }[],
+    }[]
 ): StationManager {
     return {
         getStations: () =>
-            stations.map((s) => ({
+            stations.map(s => ({
                 id: s.id,
                 station: {
                     id: s.id,
@@ -87,12 +97,16 @@ function makeTapManager(
         id: number;
         stationId: number;
         spine: { trackSegment: number }[];
-        stopPositions: { id: number; trackSegmentId: number; tValue: number; direction: 'tangent' | 'reverseTangent' }[];
-    }[],
+        stopPositions: {
+            id: number;
+            trackSegmentId: number;
+            tValue: number;
+            direction: 'tangent' | 'reverseTangent';
+        }[];
+    }[]
 ): TrackAlignedPlatformManager {
     return {
-        getAllPlatforms: () =>
-            platforms.map((p) => ({ id: p.id, platform: p })),
+        getAllPlatforms: () => platforms.map(p => ({ id: p.id, platform: p })),
     } as unknown as TrackAlignedPlatformManager;
 }
 
@@ -122,7 +136,12 @@ describe('buildStopIndex', () => {
                         id: 0,
                         track: 10,
                         stopPositions: [
-                            { id: 0, trackSegmentId: 10, tValue: 0.5, direction: 'tangent' },
+                            {
+                                id: 0,
+                                trackSegmentId: 10,
+                                tValue: 0.5,
+                                direction: 'tangent',
+                            },
                         ],
                     },
                 ],
@@ -147,8 +166,18 @@ describe('buildStopIndex', () => {
                 stationId: 1,
                 spine: [{ trackSegment: 20 }],
                 stopPositions: [
-                    { id: 0, trackSegmentId: 20, tValue: 0.5, direction: 'tangent' },
-                    { id: 1, trackSegmentId: 20, tValue: 0.5, direction: 'reverseTangent' },
+                    {
+                        id: 0,
+                        trackSegmentId: 20,
+                        tValue: 0.5,
+                        direction: 'tangent',
+                    },
+                    {
+                        id: 1,
+                        trackSegmentId: 20,
+                        tValue: 0.5,
+                        direction: 'reverseTangent',
+                    },
                 ],
             },
         ]);
@@ -241,11 +270,13 @@ Create `src/trains/station-presence-detector.ts`:
 
 ```ts
 import { Observable, SynchronousObservable } from '@ue-too/board';
+
 import type { StationManager } from '@/stations/station-manager';
 import type { TrackAlignedPlatformManager } from '@/stations/track-aligned-platform-manager';
+
+import type { OccupancyRegistry } from './occupancy-registry';
 import type { TrackGraph } from './tracks/track';
 import type { PlacedTrainEntry } from './train-manager';
-import type { OccupancyRegistry } from './occupancy-registry';
 
 // ---------------------------------------------------------------------------
 // Types
@@ -285,7 +316,7 @@ export type StationPresenceEvent =
  */
 export function buildStopIndex(
     stationManager: StationManager,
-    trackAlignedPlatformManager: TrackAlignedPlatformManager,
+    trackAlignedPlatformManager: TrackAlignedPlatformManager
 ): Map<number, StopIndexEntry[]> {
     const index = new Map<number, StopIndexEntry[]>();
 
@@ -352,7 +383,7 @@ export function findNearestStop(
     trainT: number,
     segmentId: number,
     getCurve: (segmentId: number) => CurveLike,
-    threshold: number,
+    threshold: number
 ): StationPresence | null {
     const curve = getCurve(segmentId);
     const trainArc = curve.lengthAtT(trainT);
@@ -406,7 +437,7 @@ export class StationPresenceDetector {
         stationManager: StationManager,
         trackAlignedPlatformManager: TrackAlignedPlatformManager,
         trackGraph: TrackGraph,
-        threshold: number = DEFAULT_THRESHOLD,
+        threshold: number = DEFAULT_THRESHOLD
     ) {
         this._stationManager = stationManager;
         this._trackAlignedPlatformManager = trackAlignedPlatformManager;
@@ -419,7 +450,7 @@ export class StationPresenceDetector {
     rebuildIndex(): void {
         this._stopIndex = buildStopIndex(
             this._stationManager,
-            this._trackAlignedPlatformManager,
+            this._trackAlignedPlatformManager
         );
     }
 
@@ -429,7 +460,7 @@ export class StationPresenceDetector {
      */
     update(
         trains: readonly PlacedTrainEntry[],
-        occupancyRegistry: OccupancyRegistry,
+        occupancyRegistry: OccupancyRegistry
     ): void {
         const getCurve = (segmentId: number) => {
             const curve = this._trackGraph.getTrackSegmentCurve(segmentId);
@@ -454,7 +485,7 @@ export class StationPresenceDetector {
                 pos.tValue,
                 pos.trackSegment,
                 getCurve,
-                this._threshold,
+                this._threshold
             );
 
             if (match) {
@@ -562,11 +593,14 @@ Add tests for the `StationPresenceDetector` class's `update()` method, the arriv
 Append to `test/station-presence-detector.test.ts`:
 
 ```ts
-import { StationPresenceDetector, type StationPresenceEvent } from '../src/trains/station-presence-detector';
-import type { TrackGraph } from '../src/trains/tracks/track';
-import type { OccupancyRegistry } from '../src/trains/occupancy-registry';
-import type { PlacedTrainEntry } from '../src/trains/train-manager';
 import type { Train } from '../src/trains/formation';
+import type { OccupancyRegistry } from '../src/trains/occupancy-registry';
+import {
+    StationPresenceDetector,
+    type StationPresenceEvent,
+} from '../src/trains/station-presence-detector';
+import type { TrackGraph } from '../src/trains/tracks/track';
+import type { PlacedTrainEntry } from '../src/trains/train-manager';
 
 function makeTrackGraph(curves: Record<number, number>): TrackGraph {
     return {
@@ -583,12 +617,19 @@ function makeTrackGraph(curves: Record<number, number>): TrackGraph {
 
 function makeTrain(segment: number, tValue: number, speed = 0): Train {
     return {
-        position: { trackSegment: segment, tValue, direction: 'tangent', point: { x: 0, y: 0 } },
+        position: {
+            trackSegment: segment,
+            tValue,
+            direction: 'tangent',
+            point: { x: 0, y: 0 },
+        },
         speed,
     } as unknown as Train;
 }
 
-function makePlaced(entries: { id: number; train: Train }[]): PlacedTrainEntry[] {
+function makePlaced(
+    entries: { id: number; train: Train }[]
+): PlacedTrainEntry[] {
     return entries as PlacedTrainEntry[];
 }
 
@@ -604,7 +645,12 @@ describe('StationPresenceDetector', () => {
                         id: 0,
                         track: 10,
                         stopPositions: [
-                            { id: 0, trackSegmentId: 10, tValue: 0.5, direction: 'tangent' },
+                            {
+                                id: 0,
+                                trackSegmentId: 10,
+                                tValue: 0.5,
+                                direction: 'tangent',
+                            },
                         ],
                     },
                 ],
@@ -618,9 +664,7 @@ describe('StationPresenceDetector', () => {
 
     it('detects a train near a stop position', () => {
         const detector = makeDetector();
-        const trains = makePlaced([
-            { id: 1, train: makeTrain(10, 0.51) },
-        ]);
+        const trains = makePlaced([{ id: 1, train: makeTrain(10, 0.51) }]);
         detector.update(trains, nullOccupancy);
         const presence = detector.getPresenceForTrain(1);
         expect(presence).not.toBeNull();
@@ -630,18 +674,14 @@ describe('StationPresenceDetector', () => {
 
     it('returns null for a train far from any stop', () => {
         const detector = makeDetector();
-        const trains = makePlaced([
-            { id: 1, train: makeTrain(10, 0.1) },
-        ]);
+        const trains = makePlaced([{ id: 1, train: makeTrain(10, 0.1) }]);
         detector.update(trains, nullOccupancy);
         expect(detector.getPresenceForTrain(1)).toBeNull();
     });
 
     it('returns null for a train on a segment with no stops', () => {
         const detector = makeDetector();
-        const trains = makePlaced([
-            { id: 1, train: makeTrain(20, 0.5) },
-        ]);
+        const trains = makePlaced([{ id: 1, train: makeTrain(20, 0.5) }]);
         detector.update(trains, nullOccupancy);
         expect(detector.getPresenceForTrain(1)).toBeNull();
     });
@@ -649,9 +689,12 @@ describe('StationPresenceDetector', () => {
     it('fires an arrived event when a train enters proximity', () => {
         const detector = makeDetector();
         const events: StationPresenceEvent[] = [];
-        detector.subscribe((e) => events.push(e));
+        detector.subscribe(e => events.push(e));
 
-        detector.update(makePlaced([{ id: 1, train: makeTrain(10, 0.51) }]), nullOccupancy);
+        detector.update(
+            makePlaced([{ id: 1, train: makeTrain(10, 0.51) }]),
+            nullOccupancy
+        );
 
         expect(events).toHaveLength(1);
         expect(events[0].type).toBe('arrived');
@@ -666,8 +709,11 @@ describe('StationPresenceDetector', () => {
         const events: StationPresenceEvent[] = [];
 
         // Frame 1: train arrives.
-        detector.update(makePlaced([{ id: 1, train: makeTrain(10, 0.51) }]), nullOccupancy);
-        detector.subscribe((e) => events.push(e));
+        detector.update(
+            makePlaced([{ id: 1, train: makeTrain(10, 0.51) }]),
+            nullOccupancy
+        );
+        detector.subscribe(e => events.push(e));
 
         // Frame 2: train is gone (empty train list).
         detector.update(makePlaced([]), nullOccupancy);
@@ -683,23 +729,32 @@ describe('StationPresenceDetector', () => {
         const detector = makeDetector();
 
         // Frame 1: arrive.
-        detector.update(makePlaced([{ id: 1, train: makeTrain(10, 0.51) }]), nullOccupancy);
+        detector.update(
+            makePlaced([{ id: 1, train: makeTrain(10, 0.51) }]),
+            nullOccupancy
+        );
 
         const events: StationPresenceEvent[] = [];
-        detector.subscribe((e) => events.push(e));
+        detector.subscribe(e => events.push(e));
 
         // Frame 2: still there.
-        detector.update(makePlaced([{ id: 1, train: makeTrain(10, 0.52) }]), nullOccupancy);
+        detector.update(
+            makePlaced([{ id: 1, train: makeTrain(10, 0.52) }]),
+            nullOccupancy
+        );
 
         expect(events).toHaveLength(0);
     });
 
     it('getTrainsAtStation returns matching train ids', () => {
         const detector = makeDetector();
-        detector.update(makePlaced([
-            { id: 1, train: makeTrain(10, 0.51) },
-            { id: 2, train: makeTrain(10, 0.1) },
-        ]), nullOccupancy);
+        detector.update(
+            makePlaced([
+                { id: 1, train: makeTrain(10, 0.51) },
+                { id: 2, train: makeTrain(10, 0.1) },
+            ]),
+            nullOccupancy
+        );
 
         expect(detector.getTrainsAtStation(1)).toEqual([1]);
         expect(detector.getTrainsAtStation(99)).toEqual([]);
@@ -740,9 +795,10 @@ Instantiate the detector in `TrainRenderSystem`, call `detector.update(placed, o
 Edit `src/trains/train-render-system.ts`. Add the import:
 
 ```ts
-import { StationPresenceDetector } from './station-presence-detector';
 import type { StationManager } from '@/stations/station-manager';
 import type { TrackAlignedPlatformManager } from '@/stations/track-aligned-platform-manager';
+
+import { StationPresenceDetector } from './station-presence-detector';
 ```
 
 Add a private field to the class:
@@ -779,12 +835,14 @@ Read `src/utils/init-app.ts` to find where `TrainRenderSystem` and the platform 
 const stationPresenceDetector = new StationPresenceDetector(
     stationManager,
     trackAlignedPlatformManager,
-    trackGraph,
+    trackGraph
 );
 trainRenderSystem.setStationPresenceDetector(stationPresenceDetector);
 
 // Rebuild the stop index when platforms change.
-trackAlignedPlatformManager.onChange(() => stationPresenceDetector.rebuildIndex());
+trackAlignedPlatformManager.onChange(() =>
+    stationPresenceDetector.rebuildIndex()
+);
 ```
 
 (Adapt variable names to match the actual init-app code. Read the file first and place this after the render system and managers are both created.)

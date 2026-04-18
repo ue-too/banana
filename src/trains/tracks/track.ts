@@ -1,3 +1,8 @@
+import {
+    Observable,
+    SubscriptionOptions,
+    SynchronousObservable,
+} from '@ue-too/board';
 import { AABBIntersects, BCurve } from '@ue-too/curve';
 import {
     Point,
@@ -6,13 +11,30 @@ import {
     normalizeAngleZero2TwoPI,
     sameDirection,
 } from '@ue-too/math';
-import { Observable, SubscriptionOptions, SynchronousObservable } from '@ue-too/board';
 
 import { LEVEL_HEIGHT } from './constants';
-import { ELEVATION, ProjectionInfo, ProjectionJointResult, ProjectionResult, SerializedTrackJoint, SerializedTrackSegment, TrackJoint, TrackJointWithElevation, TrackSegment, TrackSegmentDrawData, TrackSegmentWithCollision, TrackSegmentWithElevation } from './types';
 import { TrackCurveManager } from './trackcurve-manager';
 import { TrackJointManager } from './trackjoint-manager';
-import { elevationIntervalOverlaps, getElevationAtT, orderTest, trackIsSloped } from './utils';
+import {
+    ELEVATION,
+    ProjectionInfo,
+    ProjectionJointResult,
+    ProjectionResult,
+    SerializedTrackJoint,
+    SerializedTrackSegment,
+    TrackJoint,
+    TrackJointWithElevation,
+    TrackSegment,
+    TrackSegmentDrawData,
+    TrackSegmentWithCollision,
+    TrackSegmentWithElevation,
+} from './types';
+import {
+    elevationIntervalOverlaps,
+    getElevationAtT,
+    orderTest,
+    trackIsSloped,
+} from './utils';
 
 export type SegmentSplitInfo = {
     oldSegmentNumber: number;
@@ -37,7 +59,9 @@ export class TrackGraph {
     private _segmentRemovedObservable: Observable<[number]> =
         new SynchronousObservable<[number]>();
 
-    private _segmentProtectionCheck: ((segmentNumber: number) => boolean) | null = null;
+    private _segmentProtectionCheck:
+        | ((segmentNumber: number) => boolean)
+        | null = null;
 
     /**
      * Register a callback that returns true if a segment is protected
@@ -61,7 +85,7 @@ export class TrackGraph {
      */
     onSegmentSplit(
         callback: (info: SegmentSplitInfo) => void,
-        options?: SubscriptionOptions,
+        options?: SubscriptionOptions
     ) {
         return this._segmentSplitObservable.subscribe(callback, options);
     }
@@ -72,7 +96,7 @@ export class TrackGraph {
      */
     onSegmentRemoved(
         callback: (segmentNumber: number) => void,
-        options?: SubscriptionOptions,
+        options?: SubscriptionOptions
     ) {
         return this._segmentRemovedObservable.subscribe(callback, options);
     }
@@ -108,7 +132,11 @@ export class TrackGraph {
         }
 
         if (t0Joint.elevation !== t1Joint.elevation) {
-            console.warn('t0Joint and t1Joint for track segment being inserted into (number: ', trackSegmentNumber, ') have different elevations');
+            console.warn(
+                't0Joint and t1Joint for track segment being inserted into (number: ',
+                trackSegmentNumber,
+                ') have different elevations'
+            );
             return null;
         }
 
@@ -133,7 +161,10 @@ export class TrackGraph {
 
         const originalGauge = segment.gauge;
         const originalBedWidth = segment.bedWidth;
-        const originalVisualProps = this._trackCurveManager.getVisualPropsForSegment(trackSegmentNumber);
+        const originalVisualProps =
+            this._trackCurveManager.getVisualPropsForSegment(
+                trackSegmentNumber
+            );
 
         this._trackCurveManager.destroyCurve(trackSegmentNumber);
 
@@ -294,7 +325,10 @@ export class TrackGraph {
 
         const originalGauge = segment.gauge;
         const originalBedWidth = segment.bedWidth;
-        const originalVisualProps = this._trackCurveManager.getVisualPropsForSegment(trackSegmentNumber);
+        const originalVisualProps =
+            this._trackCurveManager.getVisualPropsForSegment(
+                trackSegmentNumber
+            );
 
         this._trackCurveManager.destroyCurve(trackSegmentNumber);
 
@@ -392,8 +426,13 @@ export class TrackGraph {
             return;
         }
 
-        if (this._segmentProtectionCheck !== null && this._segmentProtectionCheck(trackSegmentNumber)) {
-            console.warn(`Cannot delete segment ${trackSegmentNumber}: protected by a track-aligned platform`);
+        if (
+            this._segmentProtectionCheck !== null &&
+            this._segmentProtectionCheck(trackSegmentNumber)
+        ) {
+            console.warn(
+                `Cannot delete segment ${trackSegmentNumber}: protected by a track-aligned platform`
+            );
             return;
         }
 
@@ -892,8 +931,14 @@ export class TrackGraph {
      * Project a point onto the nearest track with a wider acceptance radius.
      * Used by platform placement tools where gauge/2 is too restrictive.
      */
-    projectPointNearTrack(position: Point, maxDistance: number = 5): ProjectionInfo | null {
-        return this._trackCurveManager.projectOnCurveWide(position, maxDistance);
+    projectPointNearTrack(
+        position: Point,
+        maxDistance: number = 5
+    ): ProjectionInfo | null {
+        return this._trackCurveManager.projectOnCurveWide(
+            position,
+            maxDistance
+        );
     }
 
     pointOnJoint(position: Point): ProjectionJointResult | null {
@@ -922,9 +967,7 @@ export class TrackGraph {
                 continue;
             }
             const curve =
-                this._trackCurveManager.getTrackSegmentWithJoints(
-                    curveNumber
-                );
+                this._trackCurveManager.getTrackSegmentWithJoints(curveNumber);
             if (curve === null) {
                 continue;
             }
@@ -1032,10 +1075,12 @@ export class TrackGraph {
         max: Point;
     }): TrackSegmentDrawData[] {
         if (!this._drawDataDirty) {
-            const res = viewportAABB ? this._drawData.filter(segment => {
-                const aabb = segment.curve.AABB;
-                return AABBIntersects(viewportAABB, aabb);
-            }) : this._drawData;
+            const res = viewportAABB
+                ? this._drawData.filter(segment => {
+                      const aabb = segment.curve.AABB;
+                      return AABBIntersects(viewportAABB, aabb);
+                  })
+                : this._drawData;
             this._trackCurveManager.clearInternalDrawDataOrderMap();
             res.forEach((segment, index) => {
                 segment.callback(index);
@@ -1044,10 +1089,12 @@ export class TrackGraph {
         }
         this._drawData = this._trackCurveManager.experimental();
         this._drawDataDirty = false;
-        const res = viewportAABB ? this._drawData.filter(segment => {
-            const aabb = segment.curve.AABB;
-            return AABBIntersects(viewportAABB, aabb);
-        }) : this._drawData;
+        const res = viewportAABB
+            ? this._drawData.filter(segment => {
+                  const aabb = segment.curve.AABB;
+                  return AABBIntersects(viewportAABB, aabb);
+              })
+            : this._drawData;
         res.forEach((segment, index) => {
             segment.callback(index);
         });
@@ -1103,7 +1150,10 @@ export class TrackGraph {
     getDrawDataIdentifier(
         trackSegmentNumber: number,
         tVal: number
-    ): { trackSegmentNumber: number; tValInterval: { start: number; end: number } } | null {
+    ): {
+        trackSegmentNumber: number;
+        tValInterval: { start: number; end: number };
+    } | null {
         const trackSegment =
             this._trackCurveManager.getTrackSegmentWithJoints(
                 trackSegmentNumber
@@ -1166,7 +1216,7 @@ export class TrackGraph {
                 console.log(
                     'tangent + reverse tangent count',
                     joint.direction.tangent.size +
-                    joint.direction.reverseTangent.size
+                        joint.direction.reverseTangent.size
                 );
                 console.log('for tangent direction: ');
                 joint.direction.tangent.forEach(destinationJointNumber => {
@@ -1265,7 +1315,10 @@ export class TrackGraph {
      * Serializes the entire track graph (joints + segments) into a
      * JSON-safe object suitable for `JSON.stringify`.
      */
-    serialize(): { joints: SerializedTrackJoint[]; segments: SerializedTrackSegment[] } {
+    serialize(): {
+        joints: SerializedTrackJoint[];
+        segments: SerializedTrackSegment[];
+    } {
         return {
             joints: this._jointManager.serialize(),
             segments: this._trackCurveManager.serialize(),
@@ -1279,8 +1332,14 @@ export class TrackGraph {
      * is loaded in, again with notifications so the render system rebuilds.
      */
     async loadFromSerializedData(
-        data: { joints: SerializedTrackJoint[]; segments: SerializedTrackSegment[] },
-        options?: { batchSize?: number; onProgress?: (loaded: number, total: number) => void },
+        data: {
+            joints: SerializedTrackJoint[];
+            segments: SerializedTrackSegment[];
+        },
+        options?: {
+            batchSize?: number;
+            onProgress?: (loaded: number, total: number) => void;
+        }
     ): Promise<void> {
         const existingSegmentIds = [...this._trackCurveManager.livingEntities];
         for (const segId of existingSegmentIds) {
@@ -1322,7 +1381,12 @@ export class TrackGraph {
                     segment.elevation.to,
                     segment.gauge,
                     segment.splits,
-                    { trackStyle: segment.trackStyle, electrified: segment.electrified, catenarySide: segment.catenarySide, bed: segment.bed }
+                    {
+                        trackStyle: segment.trackStyle,
+                        electrified: segment.electrified,
+                        catenarySide: segment.catenarySide,
+                        bed: segment.bed,
+                    }
                 );
             }
             options?.onProgress?.(end, segments.length);
@@ -1331,7 +1395,9 @@ export class TrackGraph {
                 // Use double-rAF to guarantee the browser paints the progress
                 // update before resuming the next batch of segment loading.
                 await new Promise<void>(resolve =>
-                    requestAnimationFrame(() => requestAnimationFrame(() => resolve()))
+                    requestAnimationFrame(() =>
+                        requestAnimationFrame(() => resolve())
+                    )
                 );
             }
         }
@@ -1339,4 +1405,3 @@ export class TrackGraph {
         this._drawDataDirty = true;
     }
 }
-

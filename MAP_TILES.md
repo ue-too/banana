@@ -46,23 +46,23 @@ pmtiles extract https://build.protomaps.com/20250310.pmtiles \
 ```bash
 # Taipei metro area (~34 MB)
 pmtiles extract https://build.protomaps.com/20250310.pmtiles \
-  taipei.pmtiles --bbox=121.4,24.9,121.7,25.2
+    taipei.pmtiles --bbox=121.4,24.9,121.7,25.2
 
 # All of Taiwan (~200 MB)
 pmtiles extract https://build.protomaps.com/20250310.pmtiles \
-  taiwan.pmtiles --bbox=119.3,21.8,122.1,25.4
+    taiwan.pmtiles --bbox=119.3,21.8,122.1,25.4
 
 # Tokyo (~50 MB)
 pmtiles extract https://build.protomaps.com/20250310.pmtiles \
-  tokyo.pmtiles --bbox=139.5,35.5,139.9,35.85
+    tokyo.pmtiles --bbox=139.5,35.5,139.9,35.85
 
 # San Francisco Bay Area
 pmtiles extract https://build.protomaps.com/20250310.pmtiles \
-  sf.pmtiles --bbox=-122.6,37.6,-122.2,37.85
+    sf.pmtiles --bbox=-122.6,37.6,-122.2,37.85
 
 # London
 pmtiles extract https://build.protomaps.com/20250310.pmtiles \
-  london.pmtiles --bbox=-0.5,51.3,0.3,51.7
+    london.pmtiles --bbox=-0.5,51.3,0.3,51.7
 ```
 
 To find the bbox for any area, draw a rectangle on [bboxfinder.com](http://bboxfinder.com) and copy the coordinates.
@@ -74,7 +74,7 @@ Planet builds are published at `build.protomaps.com/<date>.pmtiles`. Not every d
 ```bash
 # Test if a build exists (dry run)
 pmtiles extract https://build.protomaps.com/20250310.pmtiles \
-  /dev/null --bbox=121.5,25.0,121.51,25.01 --dry-run
+    /dev/null --bbox=121.5,25.0,121.51,25.01 --dry-run
 ```
 
 ## Hosting
@@ -88,31 +88,31 @@ R2 has free egress (no cost for downloads).
 1. Create an R2 bucket in the Cloudflare dashboard
 2. Enable public access (Settings → Public access)
 3. Configure CORS (Settings → CORS policy):
-   ```json
-   [
-     {
-       "AllowedOrigins": ["*"],
-       "AllowedMethods": ["GET", "HEAD"],
-       "AllowedHeaders": ["Range"],
-       "ExposeHeaders": ["Content-Length", "Content-Range"],
-       "MaxAgeSeconds": 86400
-     }
-   ]
-   ```
+    ```json
+    [
+        {
+            "AllowedHeaders": ["Range"],
+            "AllowedMethods": ["GET", "HEAD"],
+            "AllowedOrigins": ["*"],
+            "ExposeHeaders": ["Content-Length", "Content-Range"],
+            "MaxAgeSeconds": 86400
+        }
+    ]
+    ```
 4. Upload the file:
-   ```bash
-   npx wrangler r2 object put <bucket-name>/tiles/taipei.pmtiles \
-     --file taipei.pmtiles
-   ```
+    ```bash
+    npx wrangler r2 object put \
+        --file taipei.pmtiles < bucket-name > /tiles/taipei.pmtiles
+    ```
 
 ### Other options
 
-| Service | Range requests | Egress cost |
-|---------|---------------|-------------|
-| Cloudflare R2 | Yes | Free |
-| AWS S3 | Yes | ~$0.09/GB |
-| Vercel Blob | Yes | Included in plan |
-| GitHub Releases | Yes | Free (up to 2GB/file) |
+| Service         | Range requests | Egress cost           |
+| --------------- | -------------- | --------------------- |
+| Cloudflare R2   | Yes            | Free                  |
+| AWS S3          | Yes            | ~$0.09/GB             |
+| Vercel Blob     | Yes            | Included in plan      |
+| GitHub Releases | Yes            | Free (up to 2GB/file) |
 
 ## Configuration
 
@@ -130,8 +130,8 @@ For offline development, place the `.pmtiles` file in `public/tiles/` and point 
 ```bash
 # Extract tiles
 pmtiles extract https://build.protomaps.com/20250310.pmtiles \
-  apps/banana/public/tiles/taipei.pmtiles \
-  --bbox=121.4,24.9,121.7,25.2
+    apps/banana/public/tiles/taipei.pmtiles \
+    --bbox=121.4,24.9,121.7,25.2
 
 # Use local file
 VITE_PMTILES_URL=http://localhost:5173/tiles/taipei.pmtiles bun run dev
@@ -155,8 +155,8 @@ This reads `public/tiles/taipei.pmtiles` and writes PNG files to `public/tiles/{
 The map is centered on Taipei 101 (25.0330°N, 121.5654°E). To change the origin, update the constants in `src/components/map-tile-layer.tsx`:
 
 ```ts
-const ORIGIN_LNG = 121.5654;  // longitude
-const ORIGIN_LAT = 25.0330;   // latitude
+const ORIGIN_LNG = 121.5654; // longitude
+const ORIGIN_LAT = 25.033; // latitude
 ```
 
 Then extract a PMTiles file covering the new area and update the hosted file.

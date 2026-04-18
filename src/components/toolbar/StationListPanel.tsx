@@ -1,17 +1,26 @@
+import type { CameraRig } from '@ue-too/board';
 import { useState } from 'react';
-import { Check, Columns2, Crosshair, PanelLeft, Plus, Settings2, Trash2, X } from '@/assets/icons';
 import { useTranslation } from 'react-i18next';
 
+import {
+    Check,
+    Columns2,
+    Crosshair,
+    PanelLeft,
+    Plus,
+    Settings2,
+    Trash2,
+    X,
+} from '@/assets/icons';
 import { Button } from '@/components/ui/button';
 import { DraggablePanel } from '@/components/ui/draggable-panel';
 import { Separator } from '@/components/ui/separator';
 import type { StationManager } from '@/stations/station-manager';
 import type { StationRenderSystem } from '@/stations/station-render-system';
 import type { TrackAlignedPlatformManager } from '@/stations/track-aligned-platform-manager';
+import type { Platform, Station } from '@/stations/types';
 import type { TrackGraph } from '@/trains/tracks/track';
 import { ELEVATION } from '@/trains/tracks/types';
-import type { Platform, Station } from '@/stations/types';
-import type { CameraRig } from '@ue-too/board';
 
 /** Max distance (world units) from station position to be a reassignment candidate. */
 const NEARBY_RADIUS = 50;
@@ -30,7 +39,11 @@ type StationListPanelProps = {
     /** Activate dual-spine platform tool for the given station. */
     onAddDualSpinePlatform?: (stationId: number) => void;
     /** Open the platform editor for a specific platform. */
-    onEditPlatform?: (stationId: number, platformId: number, platformKind: 'island' | 'trackAligned') => void;
+    onEditPlatform?: (
+        stationId: number,
+        platformId: number,
+        platformKind: 'island' | 'trackAligned'
+    ) => void;
 };
 
 /**
@@ -39,7 +52,7 @@ type StationListPanelProps = {
 function platformDistanceToStation(
     trackGraph: TrackGraph,
     platform: Platform,
-    stationPos: { x: number; y: number },
+    stationPos: { x: number; y: number }
 ): number | null {
     const curve = trackGraph.getTrackSegmentCurve(platform.track);
     if (curve === null) return null;
@@ -53,7 +66,7 @@ function platformDistanceToStation(
  * Collect all platforms from all stations, tagged with their owner station ID.
  */
 function collectAllPlatforms(
-    stationManager: StationManager,
+    stationManager: StationManager
 ): { stationId: number; platform: Platform }[] {
     const result: { stationId: number; platform: Platform }[] = [];
     for (const { id, station } of stationManager.getStations()) {
@@ -71,13 +84,21 @@ function findNearbyPlatforms(
     stationManager: StationManager,
     trackGraph: TrackGraph,
     targetStationId: number,
-    targetStation: Station,
+    targetStation: Station
 ): { stationId: number; platform: Platform; distance: number }[] {
     const all = collectAllPlatforms(stationManager);
-    const candidates: { stationId: number; platform: Platform; distance: number }[] = [];
+    const candidates: {
+        stationId: number;
+        platform: Platform;
+        distance: number;
+    }[] = [];
     for (const { stationId, platform } of all) {
         if (stationId === targetStationId) continue;
-        const dist = platformDistanceToStation(trackGraph, platform, targetStation.position);
+        const dist = platformDistanceToStation(
+            trackGraph,
+            platform,
+            targetStation.position
+        );
         if (dist !== null && dist <= NEARBY_RADIUS) {
             candidates.push({ stationId, platform, distance: dist });
         }
@@ -97,7 +118,7 @@ function reassignPlatform(
     trackGraph: TrackGraph,
     fromStationId: number,
     toStationId: number,
-    platform: Platform,
+    platform: Platform
 ): void {
     const fromStation = stationManager.getStation(fromStationId);
     const toStation = stationManager.getStation(toStationId);
@@ -112,9 +133,13 @@ function reassignPlatform(
         toStation.trackSegments.push(segId);
     }
     // Remove from source if no remaining platform uses it
-    const srcStillUsesTrack = fromStation.platforms.some(p => p.track === segId);
+    const srcStillUsesTrack = fromStation.platforms.some(
+        p => p.track === segId
+    );
     if (!srcStillUsesTrack) {
-        fromStation.trackSegments = fromStation.trackSegments.filter(s => s !== segId);
+        fromStation.trackSegments = fromStation.trackSegments.filter(
+            s => s !== segId
+        );
 
         // Move joints for this segment
         const seg = trackGraph.getTrackSegmentWithJoints(segId);
@@ -123,12 +148,19 @@ function reassignPlatform(
                 if (!toStation.joints.includes(jId)) {
                     toStation.joints.push(jId);
                 }
-                const srcStillUsesJoint = fromStation.trackSegments.some(sId => {
-                    const s = trackGraph.getTrackSegmentWithJoints(sId);
-                    return s !== null && (s.t0Joint === jId || s.t1Joint === jId);
-                });
+                const srcStillUsesJoint = fromStation.trackSegments.some(
+                    sId => {
+                        const s = trackGraph.getTrackSegmentWithJoints(sId);
+                        return (
+                            s !== null &&
+                            (s.t0Joint === jId || s.t1Joint === jId)
+                        );
+                    }
+                );
                 if (!srcStillUsesJoint) {
-                    fromStation.joints = fromStation.joints.filter(j => j !== jId);
+                    fromStation.joints = fromStation.joints.filter(
+                        j => j !== jId
+                    );
                 }
             }
         }
@@ -138,8 +170,12 @@ function reassignPlatform(
     toStation.platforms.push(platform);
 
     // Re-number platform IDs in both stations
-    fromStation.platforms.forEach((p, i) => { p.id = i; });
-    toStation.platforms.forEach((p, i) => { p.id = i; });
+    fromStation.platforms.forEach((p, i) => {
+        p.id = i;
+    });
+    toStation.platforms.forEach((p, i) => {
+        p.id = i;
+    });
 
     // Rebuild render for both
     stationRenderSystem.removeStation(fromStationId);
@@ -174,7 +210,9 @@ export function StationListPanel({
     const [editingId, setEditingId] = useState<number | null>(null);
     const [editValue, setEditValue] = useState('');
     /** Station ID currently in "pick platforms" mode. */
-    const [pickingForStation, setPickingForStation] = useState<number | null>(null);
+    const [pickingForStation, setPickingForStation] = useState<number | null>(
+        null
+    );
     // Force re-render after mutations
     const [, setVersion] = useState(0);
 
@@ -205,10 +243,7 @@ export function StationListPanel({
         onStationChange?.();
     };
 
-    const handleReassign = (
-        fromStationId: number,
-        platform: Platform,
-    ) => {
+    const handleReassign = (fromStationId: number, platform: Platform) => {
         if (pickingForStation === null) return;
         reassignPlatform(
             stationManager,
@@ -216,7 +251,7 @@ export function StationListPanel({
             trackGraph,
             fromStationId,
             pickingForStation,
-            platform,
+            platform
         );
         setVersion(v => v + 1);
         onStationChange?.();
@@ -239,12 +274,19 @@ export function StationListPanel({
     };
 
     // Build nearby candidate list when picking
-    const pickingStation = pickingForStation !== null
-        ? stationManager.getStation(pickingForStation)
-        : null;
-    const nearbyCandidates = pickingStation !== null && pickingForStation !== null
-        ? findNearbyPlatforms(stationManager, trackGraph, pickingForStation, pickingStation)
-        : [];
+    const pickingStation =
+        pickingForStation !== null
+            ? stationManager.getStation(pickingForStation)
+            : null;
+    const nearbyCandidates =
+        pickingStation !== null && pickingForStation !== null
+            ? findNearbyPlatforms(
+                  stationManager,
+                  trackGraph,
+                  pickingForStation,
+                  pickingStation
+              )
+            : [];
 
     return (
         <DraggablePanel
@@ -269,140 +311,184 @@ export function StationListPanel({
                     </span>
                 ) : (
                     stations.map(({ id, station }) => {
-                        const trackAlignedCount = trackAlignedPlatformManager.getPlatformsByStation(id).length;
+                        const trackAlignedCount =
+                            trackAlignedPlatformManager.getPlatformsByStation(
+                                id
+                            ).length;
                         return (
-                        <div
-                            key={id}
-                            className="bg-muted/50 flex flex-col rounded-lg px-2.5 py-1.5"
-                        >
-                            <div className="flex items-center justify-between">
-                            <div className="flex min-w-0 flex-col">
-                                {editingId === id ? (
-                                    <input
-                                        autoFocus
-                                        className="bg-background text-foreground w-full rounded border px-1 text-xs outline-none"
-                                        value={editValue}
-                                        onChange={e => setEditValue(e.target.value)}
-                                        onBlur={() => handleCommitEdit(id)}
-                                        onKeyDown={e => {
-                                            if (e.key === 'Enter') handleCommitEdit(id);
-                                            if (e.key === 'Escape') setEditingId(null);
-                                        }}
-                                    />
-                                ) : (
-                                    <button
-                                        type="button"
-                                        className="text-foreground truncate text-left text-xs font-medium hover:underline"
-                                        onClick={() => handleStartEdit(id, station.name)}
-                                    >
-                                        {station.name}
-                                    </button>
-                                )}
-                                <span className="text-muted-foreground text-[10px]">
-                                    ({station.position.x.toFixed(1)}, {station.position.y.toFixed(1)})
-                                    {' · '}
-                                    {t('platform', { count: station.platforms.length })}
-                                    {trackAlignedCount > 0 && (
-                                        <>
+                            <div
+                                key={id}
+                                className="bg-muted/50 flex flex-col rounded-lg px-2.5 py-1.5"
+                            >
+                                <div className="flex items-center justify-between">
+                                    <div className="flex min-w-0 flex-col">
+                                        {editingId === id ? (
+                                            <input
+                                                autoFocus
+                                                className="bg-background text-foreground w-full rounded border px-1 text-xs outline-none"
+                                                value={editValue}
+                                                onChange={e =>
+                                                    setEditValue(e.target.value)
+                                                }
+                                                onBlur={() =>
+                                                    handleCommitEdit(id)
+                                                }
+                                                onKeyDown={e => {
+                                                    if (e.key === 'Enter')
+                                                        handleCommitEdit(id);
+                                                    if (e.key === 'Escape')
+                                                        setEditingId(null);
+                                                }}
+                                            />
+                                        ) : (
+                                            <button
+                                                type="button"
+                                                className="text-foreground truncate text-left text-xs font-medium hover:underline"
+                                                onClick={() =>
+                                                    handleStartEdit(
+                                                        id,
+                                                        station.name
+                                                    )
+                                                }
+                                            >
+                                                {station.name}
+                                            </button>
+                                        )}
+                                        <span className="text-muted-foreground text-[10px]">
+                                            ({station.position.x.toFixed(1)},{' '}
+                                            {station.position.y.toFixed(1)})
                                             {' · '}
-                                            {t('trackAlignedPlatform', { count: trackAlignedCount })}
-                                        </>
-                                    )}
-                                </span>
-                            </div>
-                            <div className="flex shrink-0 gap-0.5">
-                                {pickingForStation === id ? (
-                                    <Button
-                                        variant="ghost"
-                                        size="icon-xs"
-                                        onClick={() => setPickingForStation(null)}
-                                        title={t('donePickingPlatforms')}
-                                    >
-                                        <Check className="size-3" />
-                                    </Button>
-                                ) : (
-                                    <Button
-                                        variant="ghost"
-                                        size="icon-xs"
-                                        onClick={() => setPickingForStation(id)}
-                                        title={t('pickPlatformsToAdd')}
-                                        disabled={pickingForStation !== null}
-                                    >
-                                        <Settings2 className="size-3" />
-                                    </Button>
-                                )}
-                                <Button
-                                    variant="ghost"
-                                    size="icon-xs"
-                                    onClick={() => handleLocate(station.position)}
-                                    title={t('panToStation')}
-                                >
-                                    <Crosshair className="size-3" />
-                                </Button>
-                                <Button
-                                    variant="ghost"
-                                    size="icon-xs"
-                                    onClick={() => handleDelete(id)}
-                                    title={t('deleteStation')}
-                                >
-                                    <Trash2 className="size-3" />
-                                </Button>
-                            </div>
-                            </div>
-                            {/* Track-aligned platform actions */}
-                            <div className="mt-1 flex gap-1">
-                                <Button
-                                    variant="outline"
-                                    size="sm"
-                                    className="h-6 flex-1 gap-1 px-1.5 text-[10px]"
-                                    onClick={() => onAddSingleSpinePlatform?.(id)}
-                                    title={t('addSingleSpinePlatform')}
-                                >
-                                    <PanelLeft className="size-3" />
-                                    {t('addSingleSpinePlatform')}
-                                </Button>
-                                <Button
-                                    variant="outline"
-                                    size="sm"
-                                    className="h-6 flex-1 gap-1 px-1.5 text-[10px]"
-                                    onClick={() => onAddDualSpinePlatform?.(id)}
-                                    title={t('addDualSpinePlatform')}
-                                >
-                                    <Columns2 className="size-3" />
-                                    {t('addDualSpinePlatform')}
-                                </Button>
-                            </div>
-                            {/* Platform chips — click to edit */}
-                            {(station.platforms.length > 0 ||
-                                station.trackAlignedPlatforms.length > 0) && (
-                                <div className="mt-1 flex flex-wrap gap-0.5">
-                                    {station.platforms.map((p) => (
-                                        <button
-                                            key={`island-${p.id}`}
-                                            type="button"
-                                            className="bg-muted hover:bg-foreground/20 rounded px-1.5 py-0.5 text-[10px] font-medium transition-colors"
+                                            {t('platform', {
+                                                count: station.platforms.length,
+                                            })}
+                                            {trackAlignedCount > 0 && (
+                                                <>
+                                                    {' · '}
+                                                    {t('trackAlignedPlatform', {
+                                                        count: trackAlignedCount,
+                                                    })}
+                                                </>
+                                            )}
+                                        </span>
+                                    </div>
+                                    <div className="flex shrink-0 gap-0.5">
+                                        {pickingForStation === id ? (
+                                            <Button
+                                                variant="ghost"
+                                                size="icon-xs"
+                                                onClick={() =>
+                                                    setPickingForStation(null)
+                                                }
+                                                title={t(
+                                                    'donePickingPlatforms'
+                                                )}
+                                            >
+                                                <Check className="size-3" />
+                                            </Button>
+                                        ) : (
+                                            <Button
+                                                variant="ghost"
+                                                size="icon-xs"
+                                                onClick={() =>
+                                                    setPickingForStation(id)
+                                                }
+                                                title={t('pickPlatformsToAdd')}
+                                                disabled={
+                                                    pickingForStation !== null
+                                                }
+                                            >
+                                                <Settings2 className="size-3" />
+                                            </Button>
+                                        )}
+                                        <Button
+                                            variant="ghost"
+                                            size="icon-xs"
                                             onClick={() =>
-                                                onEditPlatform?.(id, p.id, 'island')
+                                                handleLocate(station.position)
                                             }
+                                            title={t('panToStation')}
                                         >
-                                            P{p.id}
-                                        </button>
-                                    ))}
-                                    {station.trackAlignedPlatforms.map((tapId) => (
-                                        <button
-                                            key={`ta-${tapId}`}
-                                            type="button"
-                                            className="bg-muted hover:bg-foreground/20 rounded px-1.5 py-0.5 text-[10px] font-medium transition-colors"
-                                            onClick={() =>
-                                                onEditPlatform?.(id, tapId, 'trackAligned')
-                                            }
+                                            <Crosshair className="size-3" />
+                                        </Button>
+                                        <Button
+                                            variant="ghost"
+                                            size="icon-xs"
+                                            onClick={() => handleDelete(id)}
+                                            title={t('deleteStation')}
                                         >
-                                            T{tapId}
-                                        </button>
-                                    ))}
+                                            <Trash2 className="size-3" />
+                                        </Button>
+                                    </div>
                                 </div>
-                            )}
-                        </div>
+                                {/* Track-aligned platform actions */}
+                                <div className="mt-1 flex gap-1">
+                                    <Button
+                                        variant="outline"
+                                        size="sm"
+                                        className="h-6 flex-1 gap-1 px-1.5 text-[10px]"
+                                        onClick={() =>
+                                            onAddSingleSpinePlatform?.(id)
+                                        }
+                                        title={t('addSingleSpinePlatform')}
+                                    >
+                                        <PanelLeft className="size-3" />
+                                        {t('addSingleSpinePlatform')}
+                                    </Button>
+                                    <Button
+                                        variant="outline"
+                                        size="sm"
+                                        className="h-6 flex-1 gap-1 px-1.5 text-[10px]"
+                                        onClick={() =>
+                                            onAddDualSpinePlatform?.(id)
+                                        }
+                                        title={t('addDualSpinePlatform')}
+                                    >
+                                        <Columns2 className="size-3" />
+                                        {t('addDualSpinePlatform')}
+                                    </Button>
+                                </div>
+                                {/* Platform chips — click to edit */}
+                                {(station.platforms.length > 0 ||
+                                    station.trackAlignedPlatforms.length >
+                                        0) && (
+                                    <div className="mt-1 flex flex-wrap gap-0.5">
+                                        {station.platforms.map(p => (
+                                            <button
+                                                key={`island-${p.id}`}
+                                                type="button"
+                                                className="bg-muted hover:bg-foreground/20 rounded px-1.5 py-0.5 text-[10px] font-medium transition-colors"
+                                                onClick={() =>
+                                                    onEditPlatform?.(
+                                                        id,
+                                                        p.id,
+                                                        'island'
+                                                    )
+                                                }
+                                            >
+                                                P{p.id}
+                                            </button>
+                                        ))}
+                                        {station.trackAlignedPlatforms.map(
+                                            tapId => (
+                                                <button
+                                                    key={`ta-${tapId}`}
+                                                    type="button"
+                                                    className="bg-muted hover:bg-foreground/20 rounded px-1.5 py-0.5 text-[10px] font-medium transition-colors"
+                                                    onClick={() =>
+                                                        onEditPlatform?.(
+                                                            id,
+                                                            tapId,
+                                                            'trackAligned'
+                                                        )
+                                                    }
+                                                >
+                                                    T{tapId}
+                                                </button>
+                                            )
+                                        )}
+                                    </div>
+                                )}
+                            </div>
                         );
                     })
                 )}
@@ -413,7 +499,7 @@ export function StationListPanel({
                 <>
                     <Separator className="my-2" />
                     <div className="flex items-center justify-between">
-                        <span className="text-muted-foreground text-[10px] font-medium uppercase tracking-wider">
+                        <span className="text-muted-foreground text-[10px] font-medium tracking-wider uppercase">
                             {t('nearbyPlatforms')}
                         </span>
                         <Button
@@ -431,27 +517,44 @@ export function StationListPanel({
                                 {t('noNearbyPlatforms')}
                             </span>
                         ) : (
-                            nearbyCandidates.map(({ stationId, platform, distance }) => {
-                                const srcStation = stationManager.getStation(stationId);
-                                const srcName = srcStation?.name ?? t('stationFallback', { id: stationId });
-                                return (
-                                    <button
-                                        key={`${stationId}-${platform.track}-${platform.id}`}
-                                        type="button"
-                                        className="bg-muted/30 hover:bg-muted flex w-full items-center justify-between rounded-lg px-2.5 py-1 text-left transition-colors"
-                                        onClick={() => handleReassign(stationId, platform)}
-                                    >
-                                        <div className="flex flex-col">
-                                            <span className="text-foreground text-xs">
-                                                {t('platformTrackInfo', { platformId: platform.id, trackId: platform.track })}
-                                            </span>
-                                            <span className="text-muted-foreground text-[10px]">
-                                                {t('fromStationDistance', { name: srcName, distance: distance.toFixed(1) })}
-                                            </span>
-                                        </div>
-                                    </button>
-                                );
-                            })
+                            nearbyCandidates.map(
+                                ({ stationId, platform, distance }) => {
+                                    const srcStation =
+                                        stationManager.getStation(stationId);
+                                    const srcName =
+                                        srcStation?.name ??
+                                        t('stationFallback', { id: stationId });
+                                    return (
+                                        <button
+                                            key={`${stationId}-${platform.track}-${platform.id}`}
+                                            type="button"
+                                            className="bg-muted/30 hover:bg-muted flex w-full items-center justify-between rounded-lg px-2.5 py-1 text-left transition-colors"
+                                            onClick={() =>
+                                                handleReassign(
+                                                    stationId,
+                                                    platform
+                                                )
+                                            }
+                                        >
+                                            <div className="flex flex-col">
+                                                <span className="text-foreground text-xs">
+                                                    {t('platformTrackInfo', {
+                                                        platformId: platform.id,
+                                                        trackId: platform.track,
+                                                    })}
+                                                </span>
+                                                <span className="text-muted-foreground text-[10px]">
+                                                    {t('fromStationDistance', {
+                                                        name: srcName,
+                                                        distance:
+                                                            distance.toFixed(1),
+                                                    })}
+                                                </span>
+                                            </div>
+                                        </button>
+                                    );
+                                }
+                            )
                         )}
                     </div>
                 </>

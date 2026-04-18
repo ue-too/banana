@@ -1,7 +1,8 @@
 import { PointCal } from '@ue-too/math';
+
 import type { TerrainData } from '../../terrain/terrain-data';
-import { TrackSegmentDrawData } from './types';
 import { ballastHalfWidth } from './geometry-utils';
+import { TrackSegmentDrawData } from './types';
 
 export type TunnelEntranceEdgePoint = { x: number; y: number };
 
@@ -28,7 +29,7 @@ export type TunnelEntranceGeometry = {
 export function computeTunnelEntranceGeometry(
     drawData: TrackSegmentDrawData,
     terrainData: Pick<TerrainData, 'getHeight'> | null,
-    getElevationBandIndex: (rawElevation: number) => number,
+    getElevationBandIndex: (rawElevation: number) => number
 ): TunnelEntranceGeometry | null {
     const { curve, elevation } = drawData;
     // Only draw on ramped tracks (not flat underground tracks).
@@ -37,7 +38,8 @@ export function computeTunnelEntranceGeometry(
     // Sample terrain height at both ends of the track segment.
     const startPoint = curve.getPointbyPercentage(0);
     const endPoint = curve.getPointbyPercentage(1);
-    const startTerrainH = terrainData?.getHeight(startPoint.x, startPoint.y) ?? 0;
+    const startTerrainH =
+        terrainData?.getHeight(startPoint.x, startPoint.y) ?? 0;
     const endTerrainH = terrainData?.getHeight(endPoint.x, endPoint.y) ?? 0;
 
     // Compute relative elevation (track elevation minus terrain height).
@@ -49,14 +51,17 @@ export function computeTunnelEntranceGeometry(
     if (relFrom < 0 && relTo < 0) return null;
 
     const ballastHw = ballastHalfWidth(drawData);
-    const hw = drawData.bed ? Math.max(ballastHw, (drawData.bedWidth ?? 3) / 2) : ballastHw;
+    const hw = drawData.bed
+        ? Math.max(ballastHw, (drawData.bedWidth ?? 3) / 2)
+        : ballastHw;
     /** Width of each retaining wall strip in world units (meters). */
     const wallThickness = 0.4;
     /** How far the walls extend beyond the terrain crossing (meters). */
     const overshootDistance = 5;
-    const overshootT = curve.fullLength > 0
-        ? Math.min(0.15, overshootDistance / curve.fullLength)
-        : 0;
+    const overshootT =
+        curve.fullLength > 0
+            ? Math.min(0.15, overshootDistance / curve.fullLength)
+            : 0;
 
     let tStart: number;
     let tEnd: number;
@@ -96,17 +101,38 @@ export function computeTunnelEntranceGeometry(
         const nx = -tangent.y;
         const ny = tangent.x;
 
-        leftInner.push({ x: point.x - nx * innerOffset, y: point.y - ny * innerOffset });
-        leftOuter.push({ x: point.x - nx * outerOffset, y: point.y - ny * outerOffset });
-        rightInner.push({ x: point.x + nx * innerOffset, y: point.y + ny * innerOffset });
-        rightOuter.push({ x: point.x + nx * outerOffset, y: point.y + ny * outerOffset });
+        leftInner.push({
+            x: point.x - nx * innerOffset,
+            y: point.y - ny * innerOffset,
+        });
+        leftOuter.push({
+            x: point.x - nx * outerOffset,
+            y: point.y - ny * outerOffset,
+        });
+        rightInner.push({
+            x: point.x + nx * innerOffset,
+            y: point.y + ny * innerOffset,
+        });
+        rightOuter.push({
+            x: point.x + nx * outerOffset,
+            y: point.y + ny * outerOffset,
+        });
     }
 
     /** How far the cover extends along the ramp from the underground end (meters). */
     const coverLength = 10;
-    const coverSteps = Math.max(1, Math.round(
-        (coverLength / curve.fullLength) * steps / (tEnd - tStart)
-    ));
+    const coverSteps = Math.max(
+        1,
+        Math.round(((coverLength / curve.fullLength) * steps) / (tEnd - tStart))
+    );
 
-    return { leftInner, leftOuter, rightInner, rightOuter, coverEnd, coverSteps, surfaceBandIndex };
+    return {
+        leftInner,
+        leftOuter,
+        rightInner,
+        rightOuter,
+        coverEnd,
+        coverSteps,
+        surfaceBandIndex,
+    };
 }

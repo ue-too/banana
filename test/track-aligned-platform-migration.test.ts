@@ -1,5 +1,6 @@
-import { describe, it, expect } from 'bun:test';
 import type { Point } from '@ue-too/math';
+import { describe, expect, it } from 'bun:test';
+
 import { splitLegacyDualSpinePlatform } from '../src/stations/track-aligned-platform-migration';
 import type { LegacySerializedTrackAlignedPlatform } from '../src/stations/track-aligned-platform-types';
 
@@ -29,7 +30,11 @@ describe('splitLegacyDualSpinePlatform', () => {
         const legacy = makeLegacyDual();
         const { faceA, faceB } = splitLegacyDualSpinePlatform(
             legacy,
-            () => [{ x: 0, y: 0 }, { x: 10, y: 0 }] as Point[],
+            () =>
+                [
+                    { x: 0, y: 0 },
+                    { x: 10, y: 0 },
+                ] as Point[]
         );
 
         expect(faceA.stationId).toBe(3);
@@ -41,20 +46,32 @@ describe('splitLegacyDualSpinePlatform', () => {
         const legacy = makeLegacyDual();
         const { faceA, faceB } = splitLegacyDualSpinePlatform(
             legacy,
-            () => [{ x: 0, y: 0 }, { x: 10, y: 0 }] as Point[],
+            () =>
+                [
+                    { x: 0, y: 0 },
+                    { x: 10, y: 0 },
+                ] as Point[]
         );
 
-        expect(faceA.stopPositions.map((s) => s.trackSegmentId)).toEqual([10, 10]);
-        expect(faceB.stopPositions.map((s) => s.trackSegmentId)).toEqual([20, 20]);
-        expect(faceA.stopPositions.map((s) => s.id)).toEqual([0, 1]);
-        expect(faceB.stopPositions.map((s) => s.id)).toEqual([0, 1]);
+        expect(faceA.stopPositions.map(s => s.trackSegmentId)).toEqual([
+            10, 10,
+        ]);
+        expect(faceB.stopPositions.map(s => s.trackSegmentId)).toEqual([
+            20, 20,
+        ]);
+        expect(faceA.stopPositions.map(s => s.id)).toEqual([0, 1]);
+        expect(faceB.stopPositions.map(s => s.id)).toEqual([0, 1]);
     });
 
     it('emits a migration mapping that traces each old stop index to its new face + index', () => {
         const legacy = makeLegacyDual();
         const { stopIndexMap } = splitLegacyDualSpinePlatform(
             legacy,
-            () => [{ x: 0, y: 0 }, { x: 10, y: 0 }] as Point[],
+            () =>
+                [
+                    { x: 0, y: 0 },
+                    { x: 10, y: 0 },
+                ] as Point[]
         );
 
         expect(stopIndexMap).toEqual([
@@ -67,8 +84,14 @@ describe('splitLegacyDualSpinePlatform', () => {
 
     it("uses the supplied getMidline to populate each face's outer vertices", () => {
         const legacy = makeLegacyDual();
-        const midline: Point[] = [{ x: 1, y: 1 }, { x: 9, y: 1 }];
-        const { faceA, faceB } = splitLegacyDualSpinePlatform(legacy, () => midline);
+        const midline: Point[] = [
+            { x: 1, y: 1 },
+            { x: 9, y: 1 },
+        ];
+        const { faceA, faceB } = splitLegacyDualSpinePlatform(
+            legacy,
+            () => midline
+        );
         expect(faceA.outerVertices).toEqual(midline);
         expect(faceB.outerVertices).toEqual(midline);
     });

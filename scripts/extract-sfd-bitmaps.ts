@@ -5,15 +5,10 @@
  *
  * Usage: bun run scripts/extract-sfd-bitmaps.ts
  */
-
 import { existsSync, readFileSync, writeFileSync } from 'fs';
 import { resolve } from 'path';
 
-import {
-    ROOT,
-    SFD_PATH,
-    extractGlyphLines,
-} from './sfd-bitmap-core';
+import { ROOT, SFD_PATH, extractGlyphLines } from './sfd-bitmap-core';
 
 const LOCALES_DIR = resolve(ROOT, 'src/i18n/locales');
 const OUTPUT_PATH = resolve(ROOT, 'src/components/pixel-font-cjk.generated.ts');
@@ -88,7 +83,7 @@ console.log(`Extracted ${glyphs.size} glyphs (${missing} missing)`);
 
 const entries: string[] = [];
 for (const [char, lines] of glyphs) {
-    const linesStr = lines.map((l) => `        '${l}',`).join('\n');
+    const linesStr = lines.map(l => `        '${l}',`).join('\n');
     entries.push(`    ${JSON.stringify(char)}: [\n${linesStr}\n    ],`);
 }
 

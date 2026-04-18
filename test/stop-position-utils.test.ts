@@ -1,4 +1,5 @@
-import { describe, it, expect } from 'bun:test';
+import { describe, expect, it } from 'bun:test';
+
 import {
     assignStopPositionIds,
     nextStopPositionId,
@@ -13,7 +14,12 @@ describe('nextStopPositionId', () => {
     it('returns max id + 1 for a non-empty array', () => {
         const stops: StopPosition[] = [
             { id: 4, trackSegmentId: 1, direction: 'tangent', tValue: 0.5 },
-            { id: 7, trackSegmentId: 1, direction: 'reverseTangent', tValue: 0.5 },
+            {
+                id: 7,
+                trackSegmentId: 1,
+                direction: 'reverseTangent',
+                tValue: 0.5,
+            },
         ];
         expect(nextStopPositionId(stops)).toBe(8);
     });
@@ -21,7 +27,12 @@ describe('nextStopPositionId', () => {
     it('handles non-contiguous ids', () => {
         const stops: StopPosition[] = [
             { id: 0, trackSegmentId: 1, direction: 'tangent', tValue: 0.5 },
-            { id: 12, trackSegmentId: 1, direction: 'reverseTangent', tValue: 0.5 },
+            {
+                id: 12,
+                trackSegmentId: 1,
+                direction: 'reverseTangent',
+                tValue: 0.5,
+            },
             { id: 3, trackSegmentId: 1, direction: 'tangent', tValue: 0.7 },
         ];
         expect(nextStopPositionId(stops)).toBe(13);
@@ -32,10 +43,14 @@ describe('assignStopPositionIds', () => {
     it('assigns sequential ids starting at 0 to a fresh array', () => {
         const inputs = [
             { trackSegmentId: 1, direction: 'tangent' as const, tValue: 0.5 },
-            { trackSegmentId: 1, direction: 'reverseTangent' as const, tValue: 0.5 },
+            {
+                trackSegmentId: 1,
+                direction: 'reverseTangent' as const,
+                tValue: 0.5,
+            },
         ];
         const result = assignStopPositionIds(inputs);
-        expect(result.map((s) => s.id)).toEqual([0, 1]);
+        expect(result.map(s => s.id)).toEqual([0, 1]);
     });
 
     it('preserves existing fields verbatim', () => {

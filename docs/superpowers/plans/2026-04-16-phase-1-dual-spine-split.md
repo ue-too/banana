@@ -16,8 +16,8 @@
 - **Central types file**: `src/stations/track-aligned-platform-types.ts` (types for `TrackAlignedPlatform`, `SpineEntry`, `OuterVertices`, and their serialized forms).
 - **Key mesh helper**: `sampleSpineEdge(spine, offset, getCurve, stepsPerSegment?)` in `src/stations/spine-utils.ts` samples the offset edge of a spine.
 - **Known placement entry points that build platforms**:
-  - `src/stations/single-spine-placement-state-machine.ts:424-434` (already single-spine; will need the new `outerVertices: Point[]` shape)
-  - `src/stations/dual-spine-placement-state-machine.ts:786-800` (currently creates one dual platform; will create two single-spine platforms)
+    - `src/stations/single-spine-placement-state-machine.ts:424-434` (already single-spine; will need the new `outerVertices: Point[]` shape)
+    - `src/stations/dual-spine-placement-state-machine.ts:786-800` (currently creates one dual platform; will create two single-spine platforms)
 - **Render system entry point**: `TrackAlignedPlatformRenderSystem._buildMesh()` at `src/stations/track-aligned-platform-render-system.ts:558` — the `if (platform.outerVertices.kind === 'single')` branch stays, the `else` dual branch is removed.
 - **Scene load orchestration**: `deserializeSceneData()` in `src/scene-serialization.ts:60`. Note that `data.timetable` is currently deserialized BEFORE `data.trackAlignedPlatforms`. That order must be reversed (or a post-pass added) so the migration map is available when timetable references are rewritten.
 
@@ -55,6 +55,7 @@ Replace the content of `src/stations/track-aligned-platform-types.ts` with:
 
 ```ts
 import type { Point } from '@ue-too/math';
+
 import type { StopPosition } from './types';
 
 // ---------------------------------------------------------------------------
@@ -139,7 +140,11 @@ export type SerializedTrackAlignedPlatformData = {
  */
 export type LegacySerializedOuterVertices =
     | { kind: 'single'; vertices: { x: number; y: number }[] }
-    | { kind: 'dual'; capA: { x: number; y: number }[]; capB: { x: number; y: number }[] };
+    | {
+          kind: 'dual';
+          capA: { x: number; y: number }[];
+          capB: { x: number; y: number }[];
+      };
 
 export type LegacySerializedTrackAlignedPlatform = {
     id: number;
@@ -166,7 +171,7 @@ export type AnySerializedTrackAlignedPlatformData = {
 
 /** Type guard: does this entry use the legacy dual/single union shape? */
 export function isLegacySerializedPlatform(
-    p: AnySerializedTrackAlignedPlatform,
+    p: AnySerializedTrackAlignedPlatform
 ): p is LegacySerializedTrackAlignedPlatform {
     return (p as LegacySerializedTrackAlignedPlatform).spineA !== undefined;
 }
@@ -201,12 +206,23 @@ Edit `test/track-aligned-platform-manager.test.ts`:
 Replace the `makePlatform` helper:
 
 ```ts
-function makePlatform(stationId: number, segments: number[]): Omit<TrackAlignedPlatform, 'id'> {
+function makePlatform(
+    stationId: number,
+    segments: number[]
+): Omit<TrackAlignedPlatform, 'id'> {
     return {
         stationId,
-        spine: segments.map((seg) => ({ trackSegment: seg, tStart: 0, tEnd: 1, side: 1 as const })),
+        spine: segments.map(seg => ({
+            trackSegment: seg,
+            tStart: 0,
+            tEnd: 1,
+            side: 1 as const,
+        })),
         offset: 2.0,
-        outerVertices: [{ x: 0, y: 5 }, { x: 10, y: 5 }],
+        outerVertices: [
+            { x: 0, y: 5 },
+            { x: 10, y: 5 },
+        ],
         stopPositions: [],
     };
 }
@@ -319,7 +335,7 @@ private _buildMesh(platform: TrackAlignedPlatform): MeshSimple | null {
 
 Also delete the `earcut` import at the top of the file (it is no longer referenced) — this will also need `import earcut from 'earcut';` removed.
 
-- [ ] **Step 5: Update the dual-spine placement state machine's `finalize()` to compile against the new shape. This is the *temporary* form; Task 5 replaces it with the real two-platform commit.**
+- [ ] **Step 5: Update the dual-spine placement state machine's `finalize()` to compile against the new shape. This is the _temporary_ form; Task 5 replaces it with the real two-platform commit.**
 
 In `src/stations/dual-spine-placement-state-machine.ts`, around line 786, temporarily replace the `createPlatform` call with a placeholder that creates a single-spine platform from `spineA` only, so the file compiles:
 
@@ -368,8 +384,9 @@ This task introduces a pure, testable helper that converts one legacy dual-spine
 Create `test/track-aligned-platform-migration.test.ts`:
 
 ```ts
-import { describe, it, expect } from 'bun:test';
 import type { Point } from '@ue-too/math';
+import { describe, expect, it } from 'bun:test';
+
 import { splitLegacyDualSpinePlatform } from '../src/stations/track-aligned-platform-migration';
 import type { LegacySerializedTrackAlignedPlatform } from '../src/stations/track-aligned-platform-types';
 
@@ -399,7 +416,11 @@ describe('splitLegacyDualSpinePlatform', () => {
         const legacy = makeLegacyDual();
         const { faceA, faceB } = splitLegacyDualSpinePlatform(
             legacy,
-            () => [{ x: 0, y: 0 }, { x: 10, y: 0 }] as Point[],
+            () =>
+                [
+                    { x: 0, y: 0 },
+                    { x: 10, y: 0 },
+                ] as Point[]
         );
 
         expect(faceA.stationId).toBe(3);
@@ -411,18 +432,30 @@ describe('splitLegacyDualSpinePlatform', () => {
         const legacy = makeLegacyDual();
         const { faceA, faceB } = splitLegacyDualSpinePlatform(
             legacy,
-            () => [{ x: 0, y: 0 }, { x: 10, y: 0 }] as Point[],
+            () =>
+                [
+                    { x: 0, y: 0 },
+                    { x: 10, y: 0 },
+                ] as Point[]
         );
 
-        expect(faceA.stopPositions.map((s) => s.trackSegmentId)).toEqual([10, 10]);
-        expect(faceB.stopPositions.map((s) => s.trackSegmentId)).toEqual([20, 20]);
+        expect(faceA.stopPositions.map(s => s.trackSegmentId)).toEqual([
+            10, 10,
+        ]);
+        expect(faceB.stopPositions.map(s => s.trackSegmentId)).toEqual([
+            20, 20,
+        ]);
     });
 
     it('emits a migration mapping that traces each old stop index to its new face + index', () => {
         const legacy = makeLegacyDual();
         const { stopIndexMap } = splitLegacyDualSpinePlatform(
             legacy,
-            () => [{ x: 0, y: 0 }, { x: 10, y: 0 }] as Point[],
+            () =>
+                [
+                    { x: 0, y: 0 },
+                    { x: 10, y: 0 },
+                ] as Point[]
         );
 
         expect(stopIndexMap).toEqual([
@@ -435,8 +468,14 @@ describe('splitLegacyDualSpinePlatform', () => {
 
     it("uses the supplied getMidline to populate each face's outer vertices", () => {
         const legacy = makeLegacyDual();
-        const midline: Point[] = [{ x: 1, y: 1 }, { x: 9, y: 1 }];
-        const { faceA, faceB } = splitLegacyDualSpinePlatform(legacy, () => midline);
+        const midline: Point[] = [
+            { x: 1, y: 1 },
+            { x: 9, y: 1 },
+        ];
+        const { faceA, faceB } = splitLegacyDualSpinePlatform(
+            legacy,
+            () => midline
+        );
         expect(faceA.outerVertices).toEqual(midline);
         expect(faceB.outerVertices).toEqual(midline);
     });
@@ -453,15 +492,16 @@ Expected: FAIL because `src/stations/track-aligned-platform-migration.ts` does n
 Create `src/stations/track-aligned-platform-migration.ts`:
 
 ```ts
-import type { Point } from '@ue-too/math';
 import type { BCurve } from '@ue-too/curve';
-import type { StopPosition } from './types';
+import type { Point } from '@ue-too/math';
+
+import { sampleSpineEdge } from './spine-utils';
 import type {
     LegacySerializedTrackAlignedPlatform,
     SerializedSpineEntry,
     TrackAlignedPlatform,
 } from './track-aligned-platform-types';
-import { sampleSpineEdge } from './spine-utils';
+import type { StopPosition } from './types';
 
 // ---------------------------------------------------------------------------
 // Types
@@ -492,7 +532,10 @@ export type PlatformMigrationEntry = {
 };
 
 /** oldPlatformId -> oldStopIndex -> new location. */
-export type PlatformMigrationMap = Map<number, Map<number, PlatformMigrationEntry>>;
+export type PlatformMigrationMap = Map<
+    number,
+    Map<number, PlatformMigrationEntry>
+>;
 
 // ---------------------------------------------------------------------------
 // Split helper
@@ -513,7 +556,7 @@ export function computeDualSpineMidline(
     spineA: SerializedSpineEntry[],
     spineB: SerializedSpineEntry[],
     offset: number,
-    getCurve: (segmentId: number) => BCurve,
+    getCurve: (segmentId: number) => BCurve
 ): Point[] {
     const edgeA = sampleSpineEdge(spineA, offset, getCurve);
     const edgeB = sampleSpineEdge(spineB, offset, getCurve);
@@ -541,20 +584,24 @@ export function computeDualSpineMidline(
  */
 export function splitLegacyDualSpinePlatform(
     legacy: LegacySerializedTrackAlignedPlatform,
-    getMidline: () => Point[],
+    getMidline: () => Point[]
 ): DualSpineSplitResult {
     if (legacy.spineB === null) {
-        throw new Error(`splitLegacyDualSpinePlatform: legacy.spineB is null for platform ${legacy.id}`);
+        throw new Error(
+            `splitLegacyDualSpinePlatform: legacy.spineB is null for platform ${legacy.id}`
+        );
     }
 
     const midline = getMidline();
 
-    const spineASegmentIds = new Set(legacy.spineA.map((e) => e.trackSegment));
-    const spineBSegmentIds = new Set(legacy.spineB.map((e) => e.trackSegment));
+    const spineASegmentIds = new Set(legacy.spineA.map(e => e.trackSegment));
+    const spineBSegmentIds = new Set(legacy.spineB.map(e => e.trackSegment));
 
     const stopsA: StopPosition[] = [];
     const stopsB: StopPosition[] = [];
-    const stopIndexMap: StopIndexMapEntry[] = new Array(legacy.stopPositions.length);
+    const stopIndexMap: StopIndexMapEntry[] = new Array(
+        legacy.stopPositions.length
+    );
 
     for (let i = 0; i < legacy.stopPositions.length; i++) {
         const stop = legacy.stopPositions[i];
@@ -575,17 +622,17 @@ export function splitLegacyDualSpinePlatform(
 
     const faceA: Omit<TrackAlignedPlatform, 'id'> = {
         stationId: legacy.stationId,
-        spine: legacy.spineA.map((e) => ({ ...e })),
+        spine: legacy.spineA.map(e => ({ ...e })),
         offset: legacy.offset,
-        outerVertices: midline.map((v) => ({ x: v.x, y: v.y })),
+        outerVertices: midline.map(v => ({ x: v.x, y: v.y })),
         stopPositions: stopsA,
     };
 
     const faceB: Omit<TrackAlignedPlatform, 'id'> = {
         stationId: legacy.stationId,
-        spine: legacy.spineB.map((e) => ({ ...e })),
+        spine: legacy.spineB.map(e => ({ ...e })),
         offset: legacy.offset,
-        outerVertices: midline.map((v) => ({ x: v.x, y: v.y })),
+        outerVertices: midline.map(v => ({ x: v.x, y: v.y })),
         stopPositions: stopsB,
     };
 
@@ -634,8 +681,22 @@ describe('legacy dual-spine migration', () => {
                 {
                     id: 5,
                     stationId: 1,
-                    spineA: [{ trackSegment: 10, tStart: 0, tEnd: 1, side: 1 as const }],
-                    spineB: [{ trackSegment: 20, tStart: 0, tEnd: 1, side: -1 as const }],
+                    spineA: [
+                        {
+                            trackSegment: 10,
+                            tStart: 0,
+                            tEnd: 1,
+                            side: 1 as const,
+                        },
+                    ],
+                    spineB: [
+                        {
+                            trackSegment: 20,
+                            tStart: 0,
+                            tEnd: 1,
+                            side: -1 as const,
+                        },
+                    ],
                     offset: 2,
                     outerVertices: {
                         kind: 'dual' as const,
@@ -643,20 +704,31 @@ describe('legacy dual-spine migration', () => {
                         capB: [{ x: 10, y: 5 }],
                     },
                     stopPositions: [
-                        { trackSegmentId: 10, direction: 'tangent' as const, tValue: 0.5 },
-                        { trackSegmentId: 20, direction: 'tangent' as const, tValue: 0.5 },
+                        {
+                            trackSegmentId: 10,
+                            direction: 'tangent' as const,
+                            tValue: 0.5,
+                        },
+                        {
+                            trackSegmentId: 20,
+                            direction: 'tangent' as const,
+                            tValue: 0.5,
+                        },
                     ],
                 },
             ],
         };
-        const { manager, migrationMap } = TrackAlignedPlatformManager.deserializeAny(
-            legacyData,
-            () => [{ x: 5, y: 0 }, { x: 5, y: 2.5 }],
-        );
+        const { manager, migrationMap } =
+            TrackAlignedPlatformManager.deserializeAny(legacyData, () => [
+                { x: 5, y: 0 },
+                { x: 5, y: 2.5 },
+            ]);
 
         const all = manager.getAllPlatforms();
         expect(all).toHaveLength(2);
-        expect(all.map((p) => p.platform.spine[0].trackSegment).sort()).toEqual([10, 20]);
+        expect(all.map(p => p.platform.spine[0].trackSegment).sort()).toEqual([
+            10, 20,
+        ]);
 
         // Migration map records where each legacy index ended up.
         const entries = migrationMap.get(5);
@@ -670,19 +742,31 @@ describe('legacy dual-spine migration', () => {
                 {
                     id: 3,
                     stationId: 1,
-                    spine: [{ trackSegment: 10, tStart: 0, tEnd: 1, side: 1 as const }],
+                    spine: [
+                        {
+                            trackSegment: 10,
+                            tStart: 0,
+                            tEnd: 1,
+                            side: 1 as const,
+                        },
+                    ],
                     offset: 2,
-                    outerVertices: [{ x: 0, y: 5 }, { x: 10, y: 5 }],
+                    outerVertices: [
+                        { x: 0, y: 5 },
+                        { x: 10, y: 5 },
+                    ],
                     stopPositions: [
-                        { trackSegmentId: 10, direction: 'tangent' as const, tValue: 0.5 },
+                        {
+                            trackSegmentId: 10,
+                            direction: 'tangent' as const,
+                            tValue: 0.5,
+                        },
                     ],
                 },
             ],
         };
-        const { manager, migrationMap } = TrackAlignedPlatformManager.deserializeAny(
-            newData,
-            () => [],
-        );
+        const { manager, migrationMap } =
+            TrackAlignedPlatformManager.deserializeAny(newData, () => []);
         expect(manager.getAllPlatforms()).toHaveLength(1);
         expect(migrationMap.size).toBe(0);
     });
@@ -699,17 +783,18 @@ Expected: FAIL — `TrackAlignedPlatformManager.deserializeAny` does not exist.
 Edit `src/stations/track-aligned-platform-manager.ts`. Add these imports at the top:
 
 ```ts
+import type { BCurve } from '@ue-too/curve';
+
+import {
+    type PlatformMigrationMap,
+    computeDualSpineMidline,
+    splitLegacyDualSpinePlatform,
+} from './track-aligned-platform-migration';
 import type {
     AnySerializedTrackAlignedPlatformData,
     LegacySerializedTrackAlignedPlatform,
 } from './track-aligned-platform-types';
 import { isLegacySerializedPlatform } from './track-aligned-platform-types';
-import {
-    computeDualSpineMidline,
-    splitLegacyDualSpinePlatform,
-    type PlatformMigrationMap,
-} from './track-aligned-platform-migration';
-import type { BCurve } from '@ue-too/curve';
 ```
 
 Add the following static method to the class. Place it directly after the existing `deserialize` method:
@@ -840,7 +925,7 @@ const midline = computeDualSpineMidline(
     this._spineA,
     this._spineB,
     this._spineAOffset,
-    getCurve,
+    getCurve
 );
 
 const platformIdA = this._platformManager.createPlatform({
@@ -918,15 +1003,16 @@ Wire the platform migration map returned from `deserializeAny` into the scene lo
 Create `test/shift-template-manager-remap.test.ts`:
 
 ```ts
-import { describe, it, expect } from 'bun:test';
+import { describe, expect, it } from 'bun:test';
+
+import type { PlatformMigrationMap } from '../src/stations/track-aligned-platform-migration';
 import { ShiftTemplateManager } from '../src/timetable/shift-template-manager';
 import { DayOfWeek, type ShiftTemplate } from '../src/timetable/types';
-import type { PlatformMigrationMap } from '../src/stations/track-aligned-platform-migration';
 
 function makeTemplate(
     stationId: number,
     platformId: number,
-    stopPositionIndex: number,
+    stopPositionIndex: number
 ): ShiftTemplate {
     return {
         id: 'shift-1',
@@ -968,12 +1054,7 @@ describe('ShiftTemplateManager.remapTrackAlignedPlatformReferences', () => {
         mgr.addTemplate(makeTemplate(1, 5, 2));
 
         const map: PlatformMigrationMap = new Map([
-            [
-                5,
-                new Map([
-                    [2, { newPlatformId: 11, newStopIndex: 0 }],
-                ]),
-            ],
+            [5, new Map([[2, { newPlatformId: 11, newStopIndex: 0 }]])],
         ]);
         mgr.remapTrackAlignedPlatformReferences(map);
 
@@ -1075,11 +1156,13 @@ if (data.trackAlignedPlatforms) {
     const { manager: restored, migrationMap } =
         TrackAlignedPlatformManager.deserializeAny(
             data.trackAlignedPlatforms,
-            (segmentId) => {
-                const curve = app.curveEngine.trackGraph.getTrackSegmentCurve(segmentId);
-                if (curve === null) throw new Error(`Missing curve for segment ${segmentId}`);
+            segmentId => {
+                const curve =
+                    app.curveEngine.trackGraph.getTrackSegmentCurve(segmentId);
+                if (curve === null)
+                    throw new Error(`Missing curve for segment ${segmentId}`);
                 return curve;
-            },
+            }
         );
     platformMigrationMap = migrationMap;
 
@@ -1108,12 +1191,12 @@ if (data.timetable) {
         app.curveEngine.trackGraph,
         app.trainManager,
         app.stationManager,
-        app.signalStateEngine,
+        app.signalStateEngine
     );
     // Rewrite any ScheduledStop entries that referenced a legacy dual-spine
     // platform.
     restored.shiftTemplateManager.remapTrackAlignedPlatformReferences(
-        platformMigrationMap,
+        platformMigrationMap
     );
     (app as { timetableManager: TimetableManager }).timetableManager = restored;
     app.timetableRef.current = restored;

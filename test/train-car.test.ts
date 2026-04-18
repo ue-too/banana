@@ -1,12 +1,10 @@
-import { Car } from "../src/trains/cars";
-import { Formation, Train } from "../src/trains/formation";
-import type { TrackGraph } from "../src/trains/tracks/track";
-import type { JointDirectionManager } from "../src/trains/input-state-machine/train-kmt-state-machine";
+import { Car } from '../src/trains/cars';
+import { Formation, Train } from '../src/trains/formation';
+import type { JointDirectionManager } from '../src/trains/input-state-machine/train-kmt-state-machine';
+import type { TrackGraph } from '../src/trains/tracks/track';
 
 describe('Train Car', () => {
-
     describe('Flat cars of a formation', () => {
-
         it('should return the correct number of cars', () => {
             const formation = new Formation('1', [
                 new Car('1', [1, 2, 3], 0, 0),
@@ -17,13 +15,10 @@ describe('Train Car', () => {
             expect(cars[0].id).toBe('1');
             expect(cars[1].id).toBe('2');
         });
-
     });
 
     describe('_flatCars', () => {
-
         describe('Car (leaf)', () => {
-
             it('should return itself with an empty path', () => {
                 const car = new Car('car-A', [20], 2.5, 2.5);
                 const result = car._flatCars();
@@ -31,11 +26,9 @@ describe('Train Car', () => {
                 expect(result[0].car).toBe(car);
                 expect(result[0].path).toEqual([]);
             });
-
         });
 
         describe('Formation with flat children', () => {
-
             it('should return all cars with the formation id in their path', () => {
                 const carA = new Car('car-A', [20], 2.5, 2.5);
                 const carB = new Car('car-B', [20], 2.5, 2.5);
@@ -62,11 +55,9 @@ describe('Train Car', () => {
 
                 expect(result.map(r => r.car.id)).toEqual(['c1', 'c2', 'c3']);
             });
-
         });
 
         describe('Nested formations', () => {
-
             it('should build path from leaf to root (innermost first)', () => {
                 const car = new Car('car-X', [20], 2, 2);
                 const inner = new Formation('inner', [car]);
@@ -101,11 +92,9 @@ describe('Train Car', () => {
                 expect(result[2].car).toBe(carC);
                 expect(result[2].path).toEqual(['outer']);
             });
-
         });
 
         describe('Single-car formation', () => {
-
             it('should return one entry with the formation id in path', () => {
                 const car = new Car('solo', [15], 3, 3);
                 const formation = new Formation('f-solo', [car]);
@@ -115,23 +104,23 @@ describe('Train Car', () => {
                 expect(result[0].car).toBe(car);
                 expect(result[0].path).toEqual(['f-solo']);
             });
-
         });
-
     });
 
     describe('wouldBreakFormations', () => {
-
         describe('adjacent splits (head and tail are neighbours)', () => {
-
             it('should not break anything when splitting between direct car children', () => {
                 const formation = new Formation('f', [
                     new Car('A', [20], 2, 2),
                     new Car('B', [20], 2, 2),
                     new Car('C', [20], 2, 2),
                 ]);
-                expect(formation.wouldBreakFormations(0, 1)).toEqual({ breaks: false });
-                expect(formation.wouldBreakFormations(1, 2)).toEqual({ breaks: false });
+                expect(formation.wouldBreakFormations(0, 1)).toEqual({
+                    breaks: false,
+                });
+                expect(formation.wouldBreakFormations(1, 2)).toEqual({
+                    breaks: false,
+                });
             });
 
             it('should not break anything when splitting between two child formations', () => {
@@ -146,7 +135,9 @@ describe('Train Car', () => {
                 ]);
                 const outer = new Formation('outer', [inner1, inner2]);
                 // Split between B (index 1) and C (index 2) — boundary between inner1 and inner2
-                expect(outer.wouldBreakFormations(1, 2)).toEqual({ breaks: false });
+                expect(outer.wouldBreakFormations(1, 2)).toEqual({
+                    breaks: false,
+                });
             });
 
             it('should break a child formation when splitting inside it', () => {
@@ -155,7 +146,10 @@ describe('Train Car', () => {
                     new Car('A', [20], 2, 2),
                     new Car('B', [20], 2, 2),
                 ]);
-                const outer = new Formation('outer', [inner, new Car('C', [20], 2, 2)]);
+                const outer = new Formation('outer', [
+                    inner,
+                    new Car('C', [20], 2, 2),
+                ]);
                 // Split between A (index 0) and B (index 1) — inside inner
                 const result = outer.wouldBreakFormations(0, 1);
                 expect(result.breaks).toBe(true);
@@ -170,8 +164,15 @@ describe('Train Car', () => {
                     new Car('A', [20], 2, 2),
                     new Car('B', [20], 2, 2),
                 ]);
-                const deep = new Formation('deep', [inner, new Car('C', [20], 2, 2)]);
-                const outer = new Formation('outer', [deep, new Car('D', [20], 2, 2)], 2);
+                const deep = new Formation('deep', [
+                    inner,
+                    new Car('C', [20], 2, 2),
+                ]);
+                const outer = new Formation(
+                    'outer',
+                    [deep, new Car('D', [20], 2, 2)],
+                    2
+                );
                 // Split between A (index 0) and B (index 1) — inside inner, which is inside deep
                 const result = outer.wouldBreakFormations(0, 1);
                 expect(result.breaks).toBe(true);
@@ -188,10 +189,19 @@ describe('Train Car', () => {
                     new Car('A', [20], 2, 2),
                     new Car('B', [20], 2, 2),
                 ]);
-                const deep = new Formation('deep', [inner, new Car('C', [20], 2, 2)]);
-                const outer = new Formation('outer', [deep, new Car('D', [20], 2, 2)], 2);
+                const deep = new Formation('deep', [
+                    inner,
+                    new Car('C', [20], 2, 2),
+                ]);
+                const outer = new Formation(
+                    'outer',
+                    [deep, new Car('D', [20], 2, 2)],
+                    2
+                );
                 // Split between C (index 2) and D (index 3) — boundary between deep and D
-                expect(outer.wouldBreakFormations(2, 3)).toEqual({ breaks: false });
+                expect(outer.wouldBreakFormations(2, 3)).toEqual({
+                    breaks: false,
+                });
                 // Split between B (index 1) and C (index 2) — inside deep but between inner and C
                 const result = outer.wouldBreakFormations(1, 2);
                 expect(result.breaks).toBe(true);
@@ -213,11 +223,9 @@ describe('Train Car', () => {
                     expect(result.formationIds).toEqual(['inner']);
                 }
             });
-
         });
 
         describe('non-adjacent splits (removing a middle section)', () => {
-
             it('should not break anything when both split points are at child boundaries', () => {
                 // outer [ A, B, C, D ] — head=[A], tail=[D], middle=[B,C] removed
                 const formation = new Formation('f', [
@@ -226,7 +234,9 @@ describe('Train Car', () => {
                     new Car('C', [20], 2, 2),
                     new Car('D', [20], 2, 2),
                 ]);
-                expect(formation.wouldBreakFormations(0, 3)).toEqual({ breaks: false });
+                expect(formation.wouldBreakFormations(0, 3)).toEqual({
+                    breaks: false,
+                });
             });
 
             it('should break formations at the head split point', () => {
@@ -307,11 +317,9 @@ describe('Train Car', () => {
                     expect(result.formationIds).toEqual(['inner']);
                 }
             });
-
         });
 
         describe('validation', () => {
-
             it('should throw for out-of-bounds indices', () => {
                 const formation = new Formation('f', [
                     new Car('A', [20], 2, 2),
@@ -330,15 +338,11 @@ describe('Train Car', () => {
                 expect(() => formation.wouldBreakFormations(1, 1)).toThrow();
                 expect(() => formation.wouldBreakFormations(2, 1)).toThrow();
             });
-
         });
-
     });
 
     describe('decoupleAtCar', () => {
-
         describe('inherit head — current formation becomes head', () => {
-
             it('should mutate formation to head and return new tail formation', () => {
                 const A = new Car('A', [20], 2, 2);
                 const B = new Car('B', [20], 2, 2);
@@ -379,13 +383,15 @@ describe('Train Car', () => {
                 const other = outer.decoupleAtCar(0, 1, 'head');
                 expect(outer.id).toBe('outer');
                 expect(outer.flatCars().map(c => c.id)).toEqual(['A']);
-                expect(other.flatCars().map(c => c.id)).toEqual(['B', 'C', 'D']);
+                expect(other.flatCars().map(c => c.id)).toEqual([
+                    'B',
+                    'C',
+                    'D',
+                ]);
             });
-
         });
 
         describe('inherit tail — current formation becomes tail', () => {
-
             it('should mutate formation to tail and return new head formation', () => {
                 const A = new Car('A', [20], 2, 2);
                 const B = new Car('B', [20], 2, 2);
@@ -427,24 +433,23 @@ describe('Train Car', () => {
                 expect(outer.flatCars().map(c => c.id)).toEqual(['C', 'D']);
                 expect(other.flatCars().map(c => c.id)).toEqual(['A', 'B']);
             });
-
         });
 
         describe('originalChildren updated after decouple', () => {
-
             it('should update originalChildren to match new children', () => {
                 const A = new Car('A', [20], 2, 2);
                 const B = new Car('B', [20], 2, 2);
                 const C = new Car('C', [20], 2, 2);
                 const formation = new Formation('f', [A, B, C]);
                 formation.decoupleAtCar(1, 2, 'head');
-                expect(formation.originalChildren.map(c => c.id)).toEqual(['A', 'B']);
+                expect(formation.originalChildren.map(c => c.id)).toEqual([
+                    'A',
+                    'B',
+                ]);
             });
-
         });
 
         describe('cache invalidated after decouple', () => {
-
             it('should return correct flatCars after mutation', () => {
                 const A = new Car('A', [20], 2, 2);
                 const B = new Car('B', [20], 2, 2);
@@ -458,11 +463,9 @@ describe('Train Car', () => {
                 expect(formation.flatCars().map(c => c.id)).toEqual(['A']);
                 expect(other.flatCars().map(c => c.id)).toEqual(['B', 'C']);
             });
-
         });
 
         describe('breaking child formations (detailed)', () => {
-
             it('should break deeply nested formations', () => {
                 // [deep[inner[A, B], C], D] split at (0, 1), inherit tail
                 const A = new Car('A', [20], 2, 2);
@@ -474,7 +477,11 @@ describe('Train Car', () => {
                 const outer = new Formation('outer', [deep, D], 2);
                 const other = outer.decoupleAtCar(0, 1, 'tail');
                 // outer keeps tail: [Formation(B, C), D]
-                expect(outer.flatCars().map(c => c.id)).toEqual(['B', 'C', 'D']);
+                expect(outer.flatCars().map(c => c.id)).toEqual([
+                    'B',
+                    'C',
+                    'D',
+                ]);
                 // other is head: [A]
                 expect(other.flatCars().map(c => c.id)).toEqual(['A']);
             });
@@ -491,11 +498,9 @@ describe('Train Car', () => {
                 expect(outer.flatCars().map(c => c.id)).toEqual(['A', 'B']);
                 expect(other.flatCars().map(c => c.id)).toEqual(['C', 'D']);
             });
-
         });
 
         describe('unwrapping single-formation results', () => {
-
             it('should unwrap both sides when split produces single child formations', () => {
                 // [[1, 2], [3, 4]] split at (1, 2)
                 // Without unwrap: kept=[[1,2]], other=[[3,4]]
@@ -560,11 +565,9 @@ describe('Train Car', () => {
                 expect(other.children).toHaveLength(1);
                 expect(other.children[0]).toBe(B);
             });
-
         });
 
         describe('non-adjacent splits', () => {
-
             it('should discard middle cars', () => {
                 const A = new Car('A', [20], 2, 2);
                 const B = new Car('B', [20], 2, 2);
@@ -591,11 +594,9 @@ describe('Train Car', () => {
                 // other is head: [A]
                 expect(other.flatCars().map(c => c.id)).toEqual(['A']);
             });
-
         });
 
         describe('validation', () => {
-
             it('should throw for out-of-bounds indices', () => {
                 const formation = new Formation('f', [
                     new Car('A', [20], 2, 2),
@@ -614,26 +615,26 @@ describe('Train Car', () => {
                 expect(() => formation.decoupleAtCar(1, 1, 'head')).toThrow();
                 expect(() => formation.decoupleAtCar(2, 1, 'head')).toThrow();
             });
-
         });
-
     });
-
 });
 
 describe('Train decoupleAtCar', () => {
-
     // Minimal mocks — Train constructor requires these but decoupling
     // of unplaced trains (position=null) doesn't call into track logic.
     const mockTrackGraph = {} as unknown as TrackGraph;
     const mockJointDirectionManager = {} as unknown as JointDirectionManager;
 
     function makeTrain(formation: Formation): Train {
-        return new Train(null, mockTrackGraph, mockJointDirectionManager, formation);
+        return new Train(
+            null,
+            mockTrackGraph,
+            mockJointDirectionManager,
+            formation
+        );
     }
 
     describe('unplaced train (null position)', () => {
-
         it('should split formation and return a new train (inherit head)', () => {
             const A = new Car('A', [20], 2.5, 2.5);
             const B = new Car('B', [20], 2.5, 2.5);
@@ -646,7 +647,10 @@ describe('Train decoupleAtCar', () => {
             // Original train keeps head [A]
             expect(train.formation.flatCars().map(c => c.id)).toEqual(['A']);
             // New train gets tail [B, C]
-            expect(newTrain.formation.flatCars().map(c => c.id)).toEqual(['B', 'C']);
+            expect(newTrain.formation.flatCars().map(c => c.id)).toEqual([
+                'B',
+                'C',
+            ]);
             // Both have null position
             expect(train.position).toBeNull();
             expect(newTrain.position).toBeNull();
@@ -662,7 +666,10 @@ describe('Train decoupleAtCar', () => {
             const newTrain = train.decoupleAtCar(0, 1, 'tail');
 
             // Original train keeps tail [B, C]
-            expect(train.formation.flatCars().map(c => c.id)).toEqual(['B', 'C']);
+            expect(train.formation.flatCars().map(c => c.id)).toEqual([
+                'B',
+                'C',
+            ]);
             // New train gets head [A]
             expect(newTrain.formation.flatCars().map(c => c.id)).toEqual(['A']);
         });
@@ -707,7 +714,10 @@ describe('Train decoupleAtCar', () => {
             const newTrain = train.decoupleAtCar(0, 1, 'head');
 
             expect(train.formation.flatCars().map(c => c.id)).toEqual(['A']);
-            expect(newTrain.formation.flatCars().map(c => c.id)).toEqual(['B', 'C']);
+            expect(newTrain.formation.flatCars().map(c => c.id)).toEqual([
+                'B',
+                'C',
+            ]);
         });
 
         it('should copy maxSpeed onto the new train when decoupling', () => {
@@ -722,9 +732,7 @@ describe('Train decoupleAtCar', () => {
             expect(train.maxSpeed).toBe(42);
             expect(newTrain.maxSpeed).toBe(42);
         });
-
     });
-
 });
 
 describe('Train maxSpeed', () => {
@@ -739,7 +747,7 @@ describe('Train maxSpeed', () => {
             mockTrackGraph,
             mockJointDirectionManager,
             formation,
-            12,
+            12
         );
         expect(train.maxSpeed).toBe(12);
     });
@@ -747,7 +755,12 @@ describe('Train maxSpeed', () => {
     it('setMaxSpeed clamps current speed down to the new cap', () => {
         const car = new Car('A', [20], 2.5, 2.5);
         const formation = new Formation('f', [car]);
-        const train = new Train(null, mockTrackGraph, mockJointDirectionManager, formation);
+        const train = new Train(
+            null,
+            mockTrackGraph,
+            mockJointDirectionManager,
+            formation
+        );
         (train as unknown as { _speed: number })._speed = 30;
         train.setMaxSpeed(8);
         expect(train.speed).toBe(8);

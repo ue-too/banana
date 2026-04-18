@@ -1,7 +1,7 @@
+import { CarStockManager } from '../src/trains/car-stock-manager';
 import { Car, generateCarId, generateFormationId } from '../src/trains/cars';
 import { Formation } from '../src/trains/formation';
 import { FormationManager } from '../src/trains/formation-manager';
-import { CarStockManager } from '../src/trains/car-stock-manager';
 
 function makeCar(id: string): Car {
     return new Car(id, [10], 2, 2);
@@ -52,9 +52,9 @@ describe('Nested formation flip operations', () => {
         });
 
         it('throws when formation id is not found', () => {
-            expect(() => manager.reverseNestedChildren('nonexistent', 0)).toThrow(
-                /not found/
-            );
+            expect(() =>
+                manager.reverseNestedChildren('nonexistent', 0)
+            ).toThrow(/not found/);
         });
 
         it('throws when child index is out of bounds', () => {
@@ -78,10 +78,14 @@ describe('Nested formation flip operations', () => {
             manager.addFormation(nested);
             manager.appendFormation(parent.id, nested.id);
 
-            const nestedIndex = parent.originalChildren.findIndex(c => c.depth > 0);
+            const nestedIndex = parent.originalChildren.findIndex(
+                c => c.depth > 0
+            );
 
             let notified = false;
-            manager.subscribe(() => { notified = true; });
+            manager.subscribe(() => {
+                notified = true;
+            });
 
             manager.reverseNestedChildren(parent.id, nestedIndex);
             expect(notified).toBe(true);
@@ -121,7 +125,9 @@ describe('Nested formation flip operations', () => {
             manager.addFormation(nested);
             manager.appendFormation(parent.id, nested.id);
 
-            const nestedIndex = parent.originalChildren.findIndex(c => c.depth > 0);
+            const nestedIndex = parent.originalChildren.findIndex(
+                c => c.depth > 0
+            );
             manager.flipChildDirection(parent.id, nestedIndex);
 
             // Order preserved, but each car is flipped
@@ -191,7 +197,9 @@ describe('Nested formation flip operations', () => {
             parent.flatCars();
             parent.bogieOffsets();
 
-            const nestedIndex = parent.originalChildren.findIndex(c => c.depth > 0);
+            const nestedIndex = parent.originalChildren.findIndex(
+                c => c.depth > 0
+            );
             manager.flipChildDirection(parent.id, nestedIndex);
 
             // Cache should be invalidated — flatCars still returns correct data
@@ -204,7 +212,9 @@ describe('Nested formation flip operations', () => {
             const parent = manager.createFormation(['A']);
 
             let notified = false;
-            manager.subscribe(() => { notified = true; });
+            manager.subscribe(() => {
+                notified = true;
+            });
 
             manager.flipChildDirection(parent.id, 0);
             expect(notified).toBe(true);
@@ -225,7 +235,9 @@ describe('Nested formation flip operations', () => {
             manager.addFormation(nested);
             manager.appendFormation(parent.id, nested.id);
 
-            const nestedIndex = parent.originalChildren.findIndex(c => c.depth > 0);
+            const nestedIndex = parent.originalChildren.findIndex(
+                c => c.depth > 0
+            );
 
             manager.reverseNestedChildren(parent.id, nestedIndex);
             manager.flipChildDirection(parent.id, nestedIndex);

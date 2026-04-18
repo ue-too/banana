@@ -267,14 +267,13 @@ export class DuplicateToSideEngine implements DuplicateToSideContext {
         ]);
 
         const excludeSet = new Set<number>([this._sourceSegmentNumber]);
-        const drawData =
-            this._trackGraph.trackCurveManager.getPreviewDrawData(
-                previewCurve,
-                startElevation,
-                endElevation,
-                this._newPreviewGauge,
-                excludeSet
-            );
+        const drawData = this._trackGraph.trackCurveManager.getPreviewDrawData(
+            previewCurve,
+            startElevation,
+            endElevation,
+            this._newPreviewGauge,
+            excludeSet
+        );
 
         this._previewDrawDataObservable.notify(drawData);
     }

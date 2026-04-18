@@ -16,7 +16,9 @@ export function AnalyticsNotice() {
             onAutoClose: () => localStorage.setItem(STORAGE_KEY, '1'),
         });
 
-        return () => { toast.dismiss(id); };
+        return () => {
+            toast.dismiss(id);
+        };
     }, [t]);
 
     return null;

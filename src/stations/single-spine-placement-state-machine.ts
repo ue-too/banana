@@ -23,11 +23,16 @@ import { PointCal } from '@ue-too/math';
 
 import type { TrackGraph } from '@/trains/tracks/track';
 
+import { computePlatformOffset } from './platform-offset';
+import {
+    computeAnchorPoint,
+    computeStopPositions,
+    sampleSpineEdge,
+    validateSpine,
+} from './spine-utils';
 import type { StationManager } from './station-manager';
 import type { TrackAlignedPlatformManager } from './track-aligned-platform-manager';
 import type { TrackAlignedPlatformRenderSystem } from './track-aligned-platform-render-system';
-import { computePlatformOffset } from './platform-offset';
-import { validateSpine, computeAnchorPoint, sampleSpineEdge, computeStopPositions } from './spine-utils';
 import type { SpineEntry } from './track-aligned-platform-types';
 
 // ---------------------------------------------------------------------------
@@ -41,7 +46,9 @@ export const SINGLE_SPINE_PLACEMENT_STATES = [
     'DRAW_OUTER',
 ] as const;
 
-export type SingleSpineStates = CreateStateType<typeof SINGLE_SPINE_PLACEMENT_STATES>;
+export type SingleSpineStates = CreateStateType<
+    typeof SINGLE_SPINE_PLACEMENT_STATES
+>;
 
 export type SingleSpineEvents = {
     leftPointerUp: { x: number; y: number };
@@ -111,7 +118,7 @@ export class SingleSpinePlacementEngine
         stationManager: StationManager,
         platformManager: TrackAlignedPlatformManager,
         platformRenderSystem: TrackAlignedPlatformRenderSystem,
-        onHint?: (key: string) => void,
+        onHint?: (key: string) => void
     ) {
         super(canvas);
         this._trackGraph = trackGraph;
@@ -158,7 +165,9 @@ export class SingleSpinePlacementEngine
             return;
         }
 
-        const segment = this._trackGraph.getTrackSegmentWithJoints(projection.curve);
+        const segment = this._trackGraph.getTrackSegmentWithJoints(
+            projection.curve
+        );
         if (segment === null) {
             this._platformRenderSystem.hidePreview();
             return;
@@ -172,21 +181,33 @@ export class SingleSpinePlacementEngine
         const side: 1 | -1 = cross >= 0 ? 1 : -1;
 
         const offset = computePlatformOffset(segment.gauge, segment.bedWidth);
-        this._platformRenderSystem.showTrackHighlight(projection.curve, projection.atT, side, offset);
+        this._platformRenderSystem.showTrackHighlight(
+            projection.curve,
+            projection.atT,
+            side,
+            offset
+        );
     }
 
     pickStart(position: Point): boolean {
         const projection = this._trackGraph.projectPointNearTrack(position, 5);
         if (projection === null) return false;
 
-        const segment = this._trackGraph.getTrackSegmentWithJoints(projection.curve);
+        const segment = this._trackGraph.getTrackSegmentWithJoints(
+            projection.curve
+        );
         if (segment === null) return false;
 
         // Validate that the start point is within reasonable distance of the station.
         if (this._activeStationId !== null) {
-            const station = this._stationManager.getStation(this._activeStationId);
+            const station = this._stationManager.getStation(
+                this._activeStationId
+            );
             if (station !== null) {
-                const dist = PointCal.distanceBetweenPoints(position, station.position);
+                const dist = PointCal.distanceBetweenPoints(
+                    position,
+                    station.position
+                );
                 if (dist > 500) return false;
             }
         }
@@ -218,7 +239,12 @@ export class SingleSpinePlacementEngine
         // Compute start anchor.
         const curve = this._trackGraph.getTrackSegmentCurve(projection.curve);
         if (curve !== null) {
-            this._startAnchor = computeAnchorPoint(startEntry, 'start', offset, () => curve);
+            this._startAnchor = computeAnchorPoint(
+                startEntry,
+                'start',
+                offset,
+                () => curve
+            );
         }
 
         // Show preview with just the start anchor.
@@ -264,7 +290,7 @@ export class SingleSpinePlacementEngine
                 startT,
                 side,
                 projection.curve,
-                projection.atT,
+                projection.atT
             );
             if (built === null) {
                 this._updatePlacementPreview();
@@ -276,7 +302,9 @@ export class SingleSpinePlacementEngine
         // Compute tentative end anchor at the exact projection point.
         let tentativeEndAnchor: Point | null = null;
         const lastEntry = tentativeSpine[tentativeSpine.length - 1];
-        const endCurve = this._trackGraph.getTrackSegmentCurve(projection.curve);
+        const endCurve = this._trackGraph.getTrackSegmentCurve(
+            projection.curve
+        );
         if (endCurve !== null) {
             const endPointEntry: SpineEntry = {
                 trackSegment: projection.curve,
@@ -288,20 +316,25 @@ export class SingleSpinePlacementEngine
                 endPointEntry,
                 'start',
                 this._offset,
-                () => endCurve,
+                () => endCurve
             );
         }
 
         // Show preview with the tentative spine (without committing state).
         const getCurve = (segmentId: number) => {
             const curve = this._trackGraph.getTrackSegmentCurve(segmentId);
-            if (curve === null) throw new Error(`Missing curve for segment ${segmentId}`);
+            if (curve === null)
+                throw new Error(`Missing curve for segment ${segmentId}`);
             return curve;
         };
 
         let spinePoints: Point[];
         try {
-            spinePoints = sampleSpineEdge(tentativeSpine, this._offset, getCurve);
+            spinePoints = sampleSpineEdge(
+                tentativeSpine,
+                this._offset,
+                getCurve
+            );
         } catch {
             spinePoints = [];
         }
@@ -310,7 +343,7 @@ export class SingleSpinePlacementEngine
             spinePoints,
             this._outerVertices,
             this._startAnchor,
-            tentativeEndAnchor,
+            tentativeEndAnchor
         );
 
         return true;
@@ -344,7 +377,13 @@ export class SingleSpinePlacementEngine
             ];
         } else {
             // Multi-segment — walk through non-branching joints.
-            const built = this._buildSpinePath(startSeg, startT, side, projection.curve, projection.atT);
+            const built = this._buildSpinePath(
+                startSeg,
+                startT,
+                side,
+                projection.curve,
+                projection.atT
+            );
             if (built === null) return false;
             finalSpine = built;
         }
@@ -352,16 +391,16 @@ export class SingleSpinePlacementEngine
         // Validate the spine.
         const validationResult = validateSpine(
             finalSpine,
-            (id) => {
+            id => {
                 const seg = this._trackGraph.getTrackSegmentWithJoints(id);
                 if (seg === null) throw new Error(`Missing segment ${id}`);
                 return seg;
             },
-            (id) => {
+            id => {
                 const joint = this._trackGraph.getJoint(id);
                 if (joint === null) throw new Error(`Missing joint ${id}`);
                 return joint as { connections: Map<number, number> };
-            },
+            }
         );
 
         if (!validationResult.valid) return false;
@@ -370,7 +409,9 @@ export class SingleSpinePlacementEngine
 
         // Compute end anchor at the exact projection point.
         const lastEntry = finalSpine[finalSpine.length - 1];
-        const endCurve = this._trackGraph.getTrackSegmentCurve(projection.curve);
+        const endCurve = this._trackGraph.getTrackSegmentCurve(
+            projection.curve
+        );
         if (endCurve !== null) {
             const endPointEntry: SpineEntry = {
                 trackSegment: projection.curve,
@@ -378,7 +419,12 @@ export class SingleSpinePlacementEngine
                 tEnd: projection.atT,
                 side: lastEntry.side,
             };
-            this._endAnchor = computeAnchorPoint(endPointEntry, 'start', this._offset, () => endCurve);
+            this._endAnchor = computeAnchorPoint(
+                endPointEntry,
+                'start',
+                this._offset,
+                () => endCurve
+            );
         }
 
         this._hasEnd = true;
@@ -395,7 +441,10 @@ export class SingleSpinePlacementEngine
 
     isNearClosingAnchor(position: Point): boolean {
         if (this._startAnchor === null) return false;
-        return PointCal.distanceBetweenPoints(position, this._startAnchor) <= CLOSING_SNAP_RADIUS;
+        return (
+            PointCal.distanceBetweenPoints(position, this._startAnchor) <=
+            CLOSING_SNAP_RADIUS
+        );
     }
 
     finalize(): void {
@@ -417,7 +466,8 @@ export class SingleSpinePlacementEngine
 
         const getCurve = (segmentId: number) => {
             const curve = this._trackGraph.getTrackSegmentCurve(segmentId);
-            if (curve === null) throw new Error(`Missing curve for segment ${segmentId}`);
+            if (curve === null)
+                throw new Error(`Missing curve for segment ${segmentId}`);
             return curve;
         };
 
@@ -433,7 +483,10 @@ export class SingleSpinePlacementEngine
 
         // When the first platform is added, reposition the station to the
         // spine midpoint so the station label sits on the platform.
-        if (station.trackAlignedPlatforms.length === 1 && station.platforms.length === 0) {
+        if (
+            station.trackAlignedPlatforms.length === 1 &&
+            station.platforms.length === 0
+        ) {
             const stops = computeStopPositions(this._spine, getCurve);
             if (stops.length > 0) {
                 const curve = getCurve(stops[0].trackSegmentId);
@@ -479,7 +532,7 @@ export class SingleSpinePlacementEngine
             this._camera.position,
             this._camera.zoomLevel,
             this._camera.rotation,
-            false,
+            false
         );
     }
 
@@ -488,7 +541,7 @@ export class SingleSpinePlacementEngine
             position,
             this._camera.position,
             this._camera.zoomLevel,
-            this._camera.rotation,
+            this._camera.rotation
         );
         const pointInCanvas = convertFromViewPort2Canvas(pointInViewPort, {
             x: this.canvas.width / 2,
@@ -518,7 +571,8 @@ export class SingleSpinePlacementEngine
         // Sample spine edge points.
         const getCurve = (segmentId: number) => {
             const curve = this._trackGraph.getTrackSegmentCurve(segmentId);
-            if (curve === null) throw new Error(`Missing curve for segment ${segmentId}`);
+            if (curve === null)
+                throw new Error(`Missing curve for segment ${segmentId}`);
             return curve;
         };
 
@@ -533,7 +587,7 @@ export class SingleSpinePlacementEngine
             spinePoints,
             this._outerVertices,
             this._startAnchor,
-            this._endAnchor,
+            this._endAnchor
         );
     }
 
@@ -546,7 +600,7 @@ export class SingleSpinePlacementEngine
         startT: number,
         side: 1 | -1,
         endSeg: number,
-        endT: number,
+        endT: number
     ): SpineEntry[] | null {
         // BFS from startSeg to endSeg.
         type QueueEntry = { segId: number; path: number[] };
@@ -576,8 +630,14 @@ export class SingleSpinePlacementEngine
                 if (joint.connections.size > 2) continue;
 
                 for (const [, connectedSegId] of joint.connections) {
-                    if (!visited.has(connectedSegId) && connectedSegId !== segId) {
-                        queue.push({ segId: connectedSegId, path: [...path, connectedSegId] });
+                    if (
+                        !visited.has(connectedSegId) &&
+                        connectedSegId !== segId
+                    ) {
+                        queue.push({
+                            segId: connectedSegId,
+                            path: [...path, connectedSegId],
+                        });
                     }
                 }
             }
@@ -601,7 +661,7 @@ export class SingleSpinePlacementEngine
         path: number[],
         startT: number,
         side: 1 | -1,
-        endT: number,
+        endT: number
     ): SpineEntry[] {
         const entries: SpineEntry[] = [];
         let currentSide = side;
@@ -624,7 +684,8 @@ export class SingleSpinePlacementEngine
                 // First segment: determine exit direction toward next segment.
                 if (segment !== null) {
                     const nextSegId = path[i + 1];
-                    const nextSeg = this._trackGraph.getTrackSegmentWithJoints(nextSegId);
+                    const nextSeg =
+                        this._trackGraph.getTrackSegmentWithJoints(nextSegId);
                     if (nextSeg !== null) {
                         const exitT = this._sharedJointT(segment, nextSeg);
                         tStart = startT;
@@ -641,7 +702,8 @@ export class SingleSpinePlacementEngine
             } else {
                 // Non-first segment: determine entry t and check for side flip.
                 const prevSegId = path[i - 1];
-                const prevSeg = this._trackGraph.getTrackSegmentWithJoints(prevSegId);
+                const prevSeg =
+                    this._trackGraph.getTrackSegmentWithJoints(prevSegId);
 
                 let entryT: 0 | 1 = 0;
 
@@ -649,8 +711,10 @@ export class SingleSpinePlacementEngine
                     entryT = this._sharedJointT(segment, prevSeg);
 
                     // Compare tangent directions at the junction to decide side flip.
-                    const prevCurve = this._trackGraph.getTrackSegmentCurve(prevSegId);
-                    const thisCurve = this._trackGraph.getTrackSegmentCurve(segId);
+                    const prevCurve =
+                        this._trackGraph.getTrackSegmentCurve(prevSegId);
+                    const thisCurve =
+                        this._trackGraph.getTrackSegmentCurve(segId);
                     if (prevCurve !== null && thisCurve !== null) {
                         const prevExitT = this._sharedJointT(prevSeg, segment);
                         const prevTangent = prevCurve.derivative(prevExitT);
@@ -671,7 +735,10 @@ export class SingleSpinePlacementEngine
                     // Middle segment: determine exit toward next segment.
                     if (segment !== null) {
                         const nextSegId = path[i + 1];
-                        const nextSeg = this._trackGraph.getTrackSegmentWithJoints(nextSegId);
+                        const nextSeg =
+                            this._trackGraph.getTrackSegmentWithJoints(
+                                nextSegId
+                            );
                         if (nextSeg !== null) {
                             tStart = entryT;
                             tEnd = this._sharedJointT(segment, nextSeg);
@@ -703,7 +770,7 @@ export class SingleSpinePlacementEngine
      */
     private _sharedJointT(
         seg: { t0Joint: number; t1Joint: number },
-        other: { t0Joint: number; t1Joint: number },
+        other: { t0Joint: number; t1Joint: number }
     ): 0 | 1 {
         const otherJoints = new Set([other.t0Joint, other.t1Joint]);
         if (otherJoints.has(seg.t0Joint)) return 0;
@@ -747,30 +814,36 @@ class SingleSpinePickStartState extends TemplateState<
     > = {
         pointerMove: {
             action: (context, event) => {
-                const worldPos = context.convert2WorldPosition({ x: event.x, y: event.y });
+                const worldPos = context.convert2WorldPosition({
+                    x: event.x,
+                    y: event.y,
+                });
                 context.hoverUpdate(worldPos);
             },
             defaultTargetState: 'PICK_START',
         },
         leftPointerUp: {
             action: (context, event) => {
-                const worldPos = context.convert2WorldPosition({ x: event.x, y: event.y });
+                const worldPos = context.convert2WorldPosition({
+                    x: event.x,
+                    y: event.y,
+                });
                 context.pickStart(worldPos);
             },
             defaultTargetState: 'PICK_START',
         },
         escapeKey: {
-            action: (context) => context.cancel(),
+            action: context => context.cancel(),
             defaultTargetState: 'IDLE',
         },
         endPlacement: {
-            action: (context) => context.cancel(),
+            action: context => context.cancel(),
             defaultTargetState: 'IDLE',
         },
     };
 
     protected _guards: Guard<SingleSpineContext, string> = {
-        started: (context) => context.hasStart,
+        started: context => context.hasStart,
     };
 
     protected _eventGuards: Partial<
@@ -802,30 +875,36 @@ class SingleSpinePickEndState extends TemplateState<
     > = {
         pointerMove: {
             action: (context, event) => {
-                const worldPos = context.convert2WorldPosition({ x: event.x, y: event.y });
+                const worldPos = context.convert2WorldPosition({
+                    x: event.x,
+                    y: event.y,
+                });
                 context.updateEnd(worldPos);
             },
             defaultTargetState: 'PICK_END',
         },
         leftPointerUp: {
             action: (context, event) => {
-                const worldPos = context.convert2WorldPosition({ x: event.x, y: event.y });
+                const worldPos = context.convert2WorldPosition({
+                    x: event.x,
+                    y: event.y,
+                });
                 context.confirmEnd(worldPos);
             },
             defaultTargetState: 'PICK_START',
         },
         escapeKey: {
-            action: (context) => context.cancel(),
+            action: context => context.cancel(),
             defaultTargetState: 'PICK_START',
         },
         endPlacement: {
-            action: (context) => context.cancel(),
+            action: context => context.cancel(),
             defaultTargetState: 'IDLE',
         },
     };
 
     protected _guards: Guard<SingleSpineContext, string> = {
-        confirmed: (context) => context.hasEnd,
+        confirmed: context => context.hasEnd,
     };
 
     protected _eventGuards: Partial<
@@ -857,7 +936,10 @@ class SingleSpineDrawOuterState extends TemplateState<
     > = {
         leftPointerUp: {
             action: (context, event) => {
-                const worldPos = context.convert2WorldPosition({ x: event.x, y: event.y });
+                const worldPos = context.convert2WorldPosition({
+                    x: event.x,
+                    y: event.y,
+                });
                 if (context.isNearClosingAnchor(worldPos)) {
                     context.finalize();
                 } else {
@@ -867,17 +949,17 @@ class SingleSpineDrawOuterState extends TemplateState<
             defaultTargetState: 'DRAW_OUTER',
         },
         escapeKey: {
-            action: (context) => context.cancel(),
+            action: context => context.cancel(),
             defaultTargetState: 'PICK_START',
         },
         endPlacement: {
-            action: (context) => context.cancel(),
+            action: context => context.cancel(),
             defaultTargetState: 'IDLE',
         },
     };
 
     protected _guards: Guard<SingleSpineContext, string> = {
-        finalized: (context) => context.isFinalized,
+        finalized: context => context.isFinalized,
     };
 
     protected _eventGuards: Partial<
@@ -908,9 +990,13 @@ export type SingleSpinePlacementStateMachine = StateMachine<
 >;
 
 export function createSingleSpinePlacementStateMachine(
-    context: SingleSpineContext,
+    context: SingleSpineContext
 ): SingleSpinePlacementStateMachine {
-    return new TemplateStateMachine<SingleSpineEvents, SingleSpineContext, SingleSpineStates>(
+    return new TemplateStateMachine<
+        SingleSpineEvents,
+        SingleSpineContext,
+        SingleSpineStates
+    >(
         {
             IDLE: new SingleSpineIdleState(),
             PICK_START: new SingleSpinePickStartState(),
@@ -918,6 +1004,6 @@ export function createSingleSpinePlacementStateMachine(
             DRAW_OUTER: new SingleSpineDrawOuterState(),
         },
         'IDLE',
-        context,
+        context
     );
 }

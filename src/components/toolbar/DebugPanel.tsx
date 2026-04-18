@@ -1,6 +1,20 @@
-import { Activity, ArrowLeftRight, CircleIcon, Crosshair, Eye, Gauge, Hash, Landmark, Link2, ListOrdered, OctagonXIcon, TrainFront, MapPin } from '@/assets/icons';
 import { useTranslation } from 'react-i18next';
 
+import {
+    Activity,
+    ArrowLeftRight,
+    CircleIcon,
+    Crosshair,
+    Eye,
+    Gauge,
+    Hash,
+    Landmark,
+    Link2,
+    ListOrdered,
+    MapPin,
+    OctagonXIcon,
+    TrainFront,
+} from '@/assets/icons';
 import { Button } from '@/components/ui/button';
 import { DraggablePanel } from '@/components/ui/draggable-panel';
 import { Separator } from '@/components/ui/separator';
@@ -27,7 +41,11 @@ type DebugPanelProps = {
     onShowStatsChange: (value: boolean) => void;
     terrainXray: boolean;
     onTerrainXrayChange: (value: boolean) => void;
-    onSpawnStressTest?: (count: number, startX?: number, startY?: number) => void;
+    onSpawnStressTest?: (
+        count: number,
+        startX?: number,
+        startY?: number
+    ) => void;
     onThrottleAll?: (step: string) => void;
     onSwitchDirectionAll?: () => void;
     onBrakeAll?: (step: string) => void;
@@ -77,11 +95,7 @@ export function DebugPanel({
 }: DebugPanelProps) {
     const { t } = useTranslation();
     return (
-        <DraggablePanel
-            title={t('debug')}
-            onClose={onClose}
-            className="w-56"
-        >
+        <DraggablePanel title={t('debug')} onClose={onClose} className="w-56">
             <Separator className="mb-2" />
             <div className="flex flex-col gap-2">
                 <div className="flex items-center justify-between gap-2 text-xs">
@@ -140,7 +154,9 @@ export function DebugPanel({
                     </Toggle>
                 </div>
                 <div className="flex items-center justify-between gap-2 text-xs">
-                    <span className="text-foreground">{t('stationLocations')}</span>
+                    <span className="text-foreground">
+                        {t('stationLocations')}
+                    </span>
                     <Toggle
                         size="sm"
                         pressed={showStationLocations}
@@ -151,7 +167,9 @@ export function DebugPanel({
                     </Toggle>
                 </div>
                 <div className="flex items-center justify-between gap-2 text-xs">
-                    <span className="text-foreground">{t('proximityLines')}</span>
+                    <span className="text-foreground">
+                        {t('proximityLines')}
+                    </span>
                     <Toggle
                         size="sm"
                         pressed={showProximityLines}
@@ -202,19 +220,31 @@ export function DebugPanel({
                             Stress Test
                         </span>
                         <div className="flex items-center gap-1 text-[10px]">
-                            <label className="text-muted-foreground w-5 shrink-0">X</label>
+                            <label className="text-muted-foreground w-5 shrink-0">
+                                X
+                            </label>
                             <input
                                 type="number"
                                 className="bg-background border-input h-6 w-full rounded border px-1 text-[10px]"
                                 value={stressStartX}
-                                onChange={e => onStressStartXChange?.(parseFloat(e.target.value) || 0)}
+                                onChange={e =>
+                                    onStressStartXChange?.(
+                                        parseFloat(e.target.value) || 0
+                                    )
+                                }
                             />
-                            <label className="text-muted-foreground w-5 shrink-0">Y</label>
+                            <label className="text-muted-foreground w-5 shrink-0">
+                                Y
+                            </label>
                             <input
                                 type="number"
                                 className="bg-background border-input h-6 w-full rounded border px-1 text-[10px]"
                                 value={stressStartY}
-                                onChange={e => onStressStartYChange?.(parseFloat(e.target.value) || 0)}
+                                onChange={e =>
+                                    onStressStartYChange?.(
+                                        parseFloat(e.target.value) || 0
+                                    )
+                                }
                             />
                             {onPickStressStart && (
                                 <Button
@@ -239,11 +269,13 @@ export function DebugPanel({
                                     key={n}
                                     variant="outline"
                                     size="xs"
-                                    onClick={() => onSpawnStressTest(
-                                        n,
-                                        stressStartX,
-                                        stressStartY,
-                                    )}
+                                    onClick={() =>
+                                        onSpawnStressTest(
+                                            n,
+                                            stressStartX,
+                                            stressStartY
+                                        )
+                                    }
                                 >
                                     {n} trains
                                 </Button>

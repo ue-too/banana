@@ -65,7 +65,8 @@ export class ProximityDetector {
         this._fingerprintParts.length = this._matches.length;
         for (let i = 0; i < this._matches.length; i++) {
             const m = this._matches[i];
-            this._fingerprintParts[i] = `${m.trainA.id}:${m.trainA.end}-${m.trainB.id}:${m.trainB.end}`;
+            this._fingerprintParts[i] =
+                `${m.trainA.id}:${m.trainA.end}-${m.trainB.id}:${m.trainB.end}`;
         }
         this._fingerprintParts.sort();
         return this._fingerprintParts.join('|');
@@ -78,7 +79,7 @@ export class ProximityDetector {
      */
     update(
         trains: readonly PlacedTrainEntry[],
-        registry: OccupancyRegistry,
+        registry: OccupancyRegistry
     ): void {
         this._matches.length = 0;
 
@@ -116,7 +117,13 @@ export class ProximityDetector {
 
             const bogiesA = trainA.getBogiePositions();
             const bogiesB = trainB.getBogiePositions();
-            if (!bogiesA || bogiesA.length === 0 || !bogiesB || bogiesB.length === 0) continue;
+            if (
+                !bogiesA ||
+                bogiesA.length === 0 ||
+                !bogiesB ||
+                bogiesB.length === 0
+            )
+                continue;
 
             const headA = posA.point;
             const tailA = bogiesA[bogiesA.length - 1].point;
@@ -131,10 +138,42 @@ export class ProximityDetector {
             const tailCouplerB = formB.tailCouplerLength;
 
             // Check all 4 endpoint combinations with per-pair dynamic thresholds
-            this._checkEndpoints(idA, 'tail', tailA, idB, 'head', headB, tailCouplerA + headCouplerB + COUPLING_GAP_TOLERANCE);
-            this._checkEndpoints(idA, 'head', headA, idB, 'tail', tailB, headCouplerA + tailCouplerB + COUPLING_GAP_TOLERANCE);
-            this._checkEndpoints(idA, 'tail', tailA, idB, 'tail', tailB, tailCouplerA + tailCouplerB + COUPLING_GAP_TOLERANCE);
-            this._checkEndpoints(idA, 'head', headA, idB, 'head', headB, headCouplerA + headCouplerB + COUPLING_GAP_TOLERANCE);
+            this._checkEndpoints(
+                idA,
+                'tail',
+                tailA,
+                idB,
+                'head',
+                headB,
+                tailCouplerA + headCouplerB + COUPLING_GAP_TOLERANCE
+            );
+            this._checkEndpoints(
+                idA,
+                'head',
+                headA,
+                idB,
+                'tail',
+                tailB,
+                headCouplerA + tailCouplerB + COUPLING_GAP_TOLERANCE
+            );
+            this._checkEndpoints(
+                idA,
+                'tail',
+                tailA,
+                idB,
+                'tail',
+                tailB,
+                tailCouplerA + tailCouplerB + COUPLING_GAP_TOLERANCE
+            );
+            this._checkEndpoints(
+                idA,
+                'head',
+                headA,
+                idB,
+                'head',
+                headB,
+                headCouplerA + headCouplerB + COUPLING_GAP_TOLERANCE
+            );
         }
 
         const fingerprint = this._computeFingerprint();
@@ -152,14 +191,18 @@ export class ProximityDetector {
     /** Return only matches involving a specific train. */
     getMatchesForTrain(trainId: number): readonly ProximityMatch[] {
         return this._matches.filter(
-            m => m.trainA.id === trainId || m.trainB.id === trainId,
+            m => m.trainA.id === trainId || m.trainB.id === trainId
         );
     }
 
     private _checkEndpoints(
-        idA: number, endA: 'head' | 'tail', ptA: { x: number; y: number },
-        idB: number, endB: 'head' | 'tail', ptB: { x: number; y: number },
-        threshold: number,
+        idA: number,
+        endA: 'head' | 'tail',
+        ptA: { x: number; y: number },
+        idB: number,
+        endB: 'head' | 'tail',
+        ptB: { x: number; y: number },
+        threshold: number
     ): void {
         const dx = ptA.x - ptB.x;
         const dy = ptA.y - ptB.y;

@@ -1,14 +1,27 @@
-import { Pencil, Plus, Trash2 } from '@/assets/icons';
-import { type Dispatch, type SetStateAction, useCallback, useRef, useState, useSyncExternalStore } from 'react';
+import {
+    type Dispatch,
+    type SetStateAction,
+    useCallback,
+    useRef,
+    useState,
+    useSyncExternalStore,
+} from 'react';
 import { useTranslation } from 'react-i18next';
 
+import { Pencil, Plus, Trash2 } from '@/assets/icons';
 import { Button } from '@/components/ui/button';
 import { DraggablePanel } from '@/components/ui/draggable-panel';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import {
+    Select,
+    SelectContent,
+    SelectItem,
+    SelectTrigger,
+    SelectValue,
+} from '@/components/ui/select';
 import { Separator } from '@/components/ui/separator';
+import type { CarImageRegistry } from '@/trains/car-image-registry';
 import type { CarStockManager } from '@/trains/car-stock-manager';
 import type { CarStockEntry } from '@/trains/car-stock-manager';
-import type { CarImageRegistry } from '@/trains/car-image-registry';
 import type { CarTemplate } from '@/trains/car-template';
 import { CarType } from '@/trains/cars';
 
@@ -42,16 +55,14 @@ export function DepotPanel({
     const [newCarType, setNewCarType] = useState<CarType>(CarType.COACH);
 
     return (
-        <DraggablePanel
-            title={t('depot')}
-            onClose={onClose}
-            className="w-56"
-        >
+        <DraggablePanel title={t('depot')} onClose={onClose} className="w-56">
             <Separator className="mb-2" />
-            <div className="flex items-center gap-1 mb-2">
+            <div className="mb-2 flex items-center gap-1">
                 <Select
                     value={newCarType}
-                    onValueChange={(value: string) => setNewCarType(value as CarType)}
+                    onValueChange={(value: string) =>
+                        setNewCarType(value as CarType)
+                    }
                 >
                     <SelectTrigger size="sm" className="h-6 flex-1 text-[10px]">
                         <SelectValue />
@@ -67,7 +78,14 @@ export function DepotPanel({
                 <Button
                     variant="ghost"
                     size="icon-xs"
-                    onClick={() => carStockManager.createCar(undefined, undefined, undefined, newCarType)}
+                    onClick={() =>
+                        carStockManager.createCar(
+                            undefined,
+                            undefined,
+                            undefined,
+                            newCarType
+                        )
+                    }
                 >
                     <Plus className="size-3.5" />
                 </Button>
@@ -91,7 +109,7 @@ export function DepotPanel({
             {carTemplates.length > 0 && (
                 <>
                     <Separator className="my-2" />
-                    <span className="text-muted-foreground mb-1 text-[10px] font-medium uppercase tracking-wider">
+                    <span className="text-muted-foreground mb-1 text-[10px] font-medium tracking-wider uppercase">
                         {t('templates')}
                     </span>
                     <div className="flex max-h-48 flex-col gap-1 overflow-y-auto">
@@ -109,7 +127,9 @@ export function DepotPanel({
                                         />
                                     )}
                                     <span className="text-muted-foreground text-[10px]">
-                                        {t('bogieCount', { count: tpl.bogieOffsets.length + 1 })}
+                                        {t('bogieCount', {
+                                            count: tpl.bogieOffsets.length + 1,
+                                        })}
                                         {' · '}
                                         {tpl.edgeToBogie +
                                             tpl.bogieOffsets.reduce(
@@ -147,7 +167,9 @@ export function DepotPanel({
                                         size="icon-xs"
                                         onClick={() =>
                                             onCarTemplatesChange(prev =>
-                                                prev.filter(t => t.id !== tpl.id)
+                                                prev.filter(
+                                                    t => t.id !== tpl.id
+                                                )
                                             )
                                         }
                                     >
@@ -191,12 +213,12 @@ function DepotCarRow({
 
     return (
         <div className="bg-muted/50 flex items-center justify-between rounded-lg px-2.5 py-1.5">
-            <div className="flex flex-col min-w-0">
-                <div className="flex items-center gap-1 min-w-0">
+            <div className="flex min-w-0 flex-col">
+                <div className="flex min-w-0 items-center gap-1">
                     {isEditing ? (
                         <input
                             ref={inputRef}
-                            className="text-foreground text-xs font-mono bg-background border border-primary/40 rounded px-1 py-0 w-24 outline-none"
+                            className="text-foreground bg-background border-primary/40 w-24 rounded border px-1 py-0 font-mono text-xs outline-none"
                             value={editValue}
                             onChange={e => setEditValue(e.target.value)}
                             onBlur={commitRename}
@@ -207,7 +229,7 @@ function DepotCarRow({
                         />
                     ) : (
                         <span
-                            className="text-foreground font-mono text-xs truncate"
+                            className="text-foreground truncate font-mono text-xs"
                             title={t('renameCar')}
                             onDoubleClick={startEditing}
                         >
@@ -227,12 +249,12 @@ function DepotCarRow({
                 <span className="text-muted-foreground text-[10px]">
                     {t(`carType_${entry.car.type}`)}
                     {' · '}
-                    {t('bogieCount', { count: entry.car.bogieOffsets().length + 1 })}
+                    {t('bogieCount', {
+                        count: entry.car.bogieOffsets().length + 1,
+                    })}
                     {' · '}
                     {entry.car.edgeToBogie +
-                        entry.car
-                            .bogieOffsets()
-                            .reduce((a, b) => a + b, 0) +
+                        entry.car.bogieOffsets().reduce((a, b) => a + b, 0) +
                         entry.car.bogieToEdge}
                     m
                 </span>

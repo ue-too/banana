@@ -10,14 +10,14 @@
 ## Commands
 
 ```bash
-bun install              # Install dependencies
-bun run dev              # Dev server
-bun run dev:local        # Dev server with local tiles
-bun run build            # Production build
-bun run preview          # Preview production build
-bun test                 # Run tests
-bun run format           # Format with Prettier
-bun run format:check     # Check formatting
+bun install          # Install dependencies
+bun run dev          # Dev server
+bun run dev:local    # Dev server with local tiles
+bun run build        # Production build
+bun run preview      # Preview production build
+bun test             # Run tests
+bun run format       # Format with Prettier
+bun run format:check # Check formatting
 ```
 
 ## Git

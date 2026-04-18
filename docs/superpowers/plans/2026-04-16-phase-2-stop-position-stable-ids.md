@@ -15,14 +15,14 @@
 - **Spec**: `docs/superpowers/specs/2026-04-16-stop-position-editing-design.md` — sections "Data model" and "Migration".
 - **Phase 1 plan**: `docs/superpowers/plans/2026-04-16-phase-1-dual-spine-split.md` — the dual-spine split work this phase builds on. Particularly the `PlatformMigrationMap` (`oldPlatformId → oldStopIndex → { newPlatformId, newStopIndex }`) which Phase 2 extends to also carry `newStopId`.
 - **In-memory types**:
-  - `StopPosition` lives in `src/stations/types.ts` — currently `{ trackSegmentId, direction, tValue }`. Phase 2 adds `id: number`.
-  - `Platform` (island, with one `track` segment) and `TrackAlignedPlatform` (one `spine: SpineEntry[]`) both own a `stopPositions: StopPosition[]` array.
+    - `StopPosition` lives in `src/stations/types.ts` — currently `{ trackSegmentId, direction, tValue }`. Phase 2 adds `id: number`.
+    - `Platform` (island, with one `track` segment) and `TrackAlignedPlatform` (one `spine: SpineEntry[]`) both own a `stopPositions: StopPosition[]` array.
 - **Existing call sites that build stops inline** (need updating to assign IDs):
-  - `src/stations/station-factory.ts:126,139` — island station factory hardcodes two stops per platform.
-  - `src/stations/spine-utils.ts:222,232` — `computeStopPositions(spine, getCurve)` returns two stops at the spine midpoint.
-  - `src/stations/single-spine-placement-state-machine.ts` — uses `computeStopPositions`.
-  - `src/stations/dual-spine-placement-state-machine.ts` — uses `computeStopPositions`.
-  - `src/stations/track-aligned-platform-migration.ts:131,139` — split helper writes new face stops.
+    - `src/stations/station-factory.ts:126,139` — island station factory hardcodes two stops per platform.
+    - `src/stations/spine-utils.ts:222,232` — `computeStopPositions(spine, getCurve)` returns two stops at the spine midpoint.
+    - `src/stations/single-spine-placement-state-machine.ts` — uses `computeStopPositions`.
+    - `src/stations/dual-spine-placement-state-machine.ts` — uses `computeStopPositions`.
+    - `src/stations/track-aligned-platform-migration.ts:131,139` — split helper writes new face stops.
 - **TimetableManager.deserialize** signature today (`src/timetable/timetable-manager.ts`): `(data, trackGraph, trainManager, stationManager, signalStateEngine?)` — Phase 2 adds `trackAlignedPlatformManager` so it can resolve legacy `stopPositionIndex` references to stable `stopPositionId`s.
 - **AutoDriver** in `src/timetable/auto-driver.ts:425-441` accesses stop positions via `platform.stopPositions[stopPositionIndex]` — Phase 2 changes the lookup to `platform.stopPositions.find(s => s.id === stopPositionId)`.
 - **TimetablePanel** in `src/components/toolbar/TimetablePanel.tsx` builds the stop-position dropdown — Phase 2 switches the dropdown's value from index to ID.
@@ -69,7 +69,8 @@ This task introduces the new field and the small helpers everyone else will use.
 Create `test/stop-position-utils.test.ts`:
 
 ```ts
-import { describe, it, expect } from 'bun:test';
+import { describe, expect, it } from 'bun:test';
+
 import {
     assignStopPositionIds,
     nextStopPositionId,
@@ -84,7 +85,12 @@ describe('nextStopPositionId', () => {
     it('returns max id + 1 for a non-empty array', () => {
         const stops: StopPosition[] = [
             { id: 4, trackSegmentId: 1, direction: 'tangent', tValue: 0.5 },
-            { id: 7, trackSegmentId: 1, direction: 'reverseTangent', tValue: 0.5 },
+            {
+                id: 7,
+                trackSegmentId: 1,
+                direction: 'reverseTangent',
+                tValue: 0.5,
+            },
         ];
         expect(nextStopPositionId(stops)).toBe(8);
     });
@@ -92,7 +98,12 @@ describe('nextStopPositionId', () => {
     it('handles non-contiguous ids', () => {
         const stops: StopPosition[] = [
             { id: 0, trackSegmentId: 1, direction: 'tangent', tValue: 0.5 },
-            { id: 12, trackSegmentId: 1, direction: 'reverseTangent', tValue: 0.5 },
+            {
+                id: 12,
+                trackSegmentId: 1,
+                direction: 'reverseTangent',
+                tValue: 0.5,
+            },
             { id: 3, trackSegmentId: 1, direction: 'tangent', tValue: 0.7 },
         ];
         expect(nextStopPositionId(stops)).toBe(13);
@@ -103,10 +114,14 @@ describe('assignStopPositionIds', () => {
     it('assigns sequential ids starting at 0 to a fresh array', () => {
         const inputs = [
             { trackSegmentId: 1, direction: 'tangent' as const, tValue: 0.5 },
-            { trackSegmentId: 1, direction: 'reverseTangent' as const, tValue: 0.5 },
+            {
+                trackSegmentId: 1,
+                direction: 'reverseTangent' as const,
+                tValue: 0.5,
+            },
         ];
         const result = assignStopPositionIds(inputs);
-        expect(result.map((s) => s.id)).toEqual([0, 1]);
+        expect(result.map(s => s.id)).toEqual([0, 1]);
     });
 
     it('preserves existing fields verbatim', () => {
@@ -142,11 +157,11 @@ Edit `src/stations/types.ts`. Replace the `StopPosition` declaration:
 ```ts
 /** Defines where a train stops on a particular platform. */
 export type StopPosition = {
-  /** Unique within the owning platform's `stopPositions` array. */
-  id: number;
-  trackSegmentId: number;
-  direction: TrackDirection;
-  tValue: number;
+    /** Unique within the owning platform's `stopPositions` array. */
+    id: number;
+    trackSegmentId: number;
+    direction: TrackDirection;
+    tValue: number;
 };
 ```
 
@@ -189,7 +204,7 @@ export function nextStopPositionId(stops: readonly StopPosition[]): number {
  * The returned array contains fresh objects; the input is not mutated.
  */
 export function assignStopPositionIds(
-    inputs: readonly Omit<StopPosition, 'id'>[],
+    inputs: readonly Omit<StopPosition, 'id'>[]
 ): StopPosition[] {
     return inputs.map((input, i) => ({ id: i, ...input }));
 }
@@ -295,7 +310,11 @@ for (let i = 0; i < legacy.stopPositions.length; i++) {
 Also extend the `StopIndexMapEntry` type at the top of the file:
 
 ```ts
-export type StopIndexMapEntry = { face: 'A' | 'B'; newIndex: number; newId: number };
+export type StopIndexMapEntry = {
+    face: 'A' | 'B';
+    newIndex: number;
+    newId: number;
+};
 ```
 
 (Phase 1's tests for this helper will need updating; do that in Step 5 below.)
@@ -350,7 +369,10 @@ Also update the second test (`'routes each stop position to the face whose spine
 Edit `src/stations/track-aligned-platform-manager.ts`. Inside the dual-spine branch of `deserializeAny` (around line 246-254) replace the `entries.set(...)` loop with one that includes `newStopId`:
 
 ```ts
-const entries = new Map<number, { newPlatformId: number; newStopIndex: number; newStopId: number }>();
+const entries = new Map<
+    number,
+    { newPlatformId: number; newStopIndex: number; newStopId: number }
+>();
 for (let i = 0; i < stopIndexMap.length; i++) {
     const mapEntry = stopIndexMap[i];
     entries.set(i, {
@@ -415,10 +437,11 @@ Add `addStopPosition`, `updateStopPosition`, `removeStopPosition` to the manager
 Create `test/station-manager-stop-crud.test.ts`:
 
 ```ts
-import { describe, it, expect, beforeEach } from 'bun:test';
-import { ELEVATION } from '../src/trains/tracks/types';
+import { beforeEach, describe, expect, it } from 'bun:test';
+
 import { StationManager } from '../src/stations/station-manager';
 import type { Platform } from '../src/stations/types';
+import { ELEVATION } from '../src/trains/tracks/types';
 
 function makePlatform(track: number): Platform {
     return {
@@ -429,7 +452,12 @@ function makePlatform(track: number): Platform {
         side: 1,
         stopPositions: [
             { id: 0, trackSegmentId: track, direction: 'tangent', tValue: 0.5 },
-            { id: 1, trackSegmentId: track, direction: 'reverseTangent', tValue: 0.5 },
+            {
+                id: 1,
+                trackSegmentId: track,
+                direction: 'reverseTangent',
+                tValue: 0.5,
+            },
         ],
     };
 }
@@ -475,7 +503,7 @@ describe('StationManager stop-position CRUD', () => {
                     trackSegmentId: 99,
                     direction: 'tangent',
                     tValue: 0.5,
-                }),
+                })
             ).toThrow();
         });
 
@@ -486,7 +514,7 @@ describe('StationManager stop-position CRUD', () => {
                     trackSegmentId: 10,
                     direction: 'tangent',
                     tValue: 1.5,
-                }),
+                })
             ).toThrow();
         });
     });
@@ -498,7 +526,8 @@ describe('StationManager stop-position CRUD', () => {
                 tValue: 0.8,
                 direction: 'reverseTangent',
             });
-            const updated = mgr.getStation(stationId)!.platforms[0].stopPositions[0];
+            const updated =
+                mgr.getStation(stationId)!.platforms[0].stopPositions[0];
             expect(updated.tValue).toBe(0.8);
             expect(updated.direction).toBe('reverseTangent');
             expect(updated.id).toBe(0);
@@ -507,14 +536,18 @@ describe('StationManager stop-position CRUD', () => {
         it('throws when the stop id does not exist', () => {
             const { mgr, stationId, platformId } = setupStationWithPlatform(10);
             expect(() =>
-                mgr.updateStopPosition(stationId, platformId, 999, { tValue: 0.5 }),
+                mgr.updateStopPosition(stationId, platformId, 999, {
+                    tValue: 0.5,
+                })
             ).toThrow();
         });
 
         it('throws when patch tValue is out of range', () => {
             const { mgr, stationId, platformId } = setupStationWithPlatform(10);
             expect(() =>
-                mgr.updateStopPosition(stationId, platformId, 0, { tValue: -0.1 }),
+                mgr.updateStopPosition(stationId, platformId, 0, {
+                    tValue: -0.1,
+                })
             ).toThrow();
         });
     });
@@ -542,7 +575,7 @@ describe('StationManager stop-position CRUD', () => {
         it('is a no-op when the id does not exist', () => {
             const { mgr, stationId, platformId } = setupStationWithPlatform(10);
             expect(() =>
-                mgr.removeStopPosition(stationId, platformId, 999),
+                mgr.removeStopPosition(stationId, platformId, 999)
             ).not.toThrow();
             const stops = mgr.getStation(stationId)!.platforms[0].stopPositions;
             expect(stops).toHaveLength(2);
@@ -697,7 +730,8 @@ Mirror Task 3 for track-aligned platforms. The validation differs because the sp
 Create `test/track-aligned-platform-stop-crud.test.ts`:
 
 ```ts
-import { describe, it, expect, beforeEach } from 'bun:test';
+import { beforeEach, describe, expect, it } from 'bun:test';
+
 import { TrackAlignedPlatformManager } from '../src/stations/track-aligned-platform-manager';
 import type { TrackAlignedPlatform } from '../src/stations/track-aligned-platform-types';
 
@@ -709,10 +743,18 @@ function makePlatform(): Omit<TrackAlignedPlatform, 'id'> {
             { trackSegment: 11, tStart: 0, tEnd: 0.5, side: 1 },
         ],
         offset: 2,
-        outerVertices: [{ x: 0, y: 0 }, { x: 10, y: 0 }],
+        outerVertices: [
+            { x: 0, y: 0 },
+            { x: 10, y: 0 },
+        ],
         stopPositions: [
             { id: 0, trackSegmentId: 10, direction: 'tangent', tValue: 0.5 },
-            { id: 1, trackSegmentId: 10, direction: 'reverseTangent', tValue: 0.5 },
+            {
+                id: 1,
+                trackSegmentId: 10,
+                direction: 'reverseTangent',
+                tValue: 0.5,
+            },
         ],
     };
 }
@@ -750,7 +792,7 @@ describe('TrackAlignedPlatformManager stop-position CRUD', () => {
                     trackSegmentId: 99,
                     direction: 'tangent',
                     tValue: 0.5,
-                }),
+                })
             ).toThrow();
         });
 
@@ -761,14 +803,14 @@ describe('TrackAlignedPlatformManager stop-position CRUD', () => {
                     trackSegmentId: 10,
                     direction: 'tangent',
                     tValue: 0.9,
-                }),
+                })
             ).toThrow();
             expect(() =>
                 mgr.addStopPosition(platformId, {
                     trackSegmentId: 10,
                     direction: 'tangent',
                     tValue: 0.1,
-                }),
+                })
             ).toThrow();
         });
 
@@ -778,14 +820,14 @@ describe('TrackAlignedPlatformManager stop-position CRUD', () => {
                     trackSegmentId: 10,
                     direction: 'tangent',
                     tValue: 0.2,
-                }),
+                })
             ).not.toThrow();
             expect(() =>
                 mgr.addStopPosition(platformId, {
                     trackSegmentId: 10,
                     direction: 'tangent',
                     tValue: 0.8,
-                }),
+                })
             ).not.toThrow();
         });
     });
@@ -803,13 +845,13 @@ describe('TrackAlignedPlatformManager stop-position CRUD', () => {
 
         it('throws when the stop id is not found', () => {
             expect(() =>
-                mgr.updateStopPosition(platformId, 999, { tValue: 0.5 }),
+                mgr.updateStopPosition(platformId, 999, { tValue: 0.5 })
             ).toThrow();
         });
 
         it('throws when the new tValue is outside the spine entry range', () => {
             expect(() =>
-                mgr.updateStopPosition(platformId, 0, { tValue: 0.9 }),
+                mgr.updateStopPosition(platformId, 0, { tValue: 0.9 })
             ).toThrow();
         });
     });
@@ -969,12 +1011,13 @@ In-memory `ScheduledStop` switches to `stopPositionId`. Serialized form keeps bo
 Create `test/scheduled-stop-id-migration.test.ts`:
 
 ```ts
-import { describe, it, expect } from 'bun:test';
-import { ELEVATION } from '../src/trains/tracks/types';
-import { ShiftTemplateManager } from '../src/timetable/shift-template-manager';
+import { describe, expect, it } from 'bun:test';
+
 import { StationManager } from '../src/stations/station-manager';
 import { TrackAlignedPlatformManager } from '../src/stations/track-aligned-platform-manager';
+import { ShiftTemplateManager } from '../src/timetable/shift-template-manager';
 import type { SerializedShiftTemplate } from '../src/timetable/types';
+import { ELEVATION } from '../src/trains/tracks/types';
 
 function makeStationWithIslandPlatform() {
     const mgr = new StationManager();
@@ -990,8 +1033,18 @@ function makeStationWithIslandPlatform() {
                 offset: 1,
                 side: 1,
                 stopPositions: [
-                    { id: 5, trackSegmentId: 100, direction: 'tangent', tValue: 0.5 },
-                    { id: 8, trackSegmentId: 100, direction: 'reverseTangent', tValue: 0.5 },
+                    {
+                        id: 5,
+                        trackSegmentId: 100,
+                        direction: 'tangent',
+                        tValue: 0.5,
+                    },
+                    {
+                        id: 8,
+                        trackSegmentId: 100,
+                        direction: 'reverseTangent',
+                        tValue: 0.5,
+                    },
                 ],
             },
         ],
@@ -1011,7 +1064,15 @@ describe('ShiftTemplateManager.deserialize — ScheduledStop id migration', () =
             {
                 id: 's1',
                 name: 'S1',
-                activeDays: { '0': true, '1': false, '2': false, '3': false, '4': false, '5': false, '6': false },
+                activeDays: {
+                    '0': true,
+                    '1': false,
+                    '2': false,
+                    '3': false,
+                    '4': false,
+                    '5': false,
+                    '6': false,
+                },
                 stops: [
                     {
                         stationId,
@@ -1034,13 +1095,17 @@ describe('ShiftTemplateManager.deserialize — ScheduledStop id migration', () =
             },
         ];
 
-        const restored = ShiftTemplateManager.deserialize(serialized, stationMgr, tapMgr);
+        const restored = ShiftTemplateManager.deserialize(
+            serialized,
+            stationMgr,
+            tapMgr
+        );
         const t = restored.getTemplate('s1')!;
         expect(t.stops[0].stopPositionId).toBe(8);
         expect(t.stops[1].stopPositionId).toBe(5);
     });
 
-    it('resolves legacy stopPositionIndex to the platform stop\'s id', () => {
+    it("resolves legacy stopPositionIndex to the platform stop's id", () => {
         const { mgr: stationMgr, stationId } = makeStationWithIslandPlatform();
         const tapMgr = new TrackAlignedPlatformManager();
 
@@ -1048,7 +1113,15 @@ describe('ShiftTemplateManager.deserialize — ScheduledStop id migration', () =
             {
                 id: 's1',
                 name: 'S1',
-                activeDays: { '0': true, '1': false, '2': false, '3': false, '4': false, '5': false, '6': false },
+                activeDays: {
+                    '0': true,
+                    '1': false,
+                    '2': false,
+                    '3': false,
+                    '4': false,
+                    '5': false,
+                    '6': false,
+                },
                 stops: [
                     {
                         stationId,
@@ -1071,7 +1144,11 @@ describe('ShiftTemplateManager.deserialize — ScheduledStop id migration', () =
             },
         ];
 
-        const restored = ShiftTemplateManager.deserialize(serialized, stationMgr, tapMgr);
+        const restored = ShiftTemplateManager.deserialize(
+            serialized,
+            stationMgr,
+            tapMgr
+        );
         const t = restored.getTemplate('s1')!;
         // Index 0 → id 5; index 1 → id 8.
         expect(t.stops[0].stopPositionId).toBe(5);
@@ -1086,7 +1163,15 @@ describe('ShiftTemplateManager.deserialize — ScheduledStop id migration', () =
             {
                 id: 's1',
                 name: 'S1',
-                activeDays: { '0': true, '1': false, '2': false, '3': false, '4': false, '5': false, '6': false },
+                activeDays: {
+                    '0': true,
+                    '1': false,
+                    '2': false,
+                    '3': false,
+                    '4': false,
+                    '5': false,
+                    '6': false,
+                },
                 stops: [
                     {
                         stationId,
@@ -1101,7 +1186,11 @@ describe('ShiftTemplateManager.deserialize — ScheduledStop id migration', () =
             },
         ];
 
-        const restored = ShiftTemplateManager.deserialize(serialized, stationMgr, tapMgr);
+        const restored = ShiftTemplateManager.deserialize(
+            serialized,
+            stationMgr,
+            tapMgr
+        );
         const t = restored.getTemplate('s1')!;
         expect(t.stops[0].stopPositionId).toBe(-1);
     });
@@ -1119,13 +1208,13 @@ Edit `src/timetable/types.ts`. Replace the `ScheduledStop` declaration:
 
 ```ts
 export type ScheduledStop = {
-  stationId: number;
-  platformKind: 'island' | 'trackAligned';
-  platformId: number;
-  /** Stable id within the platform's stopPositions array. */
-  stopPositionId: number;
-  arrivalTime: WeekMs | null;
-  departureTime: WeekMs | null;
+    stationId: number;
+    platformKind: 'island' | 'trackAligned';
+    platformId: number;
+    /** Stable id within the platform's stopPositions array. */
+    stopPositionId: number;
+    arrivalTime: WeekMs | null;
+    departureTime: WeekMs | null;
 };
 ```
 
@@ -1133,16 +1222,16 @@ Replace `SerializedScheduledStop`:
 
 ```ts
 export type SerializedScheduledStop = {
-  stationId: number;
-  /** Optional for backward compat — defaults to `'island'` when absent. */
-  platformKind?: 'island' | 'trackAligned';
-  platformId: number;
-  /** New format: stable stop id. */
-  stopPositionId?: number;
-  /** Legacy format: positional index. Resolved to id at deserialize time. */
-  stopPositionIndex?: number;
-  arrivalTime: number | null;
-  departureTime: number | null;
+    stationId: number;
+    /** Optional for backward compat — defaults to `'island'` when absent. */
+    platformKind?: 'island' | 'trackAligned';
+    platformId: number;
+    /** New format: stable stop id. */
+    stopPositionId?: number;
+    /** Legacy format: positional index. Resolved to id at deserialize time. */
+    stopPositionIndex?: number;
+    arrivalTime: number | null;
+    departureTime: number | null;
 };
 ```
 
@@ -1288,6 +1377,7 @@ Make sure the type import for `TrackAlignedPlatformManager` is added at the top.
 - [ ] **Step 6: Update all call sites of `TimetableManager.deserialize`.**
 
 Three known call sites:
+
 - `src/scene-serialization.ts:170` — already passes `stationManager`. Add `app.trackAlignedPlatformManager` after `stationManager`.
 - `src/components/toolbar/TimetablePanel.tsx:980` — same; add `app.trackAlignedPlatformManager`.
 
@@ -1296,6 +1386,7 @@ Inspect both files and adjust. Search the repo for `TimetableManager.deserialize
 - [ ] **Step 7: Update existing tests for the new signature.**
 
 Search `test/` for `ShiftTemplateManager.deserialize(` and `TimetableManager.deserialize(`. Likely affected files:
+
 - `test/shift-template-manager.test.ts` — update its `deserialize` calls to pass `new StationManager()` and `new TrackAlignedPlatformManager()`.
 - `test/shift-template-manager-remap.test.ts` — its test fixtures construct `ShiftTemplate` objects in memory (not via `deserialize`); they need their `ScheduledStop.stopPositionIndex` field renamed to `stopPositionId`.
 
@@ -1345,12 +1436,7 @@ Edit `test/shift-template-manager-remap.test.ts`. The fixtures build `ShiftTempl
 ```ts
 // First test (rewrites...):
 const map: PlatformMigrationMap = new Map([
-    [
-        5,
-        new Map([
-            [2, { newPlatformId: 11, newStopIndex: 0, newStopId: 0 }],
-        ]),
-    ],
+    [5, new Map([[2, { newPlatformId: 11, newStopIndex: 0, newStopId: 0 }]])],
 ]);
 mgr.remapTrackAlignedPlatformReferences(map);
 
@@ -1513,7 +1599,7 @@ const restored = TimetableManager.deserialize(
     app.stationManager,
     app.trackAlignedPlatformManager,
     app.signalStateEngine,
-    platformMigrationMap,
+    platformMigrationMap
 );
 // (Drop the line that called `remapTrackAlignedPlatformReferences`.)
 ```
@@ -1523,28 +1609,38 @@ Adjust parameter ordering as needed to match the actual `TimetableManager.deseri
 - [ ] **Step 5: Update or delete `test/shift-template-manager-remap.test.ts`.**
 
 The test file's purpose was to verify `remapTrackAlignedPlatformReferences`. That method is gone. Either:
+
 - Delete the file (the new behavior is covered by `test/scheduled-stop-id-migration.test.ts` plus a new test below).
 - Or repurpose it to exercise the deserialize-with-migration-map path.
 
 Replace the file with this rewrite that exercises the new path:
 
 ```ts
-import { describe, it, expect } from 'bun:test';
-import { ShiftTemplateManager } from '../src/timetable/shift-template-manager';
+import { describe, expect, it } from 'bun:test';
+
 import { StationManager } from '../src/stations/station-manager';
 import { TrackAlignedPlatformManager } from '../src/stations/track-aligned-platform-manager';
 import type { PlatformMigrationMap } from '../src/stations/track-aligned-platform-migration';
+import { ShiftTemplateManager } from '../src/timetable/shift-template-manager';
 import type { SerializedShiftTemplate } from '../src/timetable/types';
 
 function makeSerializedTemplate(
     platformId: number,
-    stopPositionIndex: number,
+    stopPositionIndex: number
 ): SerializedShiftTemplate[] {
     return [
         {
             id: 's1',
             name: 'S1',
-            activeDays: { '0': true, '1': false, '2': false, '3': false, '4': false, '5': false, '6': false },
+            activeDays: {
+                '0': true,
+                '1': false,
+                '2': false,
+                '3': false,
+                '4': false,
+                '5': false,
+                '6': false,
+            },
             stops: [
                 {
                     stationId: 1,
@@ -1565,14 +1661,19 @@ describe('ShiftTemplateManager.deserialize with platformMigrationMap', () => {
         const stationMgr = new StationManager();
         const tapMgr = new TrackAlignedPlatformManager();
         const map: PlatformMigrationMap = new Map([
-            [5, new Map([[2, { newPlatformId: 11, newStopIndex: 0, newStopId: 7 }]])],
+            [
+                5,
+                new Map([
+                    [2, { newPlatformId: 11, newStopIndex: 0, newStopId: 7 }],
+                ]),
+            ],
         ]);
 
         const restored = ShiftTemplateManager.deserialize(
             makeSerializedTemplate(5, 2),
             stationMgr,
             tapMgr,
-            map,
+            map
         );
         const t = restored.getTemplate('s1')!;
         expect(t.stops[0].platformId).toBe(11);
@@ -1583,14 +1684,19 @@ describe('ShiftTemplateManager.deserialize with platformMigrationMap', () => {
         const stationMgr = new StationManager();
         const tapMgr = new TrackAlignedPlatformManager();
         const map: PlatformMigrationMap = new Map([
-            [5, new Map([[2, { newPlatformId: 11, newStopIndex: -1, newStopId: -1 }]])],
+            [
+                5,
+                new Map([
+                    [2, { newPlatformId: 11, newStopIndex: -1, newStopId: -1 }],
+                ]),
+            ],
         ]);
 
         const restored = ShiftTemplateManager.deserialize(
             makeSerializedTemplate(5, 2),
             stationMgr,
             tapMgr,
-            map,
+            map
         );
         const t = restored.getTemplate('s1')!;
         expect(t.stops[0].platformId).toBe(11);
@@ -1611,7 +1717,7 @@ describe('ShiftTemplateManager.deserialize with platformMigrationMap', () => {
             makeSerializedTemplate(99, 0),
             stationMgr,
             tapMgr,
-            map,
+            map
         );
         const t = restored.getTemplate('s1')!;
         expect(t.stops[0].platformId).toBe(99);
@@ -1743,12 +1849,15 @@ function buildStopPositionOptions(
     platformValue: string,
     stationId: number,
     stationManager: StationManager,
-    trackAlignedPlatformManager: TrackAlignedPlatformManager,
+    trackAlignedPlatformManager: TrackAlignedPlatformManager
 ): { id: number; label: string }[] {
     const parsed = parsePlatformValue(platformValue);
     if (!parsed) return [];
 
-    const platformLabel = parsed.kind === 'trackAligned' ? `T${parsed.platformId}` : `P${parsed.platformId}`;
+    const platformLabel =
+        parsed.kind === 'trackAligned'
+            ? `T${parsed.platformId}`
+            : `P${parsed.platformId}`;
 
     if (parsed.kind === 'trackAligned') {
         const tap = trackAlignedPlatformManager.getPlatform(parsed.platformId);
@@ -1761,7 +1870,7 @@ function buildStopPositionOptions(
 
     const station = stationManager.getStation(stationId);
     if (!station) return [];
-    const platform = station.platforms.find((p) => p.id === parsed.platformId);
+    const platform = station.platforms.find(p => p.id === parsed.platformId);
     if (!platform) return [];
     return platform.stopPositions.map((sp, i) => ({
         id: sp.id,
@@ -1933,7 +2042,12 @@ describe('StationManager.findShiftsReferencingStopPosition', () => {
             legs: [],
         });
 
-        const refs = mgr.findShiftsReferencingStopPosition(stationId, platformId, 0, stm);
+        const refs = mgr.findShiftsReferencingStopPosition(
+            stationId,
+            platformId,
+            0,
+            stm
+        );
         expect(refs).toHaveLength(1);
         expect(refs[0].id).toBe('s1');
     });
@@ -1941,7 +2055,12 @@ describe('StationManager.findShiftsReferencingStopPosition', () => {
     it('returns empty when no template references the stop', () => {
         const { mgr, stationId, platformId } = setupStationWithPlatform(10);
         const stm = new ShiftTemplateManager();
-        const refs = mgr.findShiftsReferencingStopPosition(stationId, platformId, 0, stm);
+        const refs = mgr.findShiftsReferencingStopPosition(
+            stationId,
+            platformId,
+            0,
+            stm
+        );
         expect(refs).toHaveLength(0);
     });
 });
@@ -1952,6 +2071,7 @@ Append a similar block to `test/track-aligned-platform-stop-crud.test.ts`, adapt
 - [ ] **Step 3: Run the tests and confirm they pass.**
 
 Run:
+
 ```bash
 bun test test/station-manager-stop-crud.test.ts
 bun test test/track-aligned-platform-stop-crud.test.ts

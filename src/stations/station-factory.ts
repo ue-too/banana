@@ -1,9 +1,9 @@
 import type { Point } from '@ue-too/math';
 import { PointCal } from '@ue-too/math';
 
+import { DEFAULT_GAUGE_PRESET } from '@/trains/tracks/gauge-presets';
 import type { TrackGraph } from '@/trains/tracks/track';
 import type { ELEVATION } from '@/trains/tracks/types';
-import { DEFAULT_GAUGE_PRESET } from '@/trains/tracks/gauge-presets';
 
 import type { StationManager } from './station-manager';
 import type { Platform, StopPosition } from './types';
@@ -125,7 +125,12 @@ export function createIslandStation(
         side: -1,
         stopPositions: [
             { id: 0, trackSegmentId: seg1, direction: 'tangent', tValue: 0.5 },
-            { id: 1, trackSegmentId: seg1, direction: 'reverseTangent', tValue: 0.5 },
+            {
+                id: 1,
+                trackSegmentId: seg1,
+                direction: 'reverseTangent',
+                tValue: 0.5,
+            },
         ],
     };
 
@@ -138,7 +143,12 @@ export function createIslandStation(
         side: 1,
         stopPositions: [
             { id: 0, trackSegmentId: seg2, direction: 'tangent', tValue: 0.5 },
-            { id: 1, trackSegmentId: seg2, direction: 'reverseTangent', tValue: 0.5 },
+            {
+                id: 1,
+                trackSegmentId: seg2,
+                direction: 'reverseTangent',
+                tValue: 0.5,
+            },
         ],
     };
 

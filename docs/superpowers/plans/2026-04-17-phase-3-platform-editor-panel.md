@@ -14,14 +14,14 @@
 
 - **Spec**: `docs/superpowers/specs/2026-04-16-stop-position-editing-design.md` — "PlatformEditorPanel" section.
 - **Phase 2 CRUD surface** (all tests passing):
-  - `StationManager.addStopPosition(stationId, platformId, input)` / `updateStopPosition(stationId, platformId, stopId, patch)` / `removeStopPosition(stationId, platformId, stopId)`
-  - `TrackAlignedPlatformManager.addStopPosition(platformId, input)` / `updateStopPosition(platformId, stopId, patch)` / `removeStopPosition(platformId, stopId)`
-  - Both managers' `findShiftsReferencingStopPosition(...)` for the deletion guard.
+    - `StationManager.addStopPosition(stationId, platformId, input)` / `updateStopPosition(stationId, platformId, stopId, patch)` / `removeStopPosition(stationId, platformId, stopId)`
+    - `TrackAlignedPlatformManager.addStopPosition(platformId, input)` / `updateStopPosition(platformId, stopId, patch)` / `removeStopPosition(platformId, stopId)`
+    - Both managers' `findShiftsReferencingStopPosition(...)` for the deletion guard.
 - **Platform types**:
-  - Island `Platform`: `{ id, track, width, offset, side, stopPositions: StopPosition[] }` — single `track` segment, `tValue ∈ [0, 1]`.
-  - Track-aligned `TrackAlignedPlatform`: `{ id, stationId, spine: SpineEntry[], offset, outerVertices, stopPositions: StopPosition[] }` — spine may have N entries, each with `[tStart, tEnd]` on a segment.
-  - `StopPosition`: `{ id, trackSegmentId, direction: TrackDirection, tValue }`.
-  - `SpineEntry`: `{ trackSegment, tStart, tEnd, side }`.
+    - Island `Platform`: `{ id, track, width, offset, side, stopPositions: StopPosition[] }` — single `track` segment, `tValue ∈ [0, 1]`.
+    - Track-aligned `TrackAlignedPlatform`: `{ id, stationId, spine: SpineEntry[], offset, outerVertices, stopPositions: StopPosition[] }` — spine may have N entries, each with `[tStart, tEnd]` on a segment.
+    - `StopPosition`: `{ id, trackSegmentId, direction: TrackDirection, tValue }`.
+    - `SpineEntry`: `{ trackSegment, tStart, tEnd, side }`.
 - **Existing UI patterns**: `StationListPanel.tsx` (the launch point), `DraggablePanel` component (the panel shell), `BananaToolbar.tsx` (the panel orchestrator using Zustand store `useToolbarUIStore`). Panels are opened via `setPanel(name, true/false)` or local state. New panels follow the same pattern.
 - **i18n**: `src/i18n/locales/en.ts` and `src/i18n/locales/zh-TW.ts`. New keys added under the relevant section.
 - **Debug overlay**: `TrackAlignedPlatformManager._changeObservable` already notifies subscribers (including the debug overlay) on stop-position mutations. `StationManager` does not have an observable, so island-platform stop changes need an explicit `app.debugOverlayRenderSystem.refresh()` call after mutation.
@@ -53,6 +53,7 @@
 A pure helper that converts between a normalized slider value `[0, 1]` and the `(trackSegmentId, tValue)` pair that `StopPosition` uses. Works for both island platforms (trivially — single segment, full `[0, 1]` range) and track-aligned platforms (walks the spine's arc-length fractions).
 
 The editor uses this in two directions:
+
 - **Slider → stop**: user drags slider to `0.3` → resolver returns `{ trackSegmentId: 10, tValue: 0.45 }`.
 - **Stop → slider**: existing stop has `{ trackSegmentId: 10, tValue: 0.45 }` → resolver returns `0.3`.
 
@@ -61,7 +62,8 @@ The editor uses this in two directions:
 Create `test/arc-length-resolver.test.ts`:
 
 ```ts
-import { describe, it, expect } from 'bun:test';
+import { describe, expect, it } from 'bun:test';
+
 import {
     normalizedToStop,
     stopToNormalized,
@@ -193,7 +195,7 @@ type CurveLike = { fullLength: number };
 export function normalizedToStop(
     spine: readonly SpineEntry[],
     normalized: number,
-    getCurve: (segmentId: number) => CurveLike,
+    getCurve: (segmentId: number) => CurveLike
 ): { trackSegmentId: number; tValue: number } {
     const n = Math.max(0, Math.min(1, normalized));
 
@@ -210,7 +212,10 @@ export function normalizedToStop(
 
     if (totalLength < 1e-9 || spine.length === 0) {
         const first = spine[0];
-        return { trackSegmentId: first?.trackSegment ?? 0, tValue: first?.tStart ?? 0 };
+        return {
+            trackSegmentId: first?.trackSegment ?? 0,
+            tValue: first?.tStart ?? 0,
+        };
     }
 
     const targetArc = n * totalLength;
@@ -221,11 +226,13 @@ export function normalizedToStop(
         const entryLength = entryLengths[i];
 
         if (accumulated + entryLength >= targetArc || i === spine.length - 1) {
-            const fraction = entryLength > 1e-9
-                ? (targetArc - accumulated) / entryLength
-                : 0;
+            const fraction =
+                entryLength > 1e-9
+                    ? (targetArc - accumulated) / entryLength
+                    : 0;
             const clampedFraction = Math.max(0, Math.min(1, fraction));
-            const tValue = entry.tStart + (entry.tEnd - entry.tStart) * clampedFraction;
+            const tValue =
+                entry.tStart + (entry.tEnd - entry.tStart) * clampedFraction;
             return { trackSegmentId: entry.trackSegment, tValue };
         }
 
@@ -247,7 +254,7 @@ export function stopToNormalized(
     spine: readonly SpineEntry[],
     trackSegmentId: number,
     tValue: number,
-    getCurve: (segmentId: number) => CurveLike,
+    getCurve: (segmentId: number) => CurveLike
 ): number {
     const entryLengths: number[] = [];
     let totalLength = 0;
@@ -266,9 +273,8 @@ export function stopToNormalized(
         const entry = spine[i];
         if (entry.trackSegment === trackSegmentId) {
             const tRange = entry.tEnd - entry.tStart;
-            const fraction = Math.abs(tRange) > 1e-9
-                ? (tValue - entry.tStart) / tRange
-                : 0;
+            const fraction =
+                Math.abs(tRange) > 1e-9 ? (tValue - entry.tStart) / tRange : 0;
             const clampedFraction = Math.max(0, Math.min(1, fraction));
             const arc = accumulated + clampedFraction * entryLengths[i];
             return arc / totalLength;
@@ -363,42 +369,36 @@ Destructure it in the component function params.
 Inside the station entry JSX (the `stations.map(({ id, station }) => { ... })` block), after the `<div className="mt-1 flex gap-1">` block that holds the "Add single/dual spine platform" buttons, insert a new row of platform chips:
 
 ```tsx
-{/* Platform chips — click to edit */}
-{(station.platforms.length > 0 ||
-    station.trackAlignedPlatforms.length > 0) && (
-    <div className="mt-1 flex flex-wrap gap-0.5">
-        {station.platforms.map((p) => (
-            <button
-                key={`island-${p.id}`}
-                type="button"
-                className="bg-muted hover:bg-foreground/20 rounded px-1.5 py-0.5 text-[10px] font-medium transition-colors"
-                onClick={() =>
-                    onEditPlatform?.(id, p.id, 'island')
-                }
-            >
-                P{p.id}
-            </button>
-        ))}
-        {station.trackAlignedPlatforms.map(
-            (tapId) => (
+{
+    /* Platform chips — click to edit */
+}
+{
+    (station.platforms.length > 0 ||
+        station.trackAlignedPlatforms.length > 0) && (
+        <div className="mt-1 flex flex-wrap gap-0.5">
+            {station.platforms.map(p => (
+                <button
+                    key={`island-${p.id}`}
+                    type="button"
+                    className="bg-muted hover:bg-foreground/20 rounded px-1.5 py-0.5 text-[10px] font-medium transition-colors"
+                    onClick={() => onEditPlatform?.(id, p.id, 'island')}
+                >
+                    P{p.id}
+                </button>
+            ))}
+            {station.trackAlignedPlatforms.map(tapId => (
                 <button
                     key={`ta-${tapId}`}
                     type="button"
                     className="bg-muted hover:bg-foreground/20 rounded px-1.5 py-0.5 text-[10px] font-medium transition-colors"
-                    onClick={() =>
-                        onEditPlatform?.(
-                            id,
-                            tapId,
-                            'trackAligned',
-                        )
-                    }
+                    onClick={() => onEditPlatform?.(id, tapId, 'trackAligned')}
                 >
                     T{tapId}
                 </button>
-            ),
-        )}
-    </div>
-)}
+            ))}
+        </div>
+    );
+}
 ```
 
 - [ ] **Step 3: Run `bun test && bun run build`.**
@@ -424,6 +424,7 @@ git commit -m "feat(stations): add i18n keys and platform chips to StationListPa
 - Create: `src/components/toolbar/PlatformEditorPanel.tsx`
 
 The main editor panel. For each stop position on the selected platform, renders a row with:
+
 - Array-index label `[0]`, `[1]`, ... (matches debug overlay)
 - A slider `[0 → 1]` for position (normalized arc length)
 - A direction toggle button (`→` / `←`)
@@ -439,21 +440,22 @@ Create `src/components/toolbar/PlatformEditorPanel.tsx`:
 
 ```tsx
 import { useCallback, useState } from 'react';
-import { Plus, Trash2 } from '@/assets/icons';
 import { useTranslation } from 'react-i18next';
 
+import { Plus, Trash2 } from '@/assets/icons';
 import { Button } from '@/components/ui/button';
 import { DraggablePanel } from '@/components/ui/draggable-panel';
 import { Separator } from '@/components/ui/separator';
-
+import {
+    normalizedToStop,
+    stopToNormalized,
+} from '@/stations/arc-length-resolver';
 import type { StationManager } from '@/stations/station-manager';
 import type { TrackAlignedPlatformManager } from '@/stations/track-aligned-platform-manager';
-import type { ShiftTemplateManager } from '@/timetable/shift-template-manager';
-import type { TrackGraph } from '@/trains/tracks/track';
 import type { SpineEntry } from '@/stations/track-aligned-platform-types';
 import type { StopPosition, TrackDirection } from '@/stations/types';
-
-import { normalizedToStop, stopToNormalized } from '@/stations/arc-length-resolver';
+import type { ShiftTemplateManager } from '@/timetable/shift-template-manager';
+import type { TrackGraph } from '@/trains/tracks/track';
 
 // ---------------------------------------------------------------------------
 // Types
@@ -481,14 +483,14 @@ type PlatformEditorPanelProps = {
 function getSpineForTarget(
     target: PlatformTarget,
     stationManager: StationManager,
-    trackAlignedPlatformManager: TrackAlignedPlatformManager,
+    trackAlignedPlatformManager: TrackAlignedPlatformManager
 ): SpineEntry[] | null {
     if (target.kind === 'trackAligned') {
         const tap = trackAlignedPlatformManager.getPlatform(target.platformId);
         return tap?.spine ?? null;
     }
     const station = stationManager.getStation(target.stationId);
-    const platform = station?.platforms.find((p) => p.id === target.platformId);
+    const platform = station?.platforms.find(p => p.id === target.platformId);
     if (!platform) return null;
     // Island platforms have a single segment covering [0, 1].
     return [{ trackSegment: platform.track, tStart: 0, tEnd: 1, side: 1 }];
@@ -497,14 +499,14 @@ function getSpineForTarget(
 function getStopPositions(
     target: PlatformTarget,
     stationManager: StationManager,
-    trackAlignedPlatformManager: TrackAlignedPlatformManager,
+    trackAlignedPlatformManager: TrackAlignedPlatformManager
 ): StopPosition[] {
     if (target.kind === 'trackAligned') {
         const tap = trackAlignedPlatformManager.getPlatform(target.platformId);
         return tap?.stopPositions ?? [];
     }
     const station = stationManager.getStation(target.stationId);
-    const platform = station?.platforms.find((p) => p.id === target.platformId);
+    const platform = station?.platforms.find(p => p.id === target.platformId);
     return platform?.stopPositions ?? [];
 }
 
@@ -517,14 +519,14 @@ function getLabel(target: PlatformTarget): string {
 function getSegmentIds(
     target: PlatformTarget,
     stationManager: StationManager,
-    trackAlignedPlatformManager: TrackAlignedPlatformManager,
+    trackAlignedPlatformManager: TrackAlignedPlatformManager
 ): number[] {
     if (target.kind === 'trackAligned') {
         const tap = trackAlignedPlatformManager.getPlatform(target.platformId);
-        return tap?.spine.map((e) => e.trackSegment) ?? [];
+        return tap?.spine.map(e => e.trackSegment) ?? [];
     }
     const station = stationManager.getStation(target.stationId);
-    const platform = station?.platforms.find((p) => p.id === target.platformId);
+    const platform = station?.platforms.find(p => p.id === target.platformId);
     return platform ? [platform.track] : [];
 }
 
@@ -544,7 +546,7 @@ export function PlatformEditorPanel({
     const { t } = useTranslation();
     // Bump to force re-render after mutations.
     const [, setVersion] = useState(0);
-    const bump = () => setVersion((v) => v + 1);
+    const bump = () => setVersion(v => v + 1);
 
     // Pending deletion — if non-null, show the confirmation dialog.
     const [pendingDelete, setPendingDelete] = useState<{
@@ -552,18 +554,31 @@ export function PlatformEditorPanel({
         referencingShifts: string[];
     } | null>(null);
 
-    const spine = getSpineForTarget(target, stationManager, trackAlignedPlatformManager);
-    const stops = getStopPositions(target, stationManager, trackAlignedPlatformManager);
+    const spine = getSpineForTarget(
+        target,
+        stationManager,
+        trackAlignedPlatformManager
+    );
+    const stops = getStopPositions(
+        target,
+        stationManager,
+        trackAlignedPlatformManager
+    );
     const label = getLabel(target);
-    const segmentIds = getSegmentIds(target, stationManager, trackAlignedPlatformManager);
+    const segmentIds = getSegmentIds(
+        target,
+        stationManager,
+        trackAlignedPlatformManager
+    );
 
     const getCurve = useCallback(
         (segmentId: number) => {
             const curve = trackGraph.getTrackSegmentCurve(segmentId);
-            if (curve === null) throw new Error(`Missing curve for segment ${segmentId}`);
+            if (curve === null)
+                throw new Error(`Missing curve for segment ${segmentId}`);
             return curve;
         },
-        [trackGraph],
+        [trackGraph]
     );
 
     // --- Handlers ---
@@ -573,36 +588,62 @@ export function PlatformEditorPanel({
             if (!spine) return;
             const resolved = normalizedToStop(spine, normalized, getCurve);
             if (target.kind === 'trackAligned') {
-                trackAlignedPlatformManager.updateStopPosition(target.platformId, stopId, {
-                    tValue: resolved.tValue,
-                });
+                trackAlignedPlatformManager.updateStopPosition(
+                    target.platformId,
+                    stopId,
+                    {
+                        tValue: resolved.tValue,
+                    }
+                );
             } else {
-                stationManager.updateStopPosition(target.stationId, target.platformId, stopId, {
-                    tValue: resolved.tValue,
-                });
+                stationManager.updateStopPosition(
+                    target.stationId,
+                    target.platformId,
+                    stopId,
+                    {
+                        tValue: resolved.tValue,
+                    }
+                );
             }
             onStopChange?.();
             bump();
         },
-        [spine, getCurve, target, stationManager, trackAlignedPlatformManager, onStopChange],
+        [
+            spine,
+            getCurve,
+            target,
+            stationManager,
+            trackAlignedPlatformManager,
+            onStopChange,
+        ]
     );
 
     const handleDirectionToggle = useCallback(
         (stopId: number, currentDirection: TrackDirection) => {
-            const next: TrackDirection = currentDirection === 'tangent' ? 'reverseTangent' : 'tangent';
+            const next: TrackDirection =
+                currentDirection === 'tangent' ? 'reverseTangent' : 'tangent';
             if (target.kind === 'trackAligned') {
-                trackAlignedPlatformManager.updateStopPosition(target.platformId, stopId, {
-                    direction: next,
-                });
+                trackAlignedPlatformManager.updateStopPosition(
+                    target.platformId,
+                    stopId,
+                    {
+                        direction: next,
+                    }
+                );
             } else {
-                stationManager.updateStopPosition(target.stationId, target.platformId, stopId, {
-                    direction: next,
-                });
+                stationManager.updateStopPosition(
+                    target.stationId,
+                    target.platformId,
+                    stopId,
+                    {
+                        direction: next,
+                    }
+                );
             }
             onStopChange?.();
             bump();
         },
-        [target, stationManager, trackAlignedPlatformManager, onStopChange],
+        [target, stationManager, trackAlignedPlatformManager, onStopChange]
     );
 
     const handleDelete = useCallback(
@@ -611,42 +652,80 @@ export function PlatformEditorPanel({
             let refs: { id: string; name: string }[];
             if (target.kind === 'trackAligned') {
                 refs = trackAlignedPlatformManager
-                    .findShiftsReferencingStopPosition(target.platformId, stopId, shiftTemplateManager)
-                    .map((s) => ({ id: s.id, name: s.name }));
+                    .findShiftsReferencingStopPosition(
+                        target.platformId,
+                        stopId,
+                        shiftTemplateManager
+                    )
+                    .map(s => ({ id: s.id, name: s.name }));
             } else {
                 refs = stationManager
-                    .findShiftsReferencingStopPosition(target.stationId, target.platformId, stopId, shiftTemplateManager)
-                    .map((s) => ({ id: s.id, name: s.name }));
+                    .findShiftsReferencingStopPosition(
+                        target.stationId,
+                        target.platformId,
+                        stopId,
+                        shiftTemplateManager
+                    )
+                    .map(s => ({ id: s.id, name: s.name }));
             }
 
             if (refs.length > 0) {
-                setPendingDelete({ stopId, referencingShifts: refs.map((r) => r.name) });
+                setPendingDelete({
+                    stopId,
+                    referencingShifts: refs.map(r => r.name),
+                });
                 return;
             }
 
             // No references — delete immediately.
             if (target.kind === 'trackAligned') {
-                trackAlignedPlatformManager.removeStopPosition(target.platformId, stopId);
+                trackAlignedPlatformManager.removeStopPosition(
+                    target.platformId,
+                    stopId
+                );
             } else {
-                stationManager.removeStopPosition(target.stationId, target.platformId, stopId);
+                stationManager.removeStopPosition(
+                    target.stationId,
+                    target.platformId,
+                    stopId
+                );
             }
             onStopChange?.();
             bump();
         },
-        [target, stationManager, trackAlignedPlatformManager, shiftTemplateManager, onStopChange],
+        [
+            target,
+            stationManager,
+            trackAlignedPlatformManager,
+            shiftTemplateManager,
+            onStopChange,
+        ]
     );
 
     const handleConfirmDelete = useCallback(() => {
         if (!pendingDelete) return;
         if (target.kind === 'trackAligned') {
-            trackAlignedPlatformManager.removeStopPosition(target.platformId, pendingDelete.stopId);
+            trackAlignedPlatformManager.removeStopPosition(
+                target.platformId,
+                pendingDelete.stopId
+            );
         } else {
-            stationManager.removeStopPosition(target.stationId, target.platformId, pendingDelete.stopId);
+            stationManager.removeStopPosition(
+                target.stationId,
+                target.platformId,
+                pendingDelete.stopId
+            );
         }
         setPendingDelete(null);
         onStopChange?.();
         bump();
-    }, [pendingDelete, target, stationManager, trackAlignedPlatformManager, onStopChange]);
+    }, [
+        pendingDelete,
+        target,
+        stationManager,
+        trackAlignedPlatformManager,
+        onStopChange,
+    ]);
 
     const handleAddStop = useCallback(() => {
         if (!spine) return;
@@ -659,15 +738,26 @@ export function PlatformEditorPanel({
                 tValue: mid.tValue,
             });
         } else {
-            stationManager.addStopPosition(target.stationId, target.platformId, {
-                trackSegmentId: mid.trackSegmentId,
-                direction: 'tangent',
-                tValue: mid.tValue,
-            });
+            stationManager.addStopPosition(
+                target.stationId,
+                target.platformId,
+                {
+                    trackSegmentId: mid.trackSegmentId,
+                    direction: 'tangent',
+                    tValue: mid.tValue,
+                }
+            );
         }
         onStopChange?.();
         bump();
-    }, [spine, getCurve, target, stationManager, trackAlignedPlatformManager, onStopChange]);
+    }, [
+        spine,
+        getCurve,
+        target,
+        stationManager,
+        trackAlignedPlatformManager,
+        onStopChange,
+    ]);
 
     // --- Render ---
 
@@ -696,7 +786,12 @@ export function PlatformEditorPanel({
                 <div className="flex max-h-48 flex-col gap-1 overflow-y-auto py-1">
                     {stops.map((stop, arrayIndex) => {
                         const normalized = spine
-                            ? stopToNormalized(spine, stop.trackSegmentId, stop.tValue, getCurve)
+                            ? stopToNormalized(
+                                  spine,
+                                  stop.trackSegmentId,
+                                  stop.tValue,
+                                  getCurve
+                              )
                             : 0;
                         return (
                             <div
@@ -712,10 +807,10 @@ export function PlatformEditorPanel({
                                     max={1}
                                     step={0.001}
                                     value={normalized}
-                                    onChange={(e) =>
+                                    onChange={e =>
                                         handleSliderChange(
                                             stop.id,
-                                            parseFloat(e.target.value),
+                                            parseFloat(e.target.value)
                                         )
                                     }
                                     className="h-1 flex-1"
@@ -726,7 +821,7 @@ export function PlatformEditorPanel({
                                     onClick={() =>
                                         handleDirectionToggle(
                                             stop.id,
-                                            stop.direction,
+                                            stop.direction
                                         )
                                     }
                                     title={stop.direction}
@@ -770,7 +865,9 @@ export function PlatformEditorPanel({
                         <p className="text-muted-foreground mt-1 text-[10px]">
                             {t('confirmDeleteStopMessage', {
                                 count: pendingDelete.referencingShifts.length,
-                                shifts: pendingDelete.referencingShifts.join(', '),
+                                shifts: pendingDelete.referencingShifts.join(
+                                    ', '
+                                ),
                             })}
                         </p>
                         <div className="mt-2 flex gap-1">
@@ -828,13 +925,18 @@ Edit `src/components/toolbar/BananaToolbar.tsx`.
 Add imports near the top:
 
 ```ts
-import { PlatformEditorPanel, type PlatformTarget } from './PlatformEditorPanel';
+import {
+    PlatformEditorPanel,
+    type PlatformTarget,
+} from './PlatformEditorPanel';
 ```
 
 Inside the `BananaToolbar` component function, add local state:
 
 ```ts
-const [editingPlatform, setEditingPlatform] = useState<PlatformTarget | null>(null);
+const [editingPlatform, setEditingPlatform] = useState<PlatformTarget | null>(
+    null
+);
 ```
 
 (Add `useState` to the existing React import if not already there.)
@@ -854,17 +956,19 @@ onEditPlatform={(stationId, platformId, platformKind) => {
 After the `StationListPanel` render block (around line 1319), add:
 
 ```tsx
-{editingPlatform && (
-    <PlatformEditorPanel
-        target={editingPlatform}
-        stationManager={app.stationManager}
-        trackAlignedPlatformManager={app.trackAlignedPlatformManager}
-        shiftTemplateManager={app.timetableManager.shiftTemplateManager}
-        trackGraph={app.curveEngine.trackGraph}
-        onClose={() => setEditingPlatform(null)}
-        onStopChange={() => app.debugOverlayRenderSystem.refresh()}
-    />
-)}
+{
+    editingPlatform && (
+        <PlatformEditorPanel
+            target={editingPlatform}
+            stationManager={app.stationManager}
+            trackAlignedPlatformManager={app.trackAlignedPlatformManager}
+            shiftTemplateManager={app.timetableManager.shiftTemplateManager}
+            trackGraph={app.curveEngine.trackGraph}
+            onClose={() => setEditingPlatform(null)}
+            onStopChange={() => app.debugOverlayRenderSystem.refresh()}
+        />
+    );
+}
 ```
 
 - [ ] **Step 2: Verify the build compiles and tests pass.**
@@ -877,6 +981,7 @@ Expected: all green.
 Run: `bun run dev`. Open the station list panel. Click a platform chip (e.g. `P0` or `T3`). Confirm the `PlatformEditorPanel` opens beside the station list, showing the platform's stop positions with sliders and direction toggles.
 
 Test the golden path:
+
 1. Drag a slider → the debug overlay's stop marker moves in real time.
 2. Click the direction toggle → the debug overlay arrow flips.
 3. Click "Add stop" → a new row appears at the midpoint.
@@ -901,13 +1006,13 @@ After completing the tasks above, verify:
 - [ ] `bun test` — full suite passes.
 - [ ] `bun run build` — production build succeeds.
 - [ ] `bun run dev` (manual) — full golden-path walkthrough:
-  - Open station list → see platform chips under each station.
-  - Click a chip → PlatformEditorPanel opens.
-  - Drag slider → stop position moves; debug overlay updates in real time.
-  - Toggle direction → arrow flips.
-  - Add a stop → new row at midpoint.
-  - Delete an unreferenced stop → immediate removal.
-  - Delete a referenced stop → confirmation dialog → confirm → removal.
-  - Close the editor → panel disappears.
+    - Open station list → see platform chips under each station.
+    - Click a chip → PlatformEditorPanel opens.
+    - Drag slider → stop position moves; debug overlay updates in real time.
+    - Toggle direction → arrow flips.
+    - Add a stop → new row at midpoint.
+    - Delete an unreferenced stop → immediate removal.
+    - Delete a referenced stop → confirmation dialog → confirm → removal.
+    - Close the editor → panel disappears.
 - [ ] Load a saved scene with pre-existing stop positions → editor shows them correctly.
 - [ ] Timetable still functions: create a shift referencing a stop position → auto-driver stops at the correct location.

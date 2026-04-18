@@ -1,12 +1,14 @@
-import { Container, Graphics, MeshSimple, Texture } from 'pixi.js';
 import type { Point } from '@ue-too/math';
-import type { TrackGraph } from '@/trains/tracks/track';
-import type { TrackTextureRenderer } from '@/trains/tracks/render-system';
+import { Container, Graphics, MeshSimple, Texture } from 'pixi.js';
+
 import { LEVEL_HEIGHT } from '@/trains/tracks/constants';
+import type { TrackTextureRenderer } from '@/trains/tracks/render-system';
+import type { TrackGraph } from '@/trains/tracks/track';
 import type { WorldRenderSystem } from '@/world-render-system';
+
+import { sampleSpineEdge } from './spine-utils';
 import type { TrackAlignedPlatformManager } from './track-aligned-platform-manager';
 import type { TrackAlignedPlatform } from './track-aligned-platform-types';
-import { sampleSpineEdge } from './spine-utils';
 
 /** World-space length per one repeat of the platform texture (tiling). */
 const PLATFORM_TEXTURE_TILE_LEN = 2;
@@ -36,13 +38,14 @@ function cumulativeArcLengths(pts: Point[]): number[] {
 function samplePolylineAtArcLength(
     polyline: Point[],
     arcLens: number[],
-    targetArc: number,
+    targetArc: number
 ): Point {
     if (polyline.length <= 1) return polyline[0] ?? { x: 0, y: 0 };
     for (let i = 0; i < polyline.length - 1; i++) {
         if (targetArc <= arcLens[i + 1] || i === polyline.length - 2) {
             const segArc = arcLens[i + 1] - arcLens[i];
-            const t = segArc > 0 ? Math.min(1, (targetArc - arcLens[i]) / segArc) : 0;
+            const t =
+                segArc > 0 ? Math.min(1, (targetArc - arcLens[i]) / segArc) : 0;
             return {
                 x: polyline[i].x + t * (polyline[i + 1].x - polyline[i].x),
                 y: polyline[i].y + t * (polyline[i + 1].y - polyline[i].y),
@@ -59,7 +62,7 @@ function samplePolylineAtArcLength(
 function projectOntoPolyline(
     pt: Point,
     polyline: Point[],
-    arcLengths: number[],
+    arcLengths: number[]
 ): { arcLength: number; dist: number } {
     let bestDistSq = Infinity;
     let bestArc = 0;
@@ -75,7 +78,10 @@ function projectOntoPolyline(
 
         let t = 0;
         if (segLenSq > 1e-12) {
-            t = Math.max(0, Math.min(1, ((pt.x - ax) * abx + (pt.y - ay) * aby) / segLenSq));
+            t = Math.max(
+                0,
+                Math.min(1, ((pt.x - ax) * abx + (pt.y - ay) * aby) / segLenSq)
+            );
         }
 
         const projX = ax + t * abx;
@@ -131,7 +137,7 @@ export class TrackAlignedPlatformRenderSystem {
         worldRenderSystem: WorldRenderSystem,
         platformManager: TrackAlignedPlatformManager,
         trackGraph: TrackGraph,
-        textureRenderer?: TrackTextureRenderer | null,
+        textureRenderer?: TrackTextureRenderer | null
     ) {
         this._worldRenderSystem = worldRenderSystem;
         this._platformManager = platformManager;
@@ -157,8 +163,14 @@ export class TrackAlignedPlatformRenderSystem {
 
         const key = platformKey(id);
         const elevationRaw = elevation * LEVEL_HEIGHT;
-        const bandIndex = this._worldRenderSystem.getElevationBandIndex(elevationRaw);
-        this._worldRenderSystem.addToBand(key, container, bandIndex, 'drawable');
+        const bandIndex =
+            this._worldRenderSystem.getElevationBandIndex(elevationRaw);
+        this._worldRenderSystem.addToBand(
+            key,
+            container,
+            bandIndex,
+            'drawable'
+        );
         this._worldRenderSystem.setOrderInBand(key, 450);
         this._worldRenderSystem.sortChildren();
 
@@ -183,7 +195,10 @@ export class TrackAlignedPlatformRenderSystem {
         if (this._previewGraphics === null) {
             this._previewGraphics = new Graphics();
             this._previewGraphics.zIndex = 9999;
-            this._worldRenderSystem.addDrawable(this._previewKey, this._previewGraphics);
+            this._worldRenderSystem.addDrawable(
+                this._previewKey,
+                this._previewGraphics
+            );
         }
         return this._previewGraphics;
     }
@@ -192,7 +207,12 @@ export class TrackAlignedPlatformRenderSystem {
      * Show a highlight along a track segment to indicate it can be clicked.
      * Used in PICK_START state when the cursor is near a track.
      */
-    showTrackHighlight(segmentId: number, projectionT: number, side: 1 | -1, offset: number): void {
+    showTrackHighlight(
+        segmentId: number,
+        projectionT: number,
+        side: 1 | -1,
+        offset: number
+    ): void {
         const curve = this._trackGraph.getTrackSegmentCurve(segmentId);
         if (curve === null) return;
 
@@ -240,7 +260,7 @@ export class TrackAlignedPlatformRenderSystem {
         spinePoints: Point[],
         outerVertices: Point[],
         startAnchor: Point | null,
-        endAnchor: Point | null,
+        endAnchor: Point | null
     ): void {
         const g = this._ensurePreviewGraphics();
         g.clear();
@@ -299,7 +319,7 @@ export class TrackAlignedPlatformRenderSystem {
         spineAStartAnchor: Point | null,
         spineAEndAnchor: Point | null,
         spineBStartAnchor: Point | null,
-        spineBEndAnchor: Point | null,
+        spineBEndAnchor: Point | null
     ): void {
         const g = this._ensurePreviewGraphics();
         g.clear();
@@ -396,7 +416,7 @@ export class TrackAlignedPlatformRenderSystem {
         spineAEndAnchor: Point,
         spineBStartAnchor: Point,
         spineBEndAnchor: Point,
-        cursorNearBEnd: boolean,
+        cursorNearBEnd: boolean
     ): void {
         const g = this._ensurePreviewGraphics();
         g.clear();
@@ -465,7 +485,7 @@ export class TrackAlignedPlatformRenderSystem {
         lastPoint: Point | null,
         cursorOrSnap: Point,
         closingAnchor: Point | null,
-        isNearClosing: boolean,
+        isNearClosing: boolean
     ): void {
         const g = this._ensurePreviewGraphics();
 
@@ -478,7 +498,11 @@ export class TrackAlignedPlatformRenderSystem {
 
         // Snap ring around closing anchor.
         if (closingAnchor !== null) {
-            g.circle(closingAnchor.x, closingAnchor.y, isNearClosing ? 1.0 : 0.6);
+            g.circle(
+                closingAnchor.x,
+                closingAnchor.y,
+                isNearClosing ? 1.0 : 0.6
+            );
             g.stroke({
                 color: isNearClosing ? 0x44ff88 : 0xf0cc00,
                 alpha: isNearClosing ? 0.9 : 0.3,
@@ -560,13 +584,22 @@ export class TrackAlignedPlatformRenderSystem {
 
         const getCurve = (segmentId: number) => {
             const curve = this._trackGraph.getTrackSegmentCurve(segmentId);
-            if (curve === null) throw new Error(`Missing curve for segment ${segmentId}`);
+            if (curve === null)
+                throw new Error(`Missing curve for segment ${segmentId}`);
             return curve;
         };
 
         try {
-            const trackEdge = sampleSpineEdge(platform.spine, platform.offset, getCurve);
-            return this._buildSingleSpineStripMesh(trackEdge, platform.outerVertices, texture);
+            const trackEdge = sampleSpineEdge(
+                platform.spine,
+                platform.offset,
+                getCurve
+            );
+            return this._buildSingleSpineStripMesh(
+                trackEdge,
+                platform.outerVertices,
+                texture
+            );
         } catch {
             return null;
         }
@@ -580,7 +613,7 @@ export class TrackAlignedPlatformRenderSystem {
     private _buildSingleSpineStripMesh(
         spineEdge: Point[],
         outerVerts: Point[],
-        texture: Texture,
+        texture: Texture
     ): MeshSimple | null {
         if (spineEdge.length < 2 || outerVerts.length < 1) return null;
 
@@ -602,7 +635,11 @@ export class TrackAlignedPlatformRenderSystem {
             const t = spineArcLens[i] / totalSpineArc;
             const op =
                 totalOuterArc > 0
-                    ? samplePolylineAtArcLength(alignedOuter, outerArcLens, t * totalOuterArc)
+                    ? samplePolylineAtArcLength(
+                          alignedOuter,
+                          outerArcLens,
+                          t * totalOuterArc
+                      )
                     : alignedOuter[0];
 
             const v = spineArcLens[i] / PLATFORM_TEXTURE_TILE_LEN;
@@ -632,6 +669,4 @@ export class TrackAlignedPlatformRenderSystem {
             indices: new Uint32Array(indices),
         });
     }
-
 }
-

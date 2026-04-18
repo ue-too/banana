@@ -1,4 +1,4 @@
-import { BCurve, Point } from "@ue-too/curve";
+import { BCurve, Point } from '@ue-too/curve';
 
 /** Visual style applied to track rendering. */
 export type TrackStyle = 'ballasted' | 'slab';
@@ -14,13 +14,20 @@ export enum ELEVATION {
 }
 
 /** Sorted numeric values of ELEVATION (min first). Derived at runtime so new enum members (e.g. SUB_4 = -4) are included. */
-export const ELEVATION_VALUES: number[] = (Object.values(ELEVATION).filter((v): v is number => typeof v === 'number') as ELEVATION[]).sort((a, b) => a - b);
+export const ELEVATION_VALUES: number[] = (
+    Object.values(ELEVATION).filter(
+        (v): v is number => typeof v === 'number'
+    ) as ELEVATION[]
+).sort((a, b) => a - b);
 
 /** Minimum ELEVATION value. Use this instead of hardcoding so adding lower levels (e.g. SUB_4) stays correct. */
-export const ELEVATION_MIN: ELEVATION = (ELEVATION_VALUES[0] ?? ELEVATION.SUB_3) as ELEVATION;
+export const ELEVATION_MIN: ELEVATION = (ELEVATION_VALUES[0] ??
+    ELEVATION.SUB_3) as ELEVATION;
 
 /** Maximum ELEVATION value. Use this instead of hardcoding so adding higher levels stays correct. */
-export const ELEVATION_MAX: ELEVATION = (ELEVATION_VALUES[ELEVATION_VALUES.length - 1] ?? ELEVATION.ABOVE_3) as ELEVATION;
+export const ELEVATION_MAX: ELEVATION = (ELEVATION_VALUES[
+    ELEVATION_VALUES.length - 1
+] ?? ELEVATION.ABOVE_3) as ELEVATION;
 
 export type TrackSegment = {
     t0Joint: number;
@@ -252,10 +259,16 @@ export function validateSerializedTrackData(
         const prefix = `joints[${i}]`;
 
         if (typeof j.jointNumber !== 'number' || j.jointNumber < 0) {
-            return { valid: false, error: `${prefix}.jointNumber must be a non-negative number` };
+            return {
+                valid: false,
+                error: `${prefix}.jointNumber must be a non-negative number`,
+            };
         }
         if (jointNumbers.has(j.jointNumber)) {
-            return { valid: false, error: `${prefix}.jointNumber ${j.jointNumber} is duplicated` };
+            return {
+                valid: false,
+                error: `${prefix}.jointNumber ${j.jointNumber} is duplicated`,
+            };
         }
         jointNumbers.add(j.jointNumber);
 
@@ -266,26 +279,55 @@ export function validateSerializedTrackData(
             return { valid: false, error: `${prefix}.tangent must be {x, y}` };
         }
         if (!Array.isArray(j.connections)) {
-            return { valid: false, error: `${prefix}.connections must be an array of [number, number] pairs` };
+            return {
+                valid: false,
+                error: `${prefix}.connections must be an array of [number, number] pairs`,
+            };
         }
         for (let ci = 0; ci < (j.connections as unknown[]).length; ci++) {
             const pair = (j.connections as unknown[])[ci];
-            if (!Array.isArray(pair) || pair.length !== 2 || typeof pair[0] !== 'number' || typeof pair[1] !== 'number') {
-                return { valid: false, error: `${prefix}.connections[${ci}] must be a [number, number] tuple` };
+            if (
+                !Array.isArray(pair) ||
+                pair.length !== 2 ||
+                typeof pair[0] !== 'number' ||
+                typeof pair[1] !== 'number'
+            ) {
+                return {
+                    valid: false,
+                    error: `${prefix}.connections[${ci}] must be a [number, number] tuple`,
+                };
             }
         }
         if (typeof j.elevation !== 'number') {
-            return { valid: false, error: `${prefix}.elevation must be a number` };
+            return {
+                valid: false,
+                error: `${prefix}.elevation must be a number`,
+            };
         }
         if (j.direction == null || typeof j.direction !== 'object') {
-            return { valid: false, error: `${prefix}.direction must be an object` };
+            return {
+                valid: false,
+                error: `${prefix}.direction must be an object`,
+            };
         }
         const dir = j.direction as Record<string, unknown>;
-        if (!Array.isArray(dir.tangent) || !dir.tangent.every((v: unknown) => typeof v === 'number')) {
-            return { valid: false, error: `${prefix}.direction.tangent must be a number[]` };
+        if (
+            !Array.isArray(dir.tangent) ||
+            !dir.tangent.every((v: unknown) => typeof v === 'number')
+        ) {
+            return {
+                valid: false,
+                error: `${prefix}.direction.tangent must be a number[]`,
+            };
         }
-        if (!Array.isArray(dir.reverseTangent) || !dir.reverseTangent.every((v: unknown) => typeof v === 'number')) {
-            return { valid: false, error: `${prefix}.direction.reverseTangent must be a number[]` };
+        if (
+            !Array.isArray(dir.reverseTangent) ||
+            !dir.reverseTangent.every((v: unknown) => typeof v === 'number')
+        ) {
+            return {
+                valid: false,
+                error: `${prefix}.direction.reverseTangent must be a number[]`,
+            };
         }
     }
 
@@ -296,48 +338,89 @@ export function validateSerializedTrackData(
         const prefix = `segments[${i}]`;
 
         if (typeof s.segmentNumber !== 'number' || s.segmentNumber < 0) {
-            return { valid: false, error: `${prefix}.segmentNumber must be a non-negative number` };
+            return {
+                valid: false,
+                error: `${prefix}.segmentNumber must be a non-negative number`,
+            };
         }
         if (segmentNumbers.has(s.segmentNumber)) {
-            return { valid: false, error: `${prefix}.segmentNumber ${s.segmentNumber} is duplicated` };
+            return {
+                valid: false,
+                error: `${prefix}.segmentNumber ${s.segmentNumber} is duplicated`,
+            };
         }
         segmentNumbers.add(s.segmentNumber);
 
         if (!Array.isArray(s.controlPoints) || s.controlPoints.length < 2) {
-            return { valid: false, error: `${prefix}.controlPoints must be an array of at least 2 points` };
+            return {
+                valid: false,
+                error: `${prefix}.controlPoints must be an array of at least 2 points`,
+            };
         }
         for (let pi = 0; pi < (s.controlPoints as unknown[]).length; pi++) {
             if (!isPoint((s.controlPoints as unknown[])[pi])) {
-                return { valid: false, error: `${prefix}.controlPoints[${pi}] must be {x, y}` };
+                return {
+                    valid: false,
+                    error: `${prefix}.controlPoints[${pi}] must be {x, y}`,
+                };
             }
         }
 
         if (typeof s.t0Joint !== 'number') {
-            return { valid: false, error: `${prefix}.t0Joint must be a number` };
+            return {
+                valid: false,
+                error: `${prefix}.t0Joint must be a number`,
+            };
         }
         if (typeof s.t1Joint !== 'number') {
-            return { valid: false, error: `${prefix}.t1Joint must be a number` };
+            return {
+                valid: false,
+                error: `${prefix}.t1Joint must be a number`,
+            };
         }
         if (!jointNumbers.has(s.t0Joint)) {
-            return { valid: false, error: `${prefix}.t0Joint (${s.t0Joint}) references a non-existent joint` };
+            return {
+                valid: false,
+                error: `${prefix}.t0Joint (${s.t0Joint}) references a non-existent joint`,
+            };
         }
         if (!jointNumbers.has(s.t1Joint)) {
-            return { valid: false, error: `${prefix}.t1Joint (${s.t1Joint}) references a non-existent joint` };
+            return {
+                valid: false,
+                error: `${prefix}.t1Joint (${s.t1Joint}) references a non-existent joint`,
+            };
         }
 
         if (s.elevation == null || typeof s.elevation !== 'object') {
-            return { valid: false, error: `${prefix}.elevation must be {from, to}` };
+            return {
+                valid: false,
+                error: `${prefix}.elevation must be {from, to}`,
+            };
         }
         const elev = s.elevation as Record<string, unknown>;
         if (typeof elev.from !== 'number' || typeof elev.to !== 'number') {
-            return { valid: false, error: `${prefix}.elevation.from and .to must be numbers` };
+            return {
+                valid: false,
+                error: `${prefix}.elevation.from and .to must be numbers`,
+            };
         }
 
         if (typeof s.gauge !== 'number' || s.gauge <= 0) {
-            return { valid: false, error: `${prefix}.gauge must be a positive number` };
+            return {
+                valid: false,
+                error: `${prefix}.gauge must be a positive number`,
+            };
         }
-        if (!Array.isArray(s.splits) || !(s.splits as unknown[]).every((v: unknown) => typeof v === 'number')) {
-            return { valid: false, error: `${prefix}.splits must be a number[]` };
+        if (
+            !Array.isArray(s.splits) ||
+            !(s.splits as unknown[]).every(
+                (v: unknown) => typeof v === 'number'
+            )
+        ) {
+            return {
+                valid: false,
+                error: `${prefix}.splits must be a number[]`,
+            };
         }
     }
 
@@ -345,5 +428,10 @@ export function validateSerializedTrackData(
 }
 
 function isPoint(v: unknown): v is Point {
-    return v != null && typeof v === 'object' && typeof (v as Record<string, unknown>).x === 'number' && typeof (v as Record<string, unknown>).y === 'number';
+    return (
+        v != null &&
+        typeof v === 'object' &&
+        typeof (v as Record<string, unknown>).x === 'number' &&
+        typeof (v as Record<string, unknown>).y === 'number'
+    );
 }

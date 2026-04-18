@@ -4,7 +4,7 @@ describe('Main State Machine', () => {
     it('should hold the sub state machine state when the main state machine transition in and out of a state', () => {
         const stateMachine = createMainStateMachine();
 
-        const res = stateMachine.happens("log");
+        const res = stateMachine.happens('log');
         if (res.handled && res.output) {
             console.log('in test case res', res);
             expect(res.output.message).toBe('log in the start state');

@@ -33,7 +33,7 @@ export type SceneStore = SceneState & SceneActions;
 
 export const useSceneStore = create<SceneStore>()(
     devtools(
-        (set) => ({
+        set => ({
             // State
             activeSceneId: null,
             activeSceneName: 'Untitled Scene',
@@ -59,13 +59,14 @@ export const useSceneStore = create<SceneStore>()(
             showScenePicker: () => set({ scenePickerOpen: true }),
             hideScenePicker: () => set({ scenePickerOpen: false }),
 
-            setPendingSceneId: (id) => set({ pendingSceneId: id }),
+            setPendingSceneId: id => set({ pendingSceneId: id }),
             clearPendingScene: () => set({ pendingSceneId: null }),
 
-            setSceneLoading: (loading) => set({ sceneLoading: loading }),
-            setSceneLoadProgress: (progress) => set({ sceneLoadProgress: progress }),
+            setSceneLoading: loading => set({ sceneLoading: loading }),
+            setSceneLoadProgress: progress =>
+                set({ sceneLoadProgress: progress }),
 
-            setAutoSaveIntervalMs: (ms) => {
+            setAutoSaveIntervalMs: ms => {
                 set({ autoSaveIntervalMs: ms });
                 getSceneStorage().setPreference(
                     'autoSaveIntervalMs',
@@ -75,12 +76,13 @@ export const useSceneStore = create<SceneStore>()(
 
             initialize: async () => {
                 const storage = getSceneStorage();
-                const [savedInterval, scenes, lastActiveId] =
-                    await Promise.all([
+                const [savedInterval, scenes, lastActiveId] = await Promise.all(
+                    [
                         storage.getPreference('autoSaveIntervalMs'),
                         storage.listScenes(),
                         storage.getActiveSceneId(),
-                    ]);
+                    ]
+                );
 
                 const patch: Partial<SceneState> = { initialized: true };
 
@@ -94,9 +96,7 @@ export const useSceneStore = create<SceneStore>()(
                 if (scenes.length > 0) {
                     patch.scenePickerOpen = true;
                     if (lastActiveId) {
-                        const found = scenes.find(
-                            (s) => s.id === lastActiveId
-                        );
+                        const found = scenes.find(s => s.id === lastActiveId);
                         if (found) {
                             patch.activeSceneId = found.id;
                             patch.activeSceneName = found.name;

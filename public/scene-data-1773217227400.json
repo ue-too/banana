@@ -1,213 +1,181 @@
 {
-  "tracks": {
-    "joints": [
-      {
-        "jointNumber": 0,
-        "position": {
-          "x": -507.14453125,
-          "y": -263.28515625
-        },
-        "connections": [
-          [
-            1,
-            0
-          ]
+    "tracks": {
+        "joints": [
+            {
+                "connections": [[1, 0]],
+                "direction": {
+                    "reverseTangent": [],
+                    "tangent": [1]
+                },
+                "elevation": 0,
+                "jointNumber": 0,
+                "position": {
+                    "x": -507.14453125,
+                    "y": -263.28515625
+                },
+                "tangent": {
+                    "x": 0.3722099357522169,
+                    "y": 0.9281485677020305
+                }
+            },
+            {
+                "connections": [
+                    [0, 0],
+                    [2, 1]
+                ],
+                "direction": {
+                    "reverseTangent": [0],
+                    "tangent": [2]
+                },
+                "elevation": 0,
+                "jointNumber": 1,
+                "position": {
+                    "x": -400.375,
+                    "y": 2.95703125
+                },
+                "tangent": {
+                    "x": 0.3722099357522169,
+                    "y": 0.9281485677020305
+                }
+            },
+            {
+                "connections": [[1, 1]],
+                "direction": {
+                    "reverseTangent": [1],
+                    "tangent": []
+                },
+                "elevation": 0,
+                "jointNumber": 2,
+                "position": {
+                    "x": -45.65234375,
+                    "y": 209.74609375
+                },
+                "tangent": {
+                    "x": 0.9983015017541556,
+                    "y": 0.05825900441474934
+                }
+            }
         ],
-        "tangent": {
-          "x": 0.3722099357522169,
-          "y": 0.9281485677020305
-        },
-        "direction": {
-          "tangent": [
-            1
-          ],
-          "reverseTangent": []
-        },
-        "elevation": 0
-      },
-      {
-        "jointNumber": 1,
-        "position": {
-          "x": -400.375,
-          "y": 2.95703125
-        },
-        "connections": [
-          [
-            0,
-            0
-          ],
-          [
-            2,
-            1
-          ]
+        "segments": [
+            {
+                "controlPoints": [
+                    {
+                        "x": -507.14453125,
+                        "y": -263.28515625
+                    },
+                    {
+                        "x": -453.759765625,
+                        "y": -130.1640625
+                    },
+                    {
+                        "x": -400.375,
+                        "y": 2.95703125
+                    }
+                ],
+                "elevation": {
+                    "from": 0,
+                    "to": 0
+                },
+                "gauge": 1.067,
+                "segmentNumber": 0,
+                "splits": [],
+                "t0Joint": 0,
+                "t1Joint": 1
+            },
+            {
+                "controlPoints": [
+                    {
+                        "x": -400.375,
+                        "y": 2.95703125
+                    },
+                    {
+                        "x": -323.9608623989551,
+                        "y": 193.5045302662813
+                    },
+                    {
+                        "x": -45.65234375,
+                        "y": 209.74609375
+                    }
+                ],
+                "elevation": {
+                    "from": 0,
+                    "to": 0
+                },
+                "gauge": 1.067,
+                "segmentNumber": 1,
+                "splits": [],
+                "t0Joint": 1,
+                "t1Joint": 2
+            }
+        ]
+    },
+    "trains": {
+        "carStockIds": [],
+        "cars": [
+            {
+                "bogieOffsets": [20],
+                "bogieToEdge": 2.5,
+                "edgeToBogie": 2.5,
+                "flipped": false,
+                "id": "car-0"
+            },
+            {
+                "bogieOffsets": [20],
+                "bogieToEdge": 2.5,
+                "edgeToBogie": 2.5,
+                "flipped": false,
+                "id": "car-1"
+            },
+            {
+                "bogieOffsets": [20],
+                "bogieToEdge": 2.5,
+                "edgeToBogie": 2.5,
+                "flipped": false,
+                "id": "car-2"
+            },
+            {
+                "bogieOffsets": [20],
+                "bogieToEdge": 2.5,
+                "edgeToBogie": 2.5,
+                "flipped": false,
+                "id": "car-3"
+            }
         ],
-        "tangent": {
-          "x": 0.3722099357522169,
-          "y": 0.9281485677020305
-        },
-        "direction": {
-          "tangent": [
-            2
-          ],
-          "reverseTangent": [
-            0
-          ]
-        },
-        "elevation": 0
-      },
-      {
-        "jointNumber": 2,
-        "position": {
-          "x": -45.65234375,
-          "y": 209.74609375
-        },
-        "connections": [
-          [
-            1,
-            1
-          ]
+        "formationManagerIds": [],
+        "formations": [
+            {
+                "children": [
+                    {
+                        "id": "car-0",
+                        "type": "car"
+                    },
+                    {
+                        "id": "car-1",
+                        "type": "car"
+                    },
+                    {
+                        "id": "car-2",
+                        "type": "car"
+                    },
+                    {
+                        "id": "car-3",
+                        "type": "car"
+                    }
+                ],
+                "flipped": false,
+                "id": "formation-0"
+            }
         ],
-        "tangent": {
-          "x": 0.9983015017541556,
-          "y": 0.05825900441474934
-        },
-        "direction": {
-          "tangent": [],
-          "reverseTangent": [
-            1
-          ]
-        },
-        "elevation": 0
-      }
-    ],
-    "segments": [
-      {
-        "segmentNumber": 0,
-        "controlPoints": [
-          {
-            "x": -507.14453125,
-            "y": -263.28515625
-          },
-          {
-            "x": -453.759765625,
-            "y": -130.1640625
-          },
-          {
-            "x": -400.375,
-            "y": 2.95703125
-          }
-        ],
-        "t0Joint": 0,
-        "t1Joint": 1,
-        "elevation": {
-          "from": 0,
-          "to": 0
-        },
-        "gauge": 1.067,
-        "splits": []
-      },
-      {
-        "segmentNumber": 1,
-        "controlPoints": [
-          {
-            "x": -400.375,
-            "y": 2.95703125
-          },
-          {
-            "x": -323.9608623989551,
-            "y": 193.5045302662813
-          },
-          {
-            "x": -45.65234375,
-            "y": 209.74609375
-          }
-        ],
-        "t0Joint": 1,
-        "t1Joint": 2,
-        "elevation": {
-          "from": 0,
-          "to": 0
-        },
-        "gauge": 1.067,
-        "splits": []
-      }
-    ]
-  },
-  "trains": {
-    "cars": [
-      {
-        "id": "car-0",
-        "bogieOffsets": [
-          20
-        ],
-        "edgeToBogie": 2.5,
-        "bogieToEdge": 2.5,
-        "flipped": false
-      },
-      {
-        "id": "car-1",
-        "bogieOffsets": [
-          20
-        ],
-        "edgeToBogie": 2.5,
-        "bogieToEdge": 2.5,
-        "flipped": false
-      },
-      {
-        "id": "car-2",
-        "bogieOffsets": [
-          20
-        ],
-        "edgeToBogie": 2.5,
-        "bogieToEdge": 2.5,
-        "flipped": false
-      },
-      {
-        "id": "car-3",
-        "bogieOffsets": [
-          20
-        ],
-        "edgeToBogie": 2.5,
-        "bogieToEdge": 2.5,
-        "flipped": false
-      }
-    ],
-    "formations": [
-      {
-        "id": "formation-0",
-        "children": [
-          {
-            "type": "car",
-            "id": "car-0"
-          },
-          {
-            "type": "car",
-            "id": "car-1"
-          },
-          {
-            "type": "car",
-            "id": "car-2"
-          },
-          {
-            "type": "car",
-            "id": "car-3"
-          }
-        ],
-        "flipped": false
-      }
-    ],
-    "carStockIds": [],
-    "formationManagerIds": [],
-    "placedTrains": [
-      {
-        "id": 0,
-        "position": {
-          "trackSegment": 0,
-          "tValue": 0.9680000000000007,
-          "direction": "tangent"
-        },
-        "formationId": "formation-0"
-      }
-    ]
-  }
+        "placedTrains": [
+            {
+                "formationId": "formation-0",
+                "id": 0,
+                "position": {
+                    "direction": "tangent",
+                    "tValue": 0.9680000000000007,
+                    "trackSegment": 0
+                }
+            }
+        ]
+    }
 }

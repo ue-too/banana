@@ -41,9 +41,7 @@ export function GaugeSelector({
                             {preset.name} ({preset.width}m)
                         </SelectItem>
                     ))}
-                    <SelectItem value="custom">
-                        {t('customGauge')}
-                    </SelectItem>
+                    <SelectItem value="custom">{t('customGauge')}</SelectItem>
                 </SelectContent>
             </Select>
             {gaugePresetId === 'custom' && (
@@ -57,9 +55,7 @@ export function GaugeSelector({
                         onChange={e =>
                             onCustomGaugeChange(Number(e.target.value))
                         }
-                        onPointerUp={e =>
-                            (e.target as HTMLInputElement).blur()
-                        }
+                        onPointerUp={e => (e.target as HTMLInputElement).blur()}
                         className="h-1.5 w-24 cursor-pointer"
                     />
                     <span className="text-muted-foreground text-center text-[10px]">

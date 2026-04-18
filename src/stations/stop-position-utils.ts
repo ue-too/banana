@@ -30,7 +30,7 @@ export function nextStopPositionId(stops: readonly StopPosition[]): number {
  * The returned array contains fresh objects; the input is not mutated.
  */
 export function assignStopPositionIds(
-    inputs: readonly Omit<StopPosition, 'id'>[],
+    inputs: readonly Omit<StopPosition, 'id'>[]
 ): StopPosition[] {
     return inputs.map((input, i) => ({ id: i, ...input }));
 }

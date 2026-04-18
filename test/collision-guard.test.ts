@@ -1,9 +1,14 @@
-import { describe, it, expect, beforeEach } from 'bun:test';
-import { CrossingMap, CollisionGuard } from '../src/trains/collision-guard';
+import { beforeEach, describe, expect, it } from 'bun:test';
+
+import { CollisionGuard, CrossingMap } from '../src/trains/collision-guard';
+import type {
+    ThrottleSteps,
+    Train,
+    TrainPosition,
+} from '../src/trains/formation';
 import { OccupancyRegistry } from '../src/trains/occupancy-registry';
-import type { PlacedTrainEntry } from '../src/trains/train-manager';
-import type { Train, TrainPosition, ThrottleSteps } from '../src/trains/formation';
 import type { TrackGraph } from '../src/trains/tracks/track';
+import type { PlacedTrainEntry } from '../src/trains/train-manager';
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -12,7 +17,7 @@ import type { TrackGraph } from '../src/trains/tracks/track';
 function makePosition(
     segment: number,
     tValue: number,
-    direction: 'tangent' | 'reverseTangent' = 'tangent',
+    direction: 'tangent' | 'reverseTangent' = 'tangent'
 ): TrainPosition {
     return { trackSegment: segment, tValue, direction, point: { x: 0, y: 0 } };
 }
@@ -21,8 +26,14 @@ function mockTrain(opts: {
     headPosition: TrainPosition | null;
     bogiePositions: TrainPosition[] | null;
     speed?: number;
-    occupiedSegments?: { trackNumber: number; inTrackDirection: 'tangent' | 'reverseTangent' }[];
-    occupiedJoints?: { jointNumber: number; direction: 'tangent' | 'reverseTangent' }[];
+    occupiedSegments?: {
+        trackNumber: number;
+        inTrackDirection: 'tangent' | 'reverseTangent';
+    }[];
+    occupiedJoints?: {
+        jointNumber: number;
+        direction: 'tangent' | 'reverseTangent';
+    }[];
 }): Train {
     let speed = opts.speed ?? 0;
     let throttle: ThrottleSteps = 'N';
@@ -89,7 +100,6 @@ function mockTrackGraph(segmentFullLength: number = 100): TrackGraph {
 // ---------------------------------------------------------------------------
 
 describe('CrossingMap', () => {
-
     let map: CrossingMap;
 
     beforeEach(() => {
@@ -97,19 +107,26 @@ describe('CrossingMap', () => {
     });
 
     describe('addCrossing — bidirectional entries', () => {
-
         it('creates an entry for A referencing B', () => {
             map.addCrossing(1, 0.3, 2, 0.7);
             const crossings = map.getCrossings(1);
             expect(crossings).toHaveLength(1);
-            expect(crossings[0]).toMatchObject({ crossingSegment: 2, selfT: 0.3, otherT: 0.7 });
+            expect(crossings[0]).toMatchObject({
+                crossingSegment: 2,
+                selfT: 0.3,
+                otherT: 0.7,
+            });
         });
 
         it('creates a mirrored entry for B referencing A', () => {
             map.addCrossing(1, 0.3, 2, 0.7);
             const crossings = map.getCrossings(2);
             expect(crossings).toHaveLength(1);
-            expect(crossings[0]).toMatchObject({ crossingSegment: 1, selfT: 0.7, otherT: 0.3 });
+            expect(crossings[0]).toMatchObject({
+                crossingSegment: 1,
+                selfT: 0.7,
+                otherT: 0.3,
+            });
         });
 
         it('accumulates multiple crossings for the same segment', () => {
@@ -122,7 +139,6 @@ describe('CrossingMap', () => {
     });
 
     describe('getCrossings — unknown segment returns empty array', () => {
-
         it('returns empty array for a segment with no crossings', () => {
             expect(map.getCrossings(99)).toHaveLength(0);
         });
@@ -135,7 +151,6 @@ describe('CrossingMap', () => {
     });
 
     describe('removeSegment — cleans up both sides', () => {
-
         it('removes the segment itself', () => {
             map.addCrossing(1, 0.3, 2, 0.7);
             map.removeSegment(1);
@@ -176,7 +191,6 @@ describe('CrossingMap', () => {
 // ---------------------------------------------------------------------------
 
 describe('CollisionGuard', () => {
-
     let registry: OccupancyRegistry;
     let crossingMap: CrossingMap;
 
@@ -186,7 +200,6 @@ describe('CollisionGuard', () => {
     });
 
     describe('Tier 2 hard stop (distance <= 5)', () => {
-
         it('calls emergencyStop on both trains when approaching within critical distance', () => {
             // Segment 100 units long. trainA at t=0.04 (arc=4), trainB at t=0.07 (arc=7).
             // Distance = |4-7| = 3 <= 5. trainA tangent (moving up), trainB reverseTangent (moving down) → approaching.
@@ -197,13 +210,17 @@ describe('CollisionGuard', () => {
                 headPosition: makePosition(1, 0.04, 'tangent'),
                 bogiePositions: [makePosition(1, 0.04, 'tangent')],
                 speed: 5,
-                occupiedSegments: [{ trackNumber: 1, inTrackDirection: 'tangent' }],
+                occupiedSegments: [
+                    { trackNumber: 1, inTrackDirection: 'tangent' },
+                ],
             });
             const trainB = mockTrain({
                 headPosition: makePosition(1, 0.07, 'reverseTangent'),
                 bogiePositions: [makePosition(1, 0.07, 'reverseTangent')],
                 speed: 5,
-                occupiedSegments: [{ trackNumber: 1, inTrackDirection: 'reverseTangent' }],
+                occupiedSegments: [
+                    { trackNumber: 1, inTrackDirection: 'reverseTangent' },
+                ],
             });
 
             const entries = [entry(1, trainA), entry(2, trainB)];
@@ -220,7 +237,6 @@ describe('CollisionGuard', () => {
     });
 
     describe('Tier 1 emergency brake (distance <= brakingDistance * 1.8)', () => {
-
         it('sets throttle to er on both trains within braking distance', () => {
             // Segment 1000 units long. speed=10. brakingDistance = 10² / (2*1.3) ≈ 38.46.
             // threshold = 38.46 * 1.8 ≈ 69.23 units.
@@ -230,16 +246,20 @@ describe('CollisionGuard', () => {
             const guard = new CollisionGuard(trackGraph, crossingMap);
 
             const trainA = mockTrain({
-                headPosition: makePosition(1, 0.10, 'tangent'),
-                bogiePositions: [makePosition(1, 0.10, 'tangent')],
+                headPosition: makePosition(1, 0.1, 'tangent'),
+                bogiePositions: [makePosition(1, 0.1, 'tangent')],
                 speed: 10,
-                occupiedSegments: [{ trackNumber: 1, inTrackDirection: 'tangent' }],
+                occupiedSegments: [
+                    { trackNumber: 1, inTrackDirection: 'tangent' },
+                ],
             });
             const trainB = mockTrain({
                 headPosition: makePosition(1, 0.15, 'reverseTangent'),
                 bogiePositions: [makePosition(1, 0.15, 'reverseTangent')],
                 speed: 10,
-                occupiedSegments: [{ trackNumber: 1, inTrackDirection: 'reverseTangent' }],
+                occupiedSegments: [
+                    { trackNumber: 1, inTrackDirection: 'reverseTangent' },
+                ],
             });
 
             const entries = [entry(1, trainA), entry(2, trainB)];
@@ -256,7 +276,6 @@ describe('CollisionGuard', () => {
     });
 
     describe('No trigger — trains moving apart', () => {
-
         it('does not intervene when trains are moving away from each other', () => {
             // trainA at t=0.04 moving reverseTangent (away from trainB above it)
             // trainB at t=0.07 moving tangent (away from trainA below it)
@@ -268,13 +287,17 @@ describe('CollisionGuard', () => {
                 headPosition: makePosition(1, 0.04, 'reverseTangent'),
                 bogiePositions: [makePosition(1, 0.04, 'reverseTangent')],
                 speed: 5,
-                occupiedSegments: [{ trackNumber: 1, inTrackDirection: 'reverseTangent' }],
+                occupiedSegments: [
+                    { trackNumber: 1, inTrackDirection: 'reverseTangent' },
+                ],
             });
             const trainB = mockTrain({
                 headPosition: makePosition(1, 0.07, 'tangent'),
                 bogiePositions: [makePosition(1, 0.07, 'tangent')],
                 speed: 5,
-                occupiedSegments: [{ trackNumber: 1, inTrackDirection: 'tangent' }],
+                occupiedSegments: [
+                    { trackNumber: 1, inTrackDirection: 'tangent' },
+                ],
             });
 
             const entries = [entry(1, trainA), entry(2, trainB)];
@@ -289,7 +312,6 @@ describe('CollisionGuard', () => {
     });
 
     describe('No trigger — both trains stopped', () => {
-
         it('skips collision check when both trains have speed === 0', () => {
             const trackGraph = mockTrackGraph(100);
             const guard = new CollisionGuard(trackGraph, crossingMap);
@@ -298,13 +320,17 @@ describe('CollisionGuard', () => {
                 headPosition: makePosition(1, 0.04, 'tangent'),
                 bogiePositions: [makePosition(1, 0.04, 'tangent')],
                 speed: 0,
-                occupiedSegments: [{ trackNumber: 1, inTrackDirection: 'tangent' }],
+                occupiedSegments: [
+                    { trackNumber: 1, inTrackDirection: 'tangent' },
+                ],
             });
             const trainB = mockTrain({
                 headPosition: makePosition(1, 0.07, 'reverseTangent'),
                 bogiePositions: [makePosition(1, 0.07, 'reverseTangent')],
                 speed: 0,
-                occupiedSegments: [{ trackNumber: 1, inTrackDirection: 'reverseTangent' }],
+                occupiedSegments: [
+                    { trackNumber: 1, inTrackDirection: 'reverseTangent' },
+                ],
             });
 
             const entries = [entry(1, trainA), entry(2, trainB)];
@@ -317,7 +343,6 @@ describe('CollisionGuard', () => {
     });
 
     describe('No trigger — trains on different segments', () => {
-
         it('does not intervene when trains are on different segments (not colocated)', () => {
             const trackGraph = mockTrackGraph(100);
             const guard = new CollisionGuard(trackGraph, crossingMap);
@@ -326,13 +351,17 @@ describe('CollisionGuard', () => {
                 headPosition: makePosition(1, 0.04, 'tangent'),
                 bogiePositions: [makePosition(1, 0.04, 'tangent')],
                 speed: 5,
-                occupiedSegments: [{ trackNumber: 1, inTrackDirection: 'tangent' }],
+                occupiedSegments: [
+                    { trackNumber: 1, inTrackDirection: 'tangent' },
+                ],
             });
             const trainB = mockTrain({
                 headPosition: makePosition(2, 0.07, 'reverseTangent'),
                 bogiePositions: [makePosition(2, 0.07, 'reverseTangent')],
                 speed: 5,
-                occupiedSegments: [{ trackNumber: 2, inTrackDirection: 'reverseTangent' }],
+                occupiedSegments: [
+                    { trackNumber: 2, inTrackDirection: 'reverseTangent' },
+                ],
             });
 
             const entries = [entry(1, trainA), entry(2, trainB)];
@@ -345,7 +374,6 @@ describe('CollisionGuard', () => {
     });
 
     describe('Same-direction following collision', () => {
-
         it('Tier 2: rear train catches front train within critical distance (both tangent)', () => {
             // Segment 100 units. trainA at t=0.04 (arc=4), trainB at t=0.07 (arc=7).
             // Both tangent. Distance = 3 <= 5. Rear (A) speed=10, front (B) speed=2 → closing.
@@ -356,13 +384,17 @@ describe('CollisionGuard', () => {
                 headPosition: makePosition(1, 0.04, 'tangent'),
                 bogiePositions: [makePosition(1, 0.04, 'tangent')],
                 speed: 10,
-                occupiedSegments: [{ trackNumber: 1, inTrackDirection: 'tangent' }],
+                occupiedSegments: [
+                    { trackNumber: 1, inTrackDirection: 'tangent' },
+                ],
             });
             const trainB = mockTrain({
                 headPosition: makePosition(1, 0.07, 'tangent'),
                 bogiePositions: [makePosition(1, 0.07, 'tangent')],
                 speed: 2,
-                occupiedSegments: [{ trackNumber: 1, inTrackDirection: 'tangent' }],
+                occupiedSegments: [
+                    { trackNumber: 1, inTrackDirection: 'tangent' },
+                ],
             });
 
             const entries = [entry(1, trainA), entry(2, trainB)];
@@ -387,13 +419,17 @@ describe('CollisionGuard', () => {
                 headPosition: makePosition(1, 0.07, 'reverseTangent'),
                 bogiePositions: [makePosition(1, 0.07, 'reverseTangent')],
                 speed: 10,
-                occupiedSegments: [{ trackNumber: 1, inTrackDirection: 'reverseTangent' }],
+                occupiedSegments: [
+                    { trackNumber: 1, inTrackDirection: 'reverseTangent' },
+                ],
             });
             const trainB = mockTrain({
                 headPosition: makePosition(1, 0.04, 'reverseTangent'),
                 bogiePositions: [makePosition(1, 0.04, 'reverseTangent')],
                 speed: 2,
-                occupiedSegments: [{ trackNumber: 1, inTrackDirection: 'reverseTangent' }],
+                occupiedSegments: [
+                    { trackNumber: 1, inTrackDirection: 'reverseTangent' },
+                ],
             });
 
             const entries = [entry(1, trainA), entry(2, trainB)];
@@ -417,16 +453,20 @@ describe('CollisionGuard', () => {
             const guard = new CollisionGuard(trackGraph, crossingMap);
 
             const trainA = mockTrain({
-                headPosition: makePosition(1, 0.10, 'tangent'),
-                bogiePositions: [makePosition(1, 0.10, 'tangent')],
+                headPosition: makePosition(1, 0.1, 'tangent'),
+                bogiePositions: [makePosition(1, 0.1, 'tangent')],
                 speed: 20,
-                occupiedSegments: [{ trackNumber: 1, inTrackDirection: 'tangent' }],
+                occupiedSegments: [
+                    { trackNumber: 1, inTrackDirection: 'tangent' },
+                ],
             });
             const trainB = mockTrain({
                 headPosition: makePosition(1, 0.15, 'tangent'),
                 bogiePositions: [makePosition(1, 0.15, 'tangent')],
                 speed: 2,
-                occupiedSegments: [{ trackNumber: 1, inTrackDirection: 'tangent' }],
+                occupiedSegments: [
+                    { trackNumber: 1, inTrackDirection: 'tangent' },
+                ],
             });
 
             const entries = [entry(1, trainA), entry(2, trainB)];
@@ -449,13 +489,17 @@ describe('CollisionGuard', () => {
                 headPosition: makePosition(1, 0.04, 'tangent'),
                 bogiePositions: [makePosition(1, 0.04, 'tangent')],
                 speed: 2,
-                occupiedSegments: [{ trackNumber: 1, inTrackDirection: 'tangent' }],
+                occupiedSegments: [
+                    { trackNumber: 1, inTrackDirection: 'tangent' },
+                ],
             });
             const trainB = mockTrain({
                 headPosition: makePosition(1, 0.07, 'tangent'),
                 bogiePositions: [makePosition(1, 0.07, 'tangent')],
                 speed: 10,
-                occupiedSegments: [{ trackNumber: 1, inTrackDirection: 'tangent' }],
+                occupiedSegments: [
+                    { trackNumber: 1, inTrackDirection: 'tangent' },
+                ],
             });
 
             const entries = [entry(1, trainA), entry(2, trainB)];
@@ -476,13 +520,17 @@ describe('CollisionGuard', () => {
                 headPosition: makePosition(1, 0.04, 'tangent'),
                 bogiePositions: [makePosition(1, 0.04, 'tangent')],
                 speed: 5,
-                occupiedSegments: [{ trackNumber: 1, inTrackDirection: 'tangent' }],
+                occupiedSegments: [
+                    { trackNumber: 1, inTrackDirection: 'tangent' },
+                ],
             });
             const trainB = mockTrain({
                 headPosition: makePosition(1, 0.07, 'tangent'),
                 bogiePositions: [makePosition(1, 0.07, 'tangent')],
                 speed: 5,
-                occupiedSegments: [{ trackNumber: 1, inTrackDirection: 'tangent' }],
+                occupiedSegments: [
+                    { trackNumber: 1, inTrackDirection: 'tangent' },
+                ],
             });
 
             const entries = [entry(1, trainA), entry(2, trainB)];
@@ -505,13 +553,17 @@ describe('CollisionGuard', () => {
                 headPosition: makePosition(1, 0.04, 'tangent'),
                 bogiePositions: [makePosition(1, 0.04, 'tangent')],
                 speed: 5,
-                occupiedSegments: [{ trackNumber: 1, inTrackDirection: 'tangent' }],
+                occupiedSegments: [
+                    { trackNumber: 1, inTrackDirection: 'tangent' },
+                ],
             });
             const trainB = mockTrain({
                 headPosition: makePosition(1, 0.07, 'tangent'),
                 bogiePositions: [makePosition(1, 0.07, 'tangent')],
                 speed: 0,
-                occupiedSegments: [{ trackNumber: 1, inTrackDirection: 'tangent' }],
+                occupiedSegments: [
+                    { trackNumber: 1, inTrackDirection: 'tangent' },
+                ],
             });
 
             const entries = [entry(1, trainA), entry(2, trainB)];
@@ -526,7 +578,6 @@ describe('CollisionGuard', () => {
     });
 
     describe('Following collision with multi-car formations', () => {
-
         it('Tier 2: rear head is close to front tail despite large head-to-head distance', () => {
             // Segment 1000 units long. Both trains tangent.
             // Front train (B): head at t=0.60 (arc=600), last bogie at t=0.20 (arc=200).
@@ -542,18 +593,22 @@ describe('CollisionGuard', () => {
                 headPosition: makePosition(1, 0.22, 'tangent'),
                 bogiePositions: [makePosition(1, 0.22, 'tangent')],
                 speed: 10,
-                occupiedSegments: [{ trackNumber: 1, inTrackDirection: 'tangent' }],
+                occupiedSegments: [
+                    { trackNumber: 1, inTrackDirection: 'tangent' },
+                ],
             });
             const trainB = mockTrain({
-                headPosition: makePosition(1, 0.60, 'tangent'),
+                headPosition: makePosition(1, 0.6, 'tangent'),
                 bogiePositions: [
-                    makePosition(1, 0.60, 'tangent'),
-                    makePosition(1, 0.50, 'tangent'),
-                    makePosition(1, 0.40, 'tangent'),
-                    makePosition(1, 0.20, 'tangent'), // tail bogie
+                    makePosition(1, 0.6, 'tangent'),
+                    makePosition(1, 0.5, 'tangent'),
+                    makePosition(1, 0.4, 'tangent'),
+                    makePosition(1, 0.2, 'tangent'), // tail bogie
                 ],
                 speed: 2,
-                occupiedSegments: [{ trackNumber: 1, inTrackDirection: 'tangent' }],
+                occupiedSegments: [
+                    { trackNumber: 1, inTrackDirection: 'tangent' },
+                ],
             });
 
             const entries = [entry(1, trainA), entry(2, trainB)];
@@ -575,17 +630,21 @@ describe('CollisionGuard', () => {
                 headPosition: makePosition(1, 0.252, 'tangent'),
                 bogiePositions: [makePosition(1, 0.252, 'tangent')],
                 speed: 5,
-                occupiedSegments: [{ trackNumber: 1, inTrackDirection: 'tangent' }],
+                occupiedSegments: [
+                    { trackNumber: 1, inTrackDirection: 'tangent' },
+                ],
             });
             const trainB = mockTrain({
-                headPosition: makePosition(1, 0.60, 'tangent'),
+                headPosition: makePosition(1, 0.6, 'tangent'),
                 bogiePositions: [
-                    makePosition(1, 0.60, 'tangent'),
+                    makePosition(1, 0.6, 'tangent'),
                     makePosition(1, 0.45, 'tangent'),
                     makePosition(1, 0.25, 'tangent'), // tail bogie
                 ],
                 speed: 2,
-                occupiedSegments: [{ trackNumber: 1, inTrackDirection: 'tangent' }],
+                occupiedSegments: [
+                    { trackNumber: 1, inTrackDirection: 'tangent' },
+                ],
             });
 
             const entries = [entry(1, trainA), entry(2, trainB)];
@@ -607,20 +666,24 @@ describe('CollisionGuard', () => {
             const guard = new CollisionGuard(trackGraph, crossingMap);
 
             const trainA = mockTrain({
-                headPosition: makePosition(1, 0.10, 'tangent'),
-                bogiePositions: [makePosition(1, 0.10, 'tangent')],
+                headPosition: makePosition(1, 0.1, 'tangent'),
+                bogiePositions: [makePosition(1, 0.1, 'tangent')],
                 speed: 10,
-                occupiedSegments: [{ trackNumber: 1, inTrackDirection: 'tangent' }],
+                occupiedSegments: [
+                    { trackNumber: 1, inTrackDirection: 'tangent' },
+                ],
             });
             const trainB = mockTrain({
-                headPosition: makePosition(1, 0.80, 'tangent'),
+                headPosition: makePosition(1, 0.8, 'tangent'),
                 bogiePositions: [
-                    makePosition(1, 0.80, 'tangent'),
-                    makePosition(1, 0.60, 'tangent'),
+                    makePosition(1, 0.8, 'tangent'),
+                    makePosition(1, 0.6, 'tangent'),
                     makePosition(1, 0.45, 'tangent'), // tail bogie
                 ],
                 speed: 2,
-                occupiedSegments: [{ trackNumber: 1, inTrackDirection: 'tangent' }],
+                occupiedSegments: [
+                    { trackNumber: 1, inTrackDirection: 'tangent' },
+                ],
             });
 
             const entries = [entry(1, trainA), entry(2, trainB)];
@@ -642,20 +705,24 @@ describe('CollisionGuard', () => {
             const guard = new CollisionGuard(trackGraph, crossingMap);
 
             const trainA = mockTrain({
-                headPosition: makePosition(1, 0.80, 'reverseTangent'),
-                bogiePositions: [makePosition(1, 0.80, 'reverseTangent')],
+                headPosition: makePosition(1, 0.8, 'reverseTangent'),
+                bogiePositions: [makePosition(1, 0.8, 'reverseTangent')],
                 speed: 10,
-                occupiedSegments: [{ trackNumber: 1, inTrackDirection: 'reverseTangent' }],
+                occupiedSegments: [
+                    { trackNumber: 1, inTrackDirection: 'reverseTangent' },
+                ],
             });
             const trainB = mockTrain({
-                headPosition: makePosition(1, 0.30, 'reverseTangent'),
+                headPosition: makePosition(1, 0.3, 'reverseTangent'),
                 bogiePositions: [
-                    makePosition(1, 0.30, 'reverseTangent'),
-                    makePosition(1, 0.50, 'reverseTangent'),
+                    makePosition(1, 0.3, 'reverseTangent'),
+                    makePosition(1, 0.5, 'reverseTangent'),
                     makePosition(1, 0.78, 'reverseTangent'), // tail bogie (higher arc, closer to rear)
                 ],
                 speed: 2,
-                occupiedSegments: [{ trackNumber: 1, inTrackDirection: 'reverseTangent' }],
+                occupiedSegments: [
+                    { trackNumber: 1, inTrackDirection: 'reverseTangent' },
+                ],
             });
 
             const entries = [entry(1, trainA), entry(2, trainB)];
@@ -668,7 +735,6 @@ describe('CollisionGuard', () => {
     });
 
     describe('Lock clearing', () => {
-
         it('clears lock for a train that is no longer in danger', () => {
             const trackGraph = mockTrackGraph(100);
             const guard = new CollisionGuard(trackGraph, crossingMap);
@@ -677,13 +743,17 @@ describe('CollisionGuard', () => {
                 headPosition: makePosition(1, 0.04, 'tangent'),
                 bogiePositions: [makePosition(1, 0.04, 'tangent')],
                 speed: 5,
-                occupiedSegments: [{ trackNumber: 1, inTrackDirection: 'tangent' }],
+                occupiedSegments: [
+                    { trackNumber: 1, inTrackDirection: 'tangent' },
+                ],
             });
             const trainB = mockTrain({
                 headPosition: makePosition(1, 0.07, 'reverseTangent'),
                 bogiePositions: [makePosition(1, 0.07, 'reverseTangent')],
                 speed: 5,
-                occupiedSegments: [{ trackNumber: 1, inTrackDirection: 'reverseTangent' }],
+                occupiedSegments: [
+                    { trackNumber: 1, inTrackDirection: 'reverseTangent' },
+                ],
             });
 
             let entries = [entry(1, trainA), entry(2, trainB)];
@@ -710,7 +780,6 @@ describe('CollisionGuard', () => {
 // ---------------------------------------------------------------------------
 
 describe('CollisionGuard — crossing detection', () => {
-
     let registry: OccupancyRegistry;
     let crossingMap: CrossingMap;
 
@@ -883,7 +952,7 @@ describe('CollisionGuard — crossing detection', () => {
             headPosition: makePosition(1, 0.6, 'tangent'),
             bogiePositions: [
                 makePosition(1, 0.55, 'tangent'), // first bogie, past crossing
-                makePosition(1, 0.3, 'tangent'),  // last bogie, before crossing
+                makePosition(1, 0.3, 'tangent'), // last bogie, before crossing
             ],
             speed: 5,
             occupiedSegments: [{ trackNumber: 1, inTrackDirection: 'tangent' }],

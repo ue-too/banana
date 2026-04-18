@@ -1,7 +1,7 @@
 import type { Point } from '@ue-too/math';
 import { PointCal } from '@ue-too/math';
-import type { TrackSegmentDrawData } from './trains/tracks/types';
 
+import type { TrackSegmentDrawData } from './trains/tracks/types';
 
 export class GenericEntityManager<T> {
     private _availableEntities: number[] = [];
@@ -133,7 +133,9 @@ export class GenericEntityManager<T> {
      */
     createEntityWithId(entityNumber: number, entity: T): void {
         if (entityNumber < 0) {
-            throw new Error(`Entity ID ${entityNumber} is invalid (must be non-negative)`);
+            throw new Error(
+                `Entity ID ${entityNumber} is invalid (must be non-negative)`
+            );
         }
 
         while (entityNumber >= this._maxEntities) {

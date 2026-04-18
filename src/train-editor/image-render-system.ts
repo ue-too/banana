@@ -1,6 +1,11 @@
-import { Container, Graphics, Sprite, Texture, Assets } from "pixi.js";
-import type { ImageEditorEngine, EditorImage } from "./image-editor-engine";
-import type { ObservableBoardCamera, CameraState, CameraZoomEventPayload } from "@ue-too/board";
+import type {
+    CameraState,
+    CameraZoomEventPayload,
+    ObservableBoardCamera,
+} from '@ue-too/board';
+import { Assets, Container, Graphics, Sprite, Texture } from 'pixi.js';
+
+import type { EditorImage, ImageEditorEngine } from './image-editor-engine';
 
 /** Screen-space radius for visual handle circles (pixels). */
 const HANDLE_VISUAL_RADIUS_PX = 5;
@@ -54,13 +59,17 @@ export class ImageRenderSystem {
         this._unsubscribe = this._engine.onImageChanged(
             (image: EditorImage | null) => this._onImageChanged(image)
         );
-        this._camera.on('zoom', (_event: CameraZoomEventPayload, state: CameraState) => {
-            this._zoomLevel = state.zoomLevel;
-            const currentImage = this._engine.getImage();
-            if (currentImage && this._showHandles) {
-                this._drawHandlesAndBorder(currentImage);
-            }
-        }, { signal: this._abortController.signal });
+        this._camera.on(
+            'zoom',
+            (_event: CameraZoomEventPayload, state: CameraState) => {
+                this._zoomLevel = state.zoomLevel;
+                const currentImage = this._engine.getImage();
+                if (currentImage && this._showHandles) {
+                    this._drawHandlesAndBorder(currentImage);
+                }
+            },
+            { signal: this._abortController.signal }
+        );
 
         const currentImage = this._engine.getImage();
         if (currentImage) {
@@ -99,7 +108,7 @@ export class ImageRenderSystem {
                 this._container.removeChild(this._sprite);
                 this._sprite.destroy();
             }
-            const texture = await Assets.load(image.src) as Texture;
+            const texture = (await Assets.load(image.src)) as Texture;
             this._sprite = new Sprite(texture);
             this._sprite.label = image.src;
             this._sprite.anchor.set(0.5, 0.5);

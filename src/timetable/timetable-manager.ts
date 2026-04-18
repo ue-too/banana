@@ -447,7 +447,7 @@ export class TimetableManager {
         stationManager: StationManager,
         trackAlignedPlatformManager: TrackAlignedPlatformManager,
         signalStateEngine?: SignalStateEngine | null,
-        platformMigrationMap: PlatformMigrationMap = new Map(),
+        platformMigrationMap: PlatformMigrationMap = new Map()
     ): TimetableManager {
         const clock = ScheduleClock.deserialize(data.clock);
         const routeManager = RouteManager.deserialize(data.routes);
@@ -455,7 +455,7 @@ export class TimetableManager {
             data.shiftTemplates,
             stationManager,
             trackAlignedPlatformManager,
-            platformMigrationMap,
+            platformMigrationMap
         );
 
         const manager = new TimetableManager(

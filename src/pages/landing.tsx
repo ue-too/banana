@@ -1,9 +1,9 @@
 import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { Trans, useTranslation } from 'react-i18next';
 import { Link } from 'react-router';
+
 import { Github } from '@/assets/icons';
 import { APP_DISPLAY_NAME } from '@/branding';
-
 import { LedMarquee } from '@/components/led-marquee';
 import { LanguageSwitcher } from '@/components/toolbar/LanguageSwitcher';
 import { useReduceMotion } from '@/hooks/use-reduce-motion';
@@ -216,7 +216,7 @@ export function LandingPage(): React.ReactNode {
                 </button>
             </div>
 
-            <div className="flex h-full w-full items-center justify-center px-3 pb-3 pt-[4.5rem]">
+            <div className="flex h-full w-full items-center justify-center px-3 pt-[4.5rem] pb-3">
                 <div
                     className="flex justify-center"
                     style={{
@@ -228,7 +228,7 @@ export function LandingPage(): React.ReactNode {
                         ref={measureRef}
                         className="flex w-[min(100vw-1.5rem,56rem)] flex-col items-stretch"
                     >
-                        <section className="flex flex-col items-center px-4 pb-6 pt-4 sm:px-6">
+                        <section className="flex flex-col items-center px-4 pt-4 pb-6 sm:px-6">
                             <div className="relative">
                                 <span className="text-muted-foreground absolute -top-6 left-0 text-xs tracking-wide">
                                     {t('nextStop')}
@@ -304,8 +304,7 @@ export function LandingPage(): React.ReactNode {
                                     dotSize={isCJK ? 3 : undefined}
                                     scroll={false}
                                     pulse={
-                                        !reduceMotion &&
-                                        hoveredCta !== 'editor'
+                                        !reduceMotion && hoveredCta !== 'editor'
                                     }
                                     usePixelFont
                                 />
@@ -351,7 +350,7 @@ export function LandingPage(): React.ReactNode {
                             ))}
                         </section>
 
-                        <footer className="text-muted-foreground px-6 pb-2 pt-8 text-center text-xs">
+                        <footer className="text-muted-foreground px-6 pt-8 pb-2 text-center text-xs">
                             <p>
                                 <Trans
                                     i18nKey="builtWithFooter"
@@ -379,7 +378,7 @@ export function LandingPage(): React.ReactNode {
                                     target="_blank"
                                     rel="noopener noreferrer"
                                     aria-label={`${APP_DISPLAY_NAME} source on GitHub`}
-                                    className="hover:text-foreground ml-1 inline-flex items-center align-middle transition-colors whitespace-nowrap"
+                                    className="hover:text-foreground ml-1 inline-flex items-center align-middle whitespace-nowrap transition-colors"
                                 >
                                     <Github className="h-3.5 w-3.5" />
                                 </a>

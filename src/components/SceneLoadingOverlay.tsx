@@ -1,8 +1,8 @@
 import { useSceneStore } from '@/stores/scene-store';
 
 export function SceneLoadingOverlay(): React.ReactNode {
-    const loading = useSceneStore((s) => s.sceneLoading);
-    const progress = useSceneStore((s) => s.sceneLoadProgress);
+    const loading = useSceneStore(s => s.sceneLoading);
+    const progress = useSceneStore(s => s.sceneLoadProgress);
 
     if (!loading) return null;
 

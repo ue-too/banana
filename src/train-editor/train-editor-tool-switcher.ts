@@ -1,25 +1,51 @@
-import { BaseContext, Defer, EventReactions, NO_OP, StateMachine, TemplateState, TemplateStateMachine } from "@ue-too/being";
-import type { BogieEditStateMachine } from "./bogie-kmt-state-machine";
-import type { BogieAddStateMachine } from "./bogie-add-state-machine";
-import type { ImageEditStateMachine } from "./image-edit-state-machine";
+import {
+    BaseContext,
+    Defer,
+    EventReactions,
+    NO_OP,
+    StateMachine,
+    TemplateState,
+    TemplateStateMachine,
+} from '@ue-too/being';
 
-export const TRAIN_EDITOR_TOOL_STATES = ['IDLE', 'EDIT_BOGIE', 'ADD_BOGIE', 'EDIT_IMAGE'] as const;
+import type { BogieAddStateMachine } from './bogie-add-state-machine';
+import type { BogieEditStateMachine } from './bogie-kmt-state-machine';
+import type { ImageEditStateMachine } from './image-edit-state-machine';
 
-export type TrainEditorToolStates = typeof TRAIN_EDITOR_TOOL_STATES[number];
+export const TRAIN_EDITOR_TOOL_STATES = [
+    'IDLE',
+    'EDIT_BOGIE',
+    'ADD_BOGIE',
+    'EDIT_IMAGE',
+] as const;
+
+export type TrainEditorToolStates = (typeof TRAIN_EDITOR_TOOL_STATES)[number];
 
 export type TrainEditorToolEvents = {
     switchToEditBogie: {};
     switchToAddBogie: {};
     switchToEditImage: {};
     switchToIdle: {};
-}
+};
 
 export type TrainEditorToolContext = BaseContext;
 
-export type TrainEditorToolStateMachine = StateMachine<TrainEditorToolEvents, TrainEditorToolContext, TrainEditorToolStates>;
+export type TrainEditorToolStateMachine = StateMachine<
+    TrainEditorToolEvents,
+    TrainEditorToolContext,
+    TrainEditorToolStates
+>;
 
-class ToolIdleState extends TemplateState<TrainEditorToolEvents, TrainEditorToolContext, TrainEditorToolStates> {
-    protected _eventReactions: EventReactions<TrainEditorToolEvents, TrainEditorToolContext, TrainEditorToolStates> = {
+class ToolIdleState extends TemplateState<
+    TrainEditorToolEvents,
+    TrainEditorToolContext,
+    TrainEditorToolStates
+> {
+    protected _eventReactions: EventReactions<
+        TrainEditorToolEvents,
+        TrainEditorToolContext,
+        TrainEditorToolStates
+    > = {
         switchToEditBogie: {
             action: NO_OP,
             defaultTargetState: 'EDIT_BOGIE',
@@ -38,7 +64,11 @@ class ToolIdleState extends TemplateState<TrainEditorToolEvents, TrainEditorTool
     };
 }
 
-class ToolEditBogieState extends TemplateState<TrainEditorToolEvents, TrainEditorToolContext, TrainEditorToolStates> {
+class ToolEditBogieState extends TemplateState<
+    TrainEditorToolEvents,
+    TrainEditorToolContext,
+    TrainEditorToolStates
+> {
     private _bogieEditStateMachine: BogieEditStateMachine;
 
     constructor(bogieEditStateMachine: BogieEditStateMachine) {
@@ -54,9 +84,16 @@ class ToolEditBogieState extends TemplateState<TrainEditorToolEvents, TrainEdito
         this._bogieEditStateMachine.happens('endEditing');
     }
 
-    protected _defer: Defer<TrainEditorToolContext, TrainEditorToolEvents, TrainEditorToolStates> = {
+    protected _defer: Defer<
+        TrainEditorToolContext,
+        TrainEditorToolEvents,
+        TrainEditorToolStates
+    > = {
         action: (_context, event, eventKey) => {
-            const result = this._bogieEditStateMachine.happens(eventKey as string, event);
+            const result = this._bogieEditStateMachine.happens(
+                eventKey as string,
+                event
+            );
             if (result.handled) {
                 return { handled: true, output: result.output };
             }
@@ -64,7 +101,11 @@ class ToolEditBogieState extends TemplateState<TrainEditorToolEvents, TrainEdito
         },
     };
 
-    protected _eventReactions: EventReactions<TrainEditorToolEvents, TrainEditorToolContext, TrainEditorToolStates> = {
+    protected _eventReactions: EventReactions<
+        TrainEditorToolEvents,
+        TrainEditorToolContext,
+        TrainEditorToolStates
+    > = {
         switchToEditBogie: {
             action: NO_OP,
         },
@@ -83,7 +124,11 @@ class ToolEditBogieState extends TemplateState<TrainEditorToolEvents, TrainEdito
     };
 }
 
-class ToolAddBogieState extends TemplateState<TrainEditorToolEvents, TrainEditorToolContext, TrainEditorToolStates> {
+class ToolAddBogieState extends TemplateState<
+    TrainEditorToolEvents,
+    TrainEditorToolContext,
+    TrainEditorToolStates
+> {
     private _bogieAddStateMachine: BogieAddStateMachine;
 
     constructor(bogieAddStateMachine: BogieAddStateMachine) {
@@ -99,9 +144,16 @@ class ToolAddBogieState extends TemplateState<TrainEditorToolEvents, TrainEditor
         this._bogieAddStateMachine.happens('endAdding');
     }
 
-    protected _defer: Defer<TrainEditorToolContext, TrainEditorToolEvents, TrainEditorToolStates> = {
+    protected _defer: Defer<
+        TrainEditorToolContext,
+        TrainEditorToolEvents,
+        TrainEditorToolStates
+    > = {
         action: (_context, event, eventKey) => {
-            const result = this._bogieAddStateMachine.happens(eventKey as string, event);
+            const result = this._bogieAddStateMachine.happens(
+                eventKey as string,
+                event
+            );
             if (result.handled) {
                 return { handled: true, output: result.output };
             }
@@ -109,7 +161,11 @@ class ToolAddBogieState extends TemplateState<TrainEditorToolEvents, TrainEditor
         },
     };
 
-    protected _eventReactions: EventReactions<TrainEditorToolEvents, TrainEditorToolContext, TrainEditorToolStates> = {
+    protected _eventReactions: EventReactions<
+        TrainEditorToolEvents,
+        TrainEditorToolContext,
+        TrainEditorToolStates
+    > = {
         switchToEditBogie: {
             action: NO_OP,
             defaultTargetState: 'EDIT_BOGIE',
@@ -128,7 +184,11 @@ class ToolAddBogieState extends TemplateState<TrainEditorToolEvents, TrainEditor
     };
 }
 
-class ToolEditImageState extends TemplateState<TrainEditorToolEvents, TrainEditorToolContext, TrainEditorToolStates> {
+class ToolEditImageState extends TemplateState<
+    TrainEditorToolEvents,
+    TrainEditorToolContext,
+    TrainEditorToolStates
+> {
     private _imageEditStateMachine: ImageEditStateMachine;
 
     constructor(imageEditStateMachine: ImageEditStateMachine) {
@@ -144,9 +204,16 @@ class ToolEditImageState extends TemplateState<TrainEditorToolEvents, TrainEdito
         this._imageEditStateMachine.happens('endImageEdit');
     }
 
-    protected _defer: Defer<TrainEditorToolContext, TrainEditorToolEvents, TrainEditorToolStates> = {
+    protected _defer: Defer<
+        TrainEditorToolContext,
+        TrainEditorToolEvents,
+        TrainEditorToolStates
+    > = {
         action: (_context, event, eventKey) => {
-            const result = this._imageEditStateMachine.happens(eventKey as string, event);
+            const result = this._imageEditStateMachine.happens(
+                eventKey as string,
+                event
+            );
             if (result.handled) {
                 return { handled: true, output: result.output };
             }
@@ -154,7 +221,11 @@ class ToolEditImageState extends TemplateState<TrainEditorToolEvents, TrainEdito
         },
     };
 
-    protected _eventReactions: EventReactions<TrainEditorToolEvents, TrainEditorToolContext, TrainEditorToolStates> = {
+    protected _eventReactions: EventReactions<
+        TrainEditorToolEvents,
+        TrainEditorToolContext,
+        TrainEditorToolStates
+    > = {
         switchToEditBogie: {
             action: NO_OP,
             defaultTargetState: 'EDIT_BOGIE',
@@ -176,9 +247,13 @@ class ToolEditImageState extends TemplateState<TrainEditorToolEvents, TrainEdito
 export const createTrainEditorToolSwitcher = (
     bogieEditStateMachine: BogieEditStateMachine,
     bogieAddStateMachine: BogieAddStateMachine,
-    imageEditStateMachine: ImageEditStateMachine,
+    imageEditStateMachine: ImageEditStateMachine
 ): TrainEditorToolStateMachine => {
-    return new TemplateStateMachine<TrainEditorToolEvents, TrainEditorToolContext, TrainEditorToolStates>(
+    return new TemplateStateMachine<
+        TrainEditorToolEvents,
+        TrainEditorToolContext,
+        TrainEditorToolStates
+    >(
         {
             IDLE: new ToolIdleState(),
             EDIT_BOGIE: new ToolEditBogieState(bogieEditStateMachine),
@@ -186,6 +261,6 @@ export const createTrainEditorToolSwitcher = (
             EDIT_IMAGE: new ToolEditImageState(imageEditStateMachine),
         },
         'IDLE',
-        { setup: () => { }, cleanup: () => { } }
+        { setup: () => {}, cleanup: () => {} }
     );
 };

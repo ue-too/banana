@@ -1,4 +1,5 @@
 import type { Point } from '@ue-too/math';
+
 import type { CarType } from './cars';
 
 export type CarTemplate = {
@@ -36,7 +37,9 @@ export function validateCarDefinition(
     if (!Array.isArray(obj.bogieOffsets) || obj.bogieOffsets.length === 0) {
         return { valid: false, error: 'Missing or empty bogieOffsets array' };
     }
-    if (!obj.bogieOffsets.every((v: unknown) => typeof v === 'number' && v > 0)) {
+    if (
+        !obj.bogieOffsets.every((v: unknown) => typeof v === 'number' && v > 0)
+    ) {
         return { valid: false, error: 'bogieOffsets must be positive numbers' };
     }
     return { valid: true };

@@ -1,12 +1,12 @@
 import { useTranslation } from 'react-i18next';
 
-import { trackEvent } from '@/utils/analytics';
 import {
     DropdownMenu,
     DropdownMenuContent,
     DropdownMenuItem,
     DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+import { trackEvent } from '@/utils/analytics';
 
 const LANGUAGES = [
     { code: 'en', label: 'EN' },
@@ -39,11 +39,17 @@ export function LanguageSwitcher() {
                     </svg>
                 </button>
             </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="bg-background/80 backdrop-blur-sm">
+            <DropdownMenuContent
+                align="end"
+                className="bg-background/80 backdrop-blur-sm"
+            >
                 {LANGUAGES.map(({ code, label }) => (
                     <DropdownMenuItem
                         key={code}
-                        onClick={() => { i18n.changeLanguage(code); trackEvent('switch-language', { language: code }); }}
+                        onClick={() => {
+                            i18n.changeLanguage(code);
+                            trackEvent('switch-language', { language: code });
+                        }}
                         className={
                             i18n.language === code ? 'font-semibold' : ''
                         }

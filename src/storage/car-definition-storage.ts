@@ -1,4 +1,5 @@
 import type { Point } from '@ue-too/math';
+
 import type { CarType } from '@/trains/cars';
 
 /**

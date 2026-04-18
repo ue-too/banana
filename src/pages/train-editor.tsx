@@ -1,22 +1,19 @@
-import {
-    InitAppOptions,
-    baseInitApp,
-} from '@ue-too/board-pixi-integration';
+import { InitAppOptions, baseInitApp } from '@ue-too/board-pixi-integration';
 import {
     ScrollBarDisplay,
     Wrapper,
 } from '@ue-too/board-pixi-react-integration';
 
 import '@/App.css';
+import { createBogieAddStateMachine } from '@/train-editor/bogie-add-state-machine';
 import { BogieEditorEngine } from '@/train-editor/bogie-editor-engine';
 import { BogieEditorRenderSystem } from '@/train-editor/bogie-editor-render-system';
+import { createBogieEditStateMachine } from '@/train-editor/bogie-kmt-state-machine';
+import { createImageEditStateMachine } from '@/train-editor/image-edit-state-machine';
 import { ImageEditorEngine } from '@/train-editor/image-editor-engine';
 import { ImageRenderSystem } from '@/train-editor/image-render-system';
-import { createBogieEditStateMachine } from '@/train-editor/bogie-kmt-state-machine';
-import { createBogieAddStateMachine } from '@/train-editor/bogie-add-state-machine';
-import { createImageEditStateMachine } from '@/train-editor/image-edit-state-machine';
-import { createTrainEditorToolSwitcher } from '@/train-editor/train-editor-tool-switcher';
 import { createTrainEditorKmtExtension } from '@/train-editor/train-editor-kmt-extension';
+import { createTrainEditorToolSwitcher } from '@/train-editor/train-editor-tool-switcher';
 import { TrainEditorToolbar } from '@/train-editor/train-editor-toolbar';
 import type { TrainEditorComponents } from '@/train-editor/types';
 
@@ -41,10 +38,14 @@ const initTrainEditor = async (
         components.camera,
         components.canvasProxy
     );
-    const imageRenderSystem = new ImageRenderSystem(imageEditorEngine, components.camera);
+    const imageRenderSystem = new ImageRenderSystem(
+        imageEditorEngine,
+        components.camera
+    );
 
     // State machines
-    const bogieEditStateMachine = createBogieEditStateMachine(bogieEditorEngine);
+    const bogieEditStateMachine =
+        createBogieEditStateMachine(bogieEditorEngine);
     const bogieAddStateMachine = createBogieAddStateMachine(bogieEditorEngine);
     const imageEditStateMachine = createImageEditStateMachine({
         imageEngine: imageEditorEngine,
