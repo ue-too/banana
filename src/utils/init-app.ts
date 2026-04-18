@@ -814,6 +814,7 @@ export const initApp = async (
     trackAlignedPlatformManager.onChange(() =>
         stationPresenceDetector.rebuildIndex()
     );
+    stationManager.onChange(() => stationPresenceDetector.rebuildIndex());
 
     const carCargoStore = new CarCargoStore();
     const platformBufferStore = new PlatformBufferStore();

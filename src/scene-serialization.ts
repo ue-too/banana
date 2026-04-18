@@ -235,6 +235,11 @@ export async function deserializeSceneData(
         }
     }
 
+    // Rebuild presence index after stations and platforms have hydrated —
+    // individual mutations fire onChange but bulk hydration may not have a
+    // hook for every code path.
+    app.stationPresenceDetector.rebuildIndex();
+
     // Clear any in-flight transfers before hydrating — stale TransferManager
     // state from a previous scene load must not bleed into the freshly-loaded one.
     app.transferManager.clear();
