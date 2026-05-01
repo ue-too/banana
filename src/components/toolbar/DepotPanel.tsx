@@ -137,7 +137,8 @@ export function DepotPanel({
                                                 0
                                             ) +
                                             tpl.bogieToEdge}
-                                        m
+                                        m{' · '}
+                                        {tpl.width.toFixed(1)}m
                                     </span>
                                 </div>
                                 <div className="flex gap-0.5">
@@ -256,7 +257,8 @@ function DepotCarRow({
                     {entry.car.edgeToBogie +
                         entry.car.bogieOffsets().reduce((a, b) => a + b, 0) +
                         entry.car.bogieToEdge}
-                    m
+                    m{' · '}
+                    {entry.car.width.toFixed(1)}m
                 </span>
             </div>
             <Button
