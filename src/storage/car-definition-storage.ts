@@ -14,7 +14,7 @@ export type CarDefinitionData = {
     bogies: Point[];
     /** Car category — determines default gangway/coupler flags. */
     carType?: CarType;
-    /** Body width in meters. Optional for backwards compatibility; default 2.5. */
+    /** Total body width (lateral, left edge to right edge) in meters. Optional for backwards compatibility; default 2.5. */
     width?: number;
     image?: {
         src: string;

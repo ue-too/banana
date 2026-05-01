@@ -41,4 +41,24 @@ describe('validateCarDefinition', () => {
         });
         expect(result.valid).toBe(false);
     });
+
+    it('rejects NaN width', () => {
+        const result = validateCarDefinition({
+            bogieOffsets: [10],
+            edgeToBogie: 2.5,
+            bogieToEdge: 2.5,
+            width: Number.NaN,
+        });
+        expect(result.valid).toBe(false);
+    });
+
+    it('rejects Infinity width', () => {
+        const result = validateCarDefinition({
+            bogieOffsets: [10],
+            edgeToBogie: 2.5,
+            bogieToEdge: 2.5,
+            width: Number.POSITIVE_INFINITY,
+        });
+        expect(result.valid).toBe(false);
+    });
 });
