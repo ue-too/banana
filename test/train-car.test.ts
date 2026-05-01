@@ -735,6 +735,24 @@ describe('Train decoupleAtCar', () => {
     });
 });
 
+describe('Car width', () => {
+    it('defaults to 2.5 meters when not provided', () => {
+        const car = new Car('car-A', [20], 2.5, 2.5);
+        expect(car.width).toBe(2.5);
+    });
+
+    it('uses the provided width', () => {
+        const car = new Car('car-B', [20], 2.5, 2.5, undefined, undefined, 3.2);
+        expect(car.width).toBe(3.2);
+    });
+
+    it('does not change width when switchDirection is called', () => {
+        const car = new Car('car-C', [20], 2.5, 2.5, undefined, undefined, 3.0);
+        car.switchDirection();
+        expect(car.width).toBe(3.0);
+    });
+});
+
 describe('Train maxSpeed', () => {
     const mockTrackGraph = {} as unknown as TrackGraph;
     const mockJointDirectionManager = {} as unknown as JointDirectionManager;

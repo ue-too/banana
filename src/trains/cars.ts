@@ -88,6 +88,8 @@ export interface TrainUnit {
     get edgeToBogie(): number;
     /** Distance from last bogie to trailing edge. */
     get bogieToEdge(): number;
+    /** Body width in meters (perpendicular to direction of travel). */
+    get width(): number;
     /** Distance from the head-end bogie to the tip of the coupler. */
     get headCouplerLength(): number;
     /** Distance from the tail-end bogie to the tip of the coupler. */
@@ -116,6 +118,7 @@ export class Car implements TrainUnit {
     private _type: CarType;
     private _headHasGangway: boolean;
     private _tailHasGangway: boolean;
+    private _width: number;
 
     constructor(
         id: string,
@@ -123,7 +126,8 @@ export class Car implements TrainUnit {
         edgeToBogie: number,
         bogieToEdge: number,
         couplerLength?: number,
-        type?: CarType
+        type?: CarType,
+        width: number = 2.5
     ) {
         this.id = id;
         this._name = id;
@@ -135,6 +139,7 @@ export class Car implements TrainUnit {
         const gangway = getDefaultGangway(this._type);
         this._headHasGangway = gangway.head;
         this._tailHasGangway = gangway.tail;
+        this._width = width;
     }
 
     /** Display name for UI. Defaults to the car id. */
@@ -177,6 +182,15 @@ export class Car implements TrainUnit {
 
     get bogieToEdge(): number {
         return this._bogieToEdge;
+    }
+
+    /** Body width in meters (perpendicular to direction of travel). */
+    get width(): number {
+        return this._width;
+    }
+
+    set width(value: number) {
+        this._width = value;
     }
 
     get couplerLength(): number {

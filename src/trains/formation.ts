@@ -82,6 +82,10 @@ export class Formation implements TrainUnit {
         return this._children[this._children.length - 1].bogieToEdge;
     }
 
+    get width(): number {
+        return this.flatCars()[0]?.width ?? 2.5;
+    }
+
     get headCouplerLength(): number {
         return this._children[0].headCouplerLength;
     }
