@@ -44,3 +44,17 @@ describe('CarStockManager.setOnBeforeRemove', () => {
         expect(manager.count).toBe(0);
     });
 });
+
+describe('CarStockManager.createCar', () => {
+    it('passes width to the created Car', () => {
+        const carStockManager = new CarStockManager();
+        const car = carStockManager.createCar([20], 2.5, 2.5, undefined, 3.2);
+        expect(car.width).toBe(3.2);
+    });
+
+    it('defaults width to 2.5 when not provided', () => {
+        const carStockManager = new CarStockManager();
+        const car = carStockManager.createCar();
+        expect(car.width).toBe(2.5);
+    });
+});
