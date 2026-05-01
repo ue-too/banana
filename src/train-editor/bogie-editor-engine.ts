@@ -232,14 +232,17 @@ export class BogieEditorEngine implements BogieEditContext {
      *
      * @param edgeToBogie - Distance from leading car edge to first bogie (default 2.5)
      * @param bogieToEdge - Distance from last bogie to trailing car edge (default 2.5)
+     * @param width - Lateral width of the car (default 2.5)
      */
     exportCarDefinition(
         edgeToBogie: number = 2.5,
-        bogieToEdge: number = 2.5
+        bogieToEdge: number = 2.5,
+        width: number = 2.5
     ): {
         bogieOffsets: number[];
         edgeToBogie: number;
         bogieToEdge: number;
+        width: number;
     } | null {
         if (this._bogies.length < 2) return null;
 
@@ -261,6 +264,6 @@ export class BogieEditorEngine implements BogieEditContext {
             bogieOffsets.push(sorted[i] - sorted[i - 1]);
         }
 
-        return { bogieOffsets, edgeToBogie, bogieToEdge };
+        return { bogieOffsets, edgeToBogie, bogieToEdge, width };
     }
 }
