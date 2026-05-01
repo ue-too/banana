@@ -222,6 +222,7 @@ const zhTW = {
         importImage: '匯入圖片',
         editImage: '編輯圖片',
         endImageEdit: '結束圖片編輯',
+        carWidth: '車身寬度（公尺）',
         exportCarDefinition: '匯出車輛定義',
         importCarDefinition: '匯入車輛定義',
         saveToLibrary: '儲存到程式庫',

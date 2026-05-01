@@ -227,6 +227,7 @@ const ja = {
         importImage: '画像をインポート',
         editImage: '画像を編集',
         endImageEdit: '画像編集を終了',
+        carWidth: '車体幅 (m)',
         exportCarDefinition: '車両定義をエクスポート',
         importCarDefinition: '車両定義をインポート',
         saveToLibrary: 'ライブラリに保存',

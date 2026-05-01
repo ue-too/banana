@@ -134,6 +134,7 @@ export function TrainEditorToolbar() {
     const app = useTrainEditorApp();
     const [mode, setMode] = useState<TrainEditorMode>('idle');
     const [carType, setCarType] = useState<CarType>(CarType.COACH);
+    const [carWidth, setCarWidth] = useState<number>(2.5);
     const [loadedLibraryEntry, setLoadedLibraryEntry] = useState<{
         id: string;
         name: string;
@@ -200,7 +201,11 @@ export function TrainEditorToolbar() {
 
     const buildCarDefinitionData = useCallback((): CarDefinitionData | null => {
         if (!app) return null;
-        const def = app.bogieEditorEngine.exportCarDefinition();
+        const def = app.bogieEditorEngine.exportCarDefinition(
+            undefined,
+            undefined,
+            carWidth
+        );
         if (!def) return null;
         const image = app.imageEditorEngine.getImage();
         return {
@@ -209,7 +214,7 @@ export function TrainEditorToolbar() {
             carType,
             image: image ? { ...image } : undefined,
         };
-    }, [app, carType]);
+    }, [app, carType, carWidth]);
 
     const hydrateFromCarDefinition = useCallback(
         (data: Partial<CarDefinitionData>): boolean => {
@@ -242,6 +247,7 @@ export function TrainEditorToolbar() {
                 app.imageEditorEngine.notifyChange();
             }
             setCarType(data.carType ?? CarType.COACH);
+            setCarWidth(typeof data.width === 'number' ? data.width : 2.5);
             return true;
         },
         [app, t]
@@ -405,6 +411,25 @@ export function TrainEditorToolbar() {
                                 ))}
                             </SelectContent>
                         </Select>
+                    </div>
+
+                    {/* Car width */}
+                    <div className="w-full px-1">
+                        <span className="text-muted-foreground text-[9px] font-medium tracking-wider uppercase">
+                            {t('carWidth')}
+                        </span>
+                        <input
+                            type="number"
+                            min={0.5}
+                            max={10}
+                            step={0.1}
+                            value={carWidth}
+                            onChange={e => {
+                                const v = parseFloat(e.target.value);
+                                if (Number.isFinite(v) && v > 0) setCarWidth(v);
+                            }}
+                            className="border-input bg-background h-6 w-full rounded-md border px-2 text-[10px]"
+                        />
                     </div>
 
                     <Separator />
