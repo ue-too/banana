@@ -716,7 +716,8 @@ export class TrainRenderSystem {
 
                 const texW = tex.width || CAR_HALF_TEX_WIDTH;
                 const texH = tex.height || CAR_TEX_HEIGHT;
-                sprite.scale.set(h.length / texW, CAR_WIDTH / texH);
+                const carWidth = car?.width ?? CAR_WIDTH;
+                sprite.scale.set(h.length / texW, carWidth / texH);
                 sprite.visible = true;
 
                 const bandIndex = this._resolveBandIndex(
@@ -935,10 +936,8 @@ export class TrainRenderSystem {
             for (const s of this._previewCarPool) s.visible = false;
             return;
         }
-        const geometries = getCarGeometries(
-            positions,
-            this._getPreviewTrain().cars
-        );
+        const previewCars = this._getPreviewTrain().cars;
+        const geometries = getCarGeometries(positions, previewCars);
         while (this._previewCarPool.length < geometries.length) {
             const sprite = createCarSprite(texture);
             sprite.zIndex = 0;
@@ -951,9 +950,10 @@ export class TrainRenderSystem {
                 const g = geometries[i];
                 sprite.position.set(g.x, g.y);
                 sprite.rotation = g.angle;
+                const carWidth = previewCars[i]?.width ?? CAR_WIDTH;
                 sprite.scale.set(
                     g.length / CAR_TEX_WIDTH,
-                    CAR_WIDTH / CAR_TEX_HEIGHT
+                    carWidth / CAR_TEX_HEIGHT
                 );
                 sprite.visible = true;
             } else {
