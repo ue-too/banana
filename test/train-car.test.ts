@@ -17,6 +17,31 @@ describe('Train Car', () => {
         });
     });
 
+    describe('Formation width', () => {
+        it('returns the width of the first child', () => {
+            const carA = new Car(
+                'car-A',
+                [20],
+                2.5,
+                2.5,
+                undefined,
+                undefined,
+                3.2
+            );
+            const carB = new Car(
+                'car-B',
+                [20],
+                2.5,
+                2.5,
+                undefined,
+                undefined,
+                2.0
+            );
+            const formation = new Formation('f-1', [carA, carB]);
+            expect(formation.width).toBe(3.2);
+        });
+    });
+
     describe('_flatCars', () => {
         describe('Car (leaf)', () => {
             it('should return itself with an empty path', () => {

@@ -83,7 +83,7 @@ export class Formation implements TrainUnit {
     }
 
     get width(): number {
-        return this.flatCars()[0]?.width ?? 2.5;
+        return this._children[0].width;
     }
 
     get headCouplerLength(): number {
