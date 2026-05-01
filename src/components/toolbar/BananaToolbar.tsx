@@ -680,6 +680,7 @@ export function BananaToolbar({
                 edgeToBogie: def.edgeToBogie ?? 2.5,
                 bogieToEdge: def.bogieToEdge ?? 2.5,
                 type: def.carType,
+                width: 2.5,
                 image: def.image,
             };
             setCarTemplates(prev => [...prev, template]);

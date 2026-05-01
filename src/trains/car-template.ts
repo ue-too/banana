@@ -9,6 +9,8 @@ export type CarTemplate = {
     bogieToEdge: number;
     /** Car category — determines default gangway flags when a Car is created from this template. */
     type?: CarType;
+    /** Body width in meters. */
+    width: number;
     image?: {
         src: string;
         position: Point;
@@ -41,6 +43,17 @@ export function validateCarDefinition(
         !obj.bogieOffsets.every((v: unknown) => typeof v === 'number' && v > 0)
     ) {
         return { valid: false, error: 'bogieOffsets must be positive numbers' };
+    }
+    if (obj.width !== undefined) {
+        if (typeof obj.width !== 'number') {
+            return {
+                valid: false,
+                error: 'width must be a number when provided',
+            };
+        }
+        if (obj.width <= 0) {
+            return { valid: false, error: 'width must be positive' };
+        }
     }
     return { valid: true };
 }
