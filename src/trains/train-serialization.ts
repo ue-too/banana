@@ -30,6 +30,8 @@ export type SerializedCar = {
     headHasGangway?: boolean;
     /** Tail-end gangway override. Omitted when matching the type default. */
     tailHasGangway?: boolean;
+    /** Body width in meters. Omitted when equal to 2.5 (default) for backwards compat. */
+    width?: number;
     flipped: boolean;
 };
 
@@ -72,7 +74,7 @@ export type SerializedTrainData = {
     placedTrains: SerializedPlacedTrain[];
 };
 
-function serializeCar(car: Car): SerializedCar {
+export function serializeCar(car: Car): SerializedCar {
     const gangwayDefaults = getDefaultGangway(car.type);
     return {
         id: car.id,
@@ -90,6 +92,7 @@ function serializeCar(car: Car): SerializedCar {
         ...(car.tailHasGangway !== gangwayDefaults.tail
             ? { tailHasGangway: car.tailHasGangway }
             : {}),
+        ...(car.width !== 2.5 ? { width: car.width } : {}),
         flipped: car.flipped,
     };
 }
@@ -184,7 +187,7 @@ export function serializeTrainData(
     };
 }
 
-function deserializeCar(data: SerializedCar): Car {
+export function deserializeCar(data: SerializedCar): Car {
     const type = (data.type as CarType | undefined) ?? CarType.COACH;
     const car = new Car(
         data.id,
@@ -192,7 +195,8 @@ function deserializeCar(data: SerializedCar): Car {
         data.edgeToBogie,
         data.bogieToEdge,
         data.couplerLength,
-        type
+        type,
+        data.width ?? 2.5
     );
     if (data.name !== undefined) {
         car.name = data.name;

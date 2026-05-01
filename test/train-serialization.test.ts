@@ -34,6 +34,7 @@ function serializeCar(car: Car): SerializedCar {
         ...(car.tailHasGangway !== gangwayDefaults.tail
             ? { tailHasGangway: car.tailHasGangway }
             : {}),
+        ...(car.width !== 2.5 ? { width: car.width } : {}),
         flipped: car.flipped,
     };
 }
@@ -61,7 +62,8 @@ function deserializeCar(data: SerializedCar): Car {
         data.edgeToBogie,
         data.bogieToEdge,
         undefined,
-        type
+        type,
+        data.width ?? 2.5
     );
     if (data.name !== undefined) {
         car.name = data.name;
@@ -539,5 +541,52 @@ describe('Car type and gangway serialization', () => {
         expect(car.type).toBe(CarType.COACH);
         expect(car.headHasGangway).toBe(true);
         expect(car.tailHasGangway).toBe(true);
+    });
+});
+
+describe('Car width round-trip', () => {
+    beforeEach(() => {
+        seedIdGeneratorsFromSerialized([], []);
+    });
+
+    it('serializes width when non-default', () => {
+        const car = new Car('car-A', [20], 2.5, 2.5, undefined, undefined, 3.2);
+        const serialized = serializeCar(car);
+        expect(serialized.width).toBe(3.2);
+    });
+
+    it('omits width when default 2.5', () => {
+        const car = new Car('car-A', [20], 2.5, 2.5);
+        const serialized = serializeCar(car);
+        expect(serialized.width).toBeUndefined();
+    });
+
+    it('deserializes width as 2.5 when missing', () => {
+        const data: SerializedCar = {
+            id: 'car-X',
+            bogieOffsets: [20],
+            edgeToBogie: 2.5,
+            bogieToEdge: 2.5,
+            flipped: false,
+        };
+        const car = deserializeCar(data);
+        expect(car.width).toBe(2.5);
+    });
+
+    it('round-trips a non-default width', () => {
+        const original = new Car(
+            'car-Z',
+            [20],
+            2.5,
+            2.5,
+            undefined,
+            undefined,
+            4.1
+        );
+        const serialized = serializeCar(original);
+        const json = JSON.stringify(serialized);
+        const parsed: SerializedCar = JSON.parse(json);
+        const restored = deserializeCar(parsed);
+        expect(restored.width).toBe(4.1);
     });
 });
