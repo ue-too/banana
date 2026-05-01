@@ -247,7 +247,9 @@ export function TrainEditorToolbar() {
                 app.imageEditorEngine.notifyChange();
             }
             setCarType(data.carType ?? CarType.COACH);
-            setCarWidth(typeof data.width === 'number' ? data.width : 2.5);
+            const w = typeof data.width === 'number' ? data.width : 2.5;
+            setCarWidth(w);
+            app.bogieEditorEngine.setWidth(w);
             return true;
         },
         [app, t]
@@ -426,7 +428,10 @@ export function TrainEditorToolbar() {
                             value={carWidth}
                             onChange={e => {
                                 const v = parseFloat(e.target.value);
-                                if (Number.isFinite(v) && v > 0) setCarWidth(v);
+                                if (Number.isFinite(v) && v > 0) {
+                                    setCarWidth(v);
+                                    app?.bogieEditorEngine.setWidth(v);
+                                }
                             }}
                             className="border-input bg-background h-6 w-full rounded-md border px-2 text-[10px]"
                         />
