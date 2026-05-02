@@ -20,6 +20,7 @@ export {
     CircleCheckIcon,
     CircleIcon,
     Copy,
+    Crop,
     Crosshair,
     Download,
     Eraser,
