@@ -39,7 +39,11 @@ class BogieRemoveInactiveState extends TemplateState<
             action: NO_OP,
             defaultTargetState: 'READY' as const,
         },
-    } as EventReactions<BogieRemoveEvents, BogieRemoveContext, BogieRemoveStates>;
+    } as EventReactions<
+        BogieRemoveEvents,
+        BogieRemoveContext,
+        BogieRemoveStates
+    >;
 }
 
 class BogieRemoveReadyState extends TemplateState<
@@ -55,7 +59,11 @@ class BogieRemoveReadyState extends TemplateState<
             action: NO_OP,
             defaultTargetState: 'INACTIVE' as const,
         },
-    } as EventReactions<BogieRemoveEvents, BogieRemoveContext, BogieRemoveStates>;
+    } as EventReactions<
+        BogieRemoveEvents,
+        BogieRemoveContext,
+        BogieRemoveStates
+    >;
 
     leftPointerDown(context: BogieRemoveContext, payload: Point): void {
         const worldPos = context.convert2WorldPosition(payload);

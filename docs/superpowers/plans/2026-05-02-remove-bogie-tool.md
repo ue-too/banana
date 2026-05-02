@@ -203,7 +203,11 @@ class BogieRemoveInactiveState extends TemplateState<
             action: NO_OP,
             defaultTargetState: 'READY' as const,
         },
-    } as EventReactions<BogieRemoveEvents, BogieRemoveContext, BogieRemoveStates>;
+    } as EventReactions<
+        BogieRemoveEvents,
+        BogieRemoveContext,
+        BogieRemoveStates
+    >;
 }
 
 class BogieRemoveReadyState extends TemplateState<
@@ -219,7 +223,11 @@ class BogieRemoveReadyState extends TemplateState<
             action: NO_OP,
             defaultTargetState: 'INACTIVE' as const,
         },
-    } as EventReactions<BogieRemoveEvents, BogieRemoveContext, BogieRemoveStates>;
+    } as EventReactions<
+        BogieRemoveEvents,
+        BogieRemoveContext,
+        BogieRemoveStates
+    >;
 
     leftPointerDown(context: BogieRemoveContext, payload: Point): void {
         const worldPos = context.convert2WorldPosition(payload);
@@ -486,14 +494,14 @@ import { createBogieRemoveStateMachine } from '@/train-editor/bogie-remove-state
 In `initTrainEditor`, find the existing `bogieAddStateMachine` line (around line 77):
 
 ```ts
-    const bogieAddStateMachine = createBogieAddStateMachine(bogieEditorEngine);
+const bogieAddStateMachine = createBogieAddStateMachine(bogieEditorEngine);
 ```
 
 Add immediately after it:
 
 ```ts
-    const bogieRemoveStateMachine =
-        createBogieRemoveStateMachine(bogieEditorEngine);
+const bogieRemoveStateMachine =
+    createBogieRemoveStateMachine(bogieEditorEngine);
 ```
 
 `BogieEditorEngine` already implements `convert2WorldPosition` and now (after Task 1) `removeBogieAt`, so it satisfies `BogieRemoveContext` directly — no adapter needed.
@@ -503,13 +511,13 @@ Add immediately after it:
 Replace the `createTrainEditorToolSwitcher` call (around lines 84-89) with:
 
 ```ts
-    const toolSwitcher = createTrainEditorToolSwitcher(
-        bogieEditStateMachine,
-        bogieAddStateMachine,
-        bogieRemoveStateMachine,
-        imageEditStateMachine,
-        imageCropStateMachine
-    );
+const toolSwitcher = createTrainEditorToolSwitcher(
+    bogieEditStateMachine,
+    bogieAddStateMachine,
+    bogieRemoveStateMachine,
+    imageEditStateMachine,
+    imageCropStateMachine
+);
 ```
 
 - [ ] **Step 4: Verify TypeScript compiles end-to-end**
@@ -674,17 +682,17 @@ type TrainEditorMode =
 After `handleAddBogieToggle` (which ends around line 205), insert:
 
 ```tsx
-    const handleRemoveBogieToggle = useCallback(() => {
-        if (!app) return;
-        if (mode === 'remove-bogie') {
-            app.trainEditorKmtStateMachine.happens('switchToIdle');
-            setMode('idle');
-        } else {
-            exitAllModes();
-            app.trainEditorKmtStateMachine.happens('switchToRemoveBogie');
-            setMode('remove-bogie');
-        }
-    }, [app, mode, exitAllModes]);
+const handleRemoveBogieToggle = useCallback(() => {
+    if (!app) return;
+    if (mode === 'remove-bogie') {
+        app.trainEditorKmtStateMachine.happens('switchToIdle');
+        setMode('idle');
+    } else {
+        exitAllModes();
+        app.trainEditorKmtStateMachine.happens('switchToRemoveBogie');
+        setMode('remove-bogie');
+    }
+}, [app, mode, exitAllModes]);
 ```
 
 - [ ] **Step 4: Add the toolbar button**
@@ -692,33 +700,31 @@ After `handleAddBogieToggle` (which ends around line 205), insert:
 Find the existing Add Bogie `ToolbarButton` (around lines 480-488):
 
 ```tsx
-                    {/* Add bogie */}
-                    <ToolbarButton
-                        tooltip={
-                            mode === 'add-bogie' ? t('endAdd') : t('addBogie')
-                        }
-                        active={mode === 'add-bogie'}
-                        onClick={handleAddBogieToggle}
-                    >
-                        <Plus />
-                    </ToolbarButton>
+{
+    /* Add bogie */
+}
+<ToolbarButton
+    tooltip={mode === 'add-bogie' ? t('endAdd') : t('addBogie')}
+    active={mode === 'add-bogie'}
+    onClick={handleAddBogieToggle}
+>
+    <Plus />
+</ToolbarButton>;
 ```
 
 Insert this block immediately after it (and before the `<Separator />` on line 490):
 
 ```tsx
-                    {/* Remove bogie */}
-                    <ToolbarButton
-                        tooltip={
-                            mode === 'remove-bogie'
-                                ? t('endRemove')
-                                : t('removeBogie')
-                        }
-                        active={mode === 'remove-bogie'}
-                        onClick={handleRemoveBogieToggle}
-                    >
-                        <Trash2 />
-                    </ToolbarButton>
+{
+    /* Remove bogie */
+}
+<ToolbarButton
+    tooltip={mode === 'remove-bogie' ? t('endRemove') : t('removeBogie')}
+    active={mode === 'remove-bogie'}
+    onClick={handleRemoveBogieToggle}
+>
+    <Trash2 />
+</ToolbarButton>;
 ```
 
 - [ ] **Step 5: Verify build**
@@ -754,21 +760,19 @@ Expected: dev server starts on a local port.
 Navigate to the train editor route. The toolbar on the left should now show, in order: Edit Bogie (cursor) → Add Bogie (plus) → **Remove Bogie (trash)** → separator → Car Type / Width inputs → ...
 
 - [ ] **Step 3: Test the golden path**
-
-  1. Click Add Bogie. Click in the canvas three times to drop three bogies on the constraint line.
-  2. Click Remove Bogie (trash icon) — it should highlight as active and the tooltip should say "End Remove" on hover.
-  3. Click directly on one of the bogies — it disappears.
-  4. Click again on another bogie — it disappears.
-  5. Click in empty canvas space — nothing happens (no errors in the devtools console).
-  6. Click the Remove Bogie button again — it deactivates, tooltip switches back to "Remove Bogie".
+    1. Click Add Bogie. Click in the canvas three times to drop three bogies on the constraint line.
+    2. Click Remove Bogie (trash icon) — it should highlight as active and the tooltip should say "End Remove" on hover.
+    3. Click directly on one of the bogies — it disappears.
+    4. Click again on another bogie — it disappears.
+    5. Click in empty canvas space — nothing happens (no errors in the devtools console).
+    6. Click the Remove Bogie button again — it deactivates, tooltip switches back to "Remove Bogie".
 
 - [ ] **Step 4: Test edge cases**
-
-  - With no bogies on canvas: enter Remove mode, click anywhere — no errors, nothing happens.
-  - Switch directly from Edit Bogie → Remove Bogie → Edit Bogie. Each mode highlights correctly; only one is active at a time.
-  - Switch directly from Remove Bogie → Add Bogie. Add Bogie should activate; Remove Bogie should deactivate. Click adds a new bogie.
-  - Switch Remove Bogie → Edit Image / Crop Image (with an image loaded). Tools toggle correctly with no stuck state.
-  - Remove all bogies until zero remain. Export (Download icon) and Save-to-Library should auto-disable (existing behavior — verify it still works after this change).
+    - With no bogies on canvas: enter Remove mode, click anywhere — no errors, nothing happens.
+    - Switch directly from Edit Bogie → Remove Bogie → Edit Bogie. Each mode highlights correctly; only one is active at a time.
+    - Switch directly from Remove Bogie → Add Bogie. Add Bogie should activate; Remove Bogie should deactivate. Click adds a new bogie.
+    - Switch Remove Bogie → Edit Image / Crop Image (with an image loaded). Tools toggle correctly with no stuck state.
+    - Remove all bogies until zero remain. Export (Download icon) and Save-to-Library should auto-disable (existing behavior — verify it still works after this change).
 
 - [ ] **Step 5: Test in two locales**
 

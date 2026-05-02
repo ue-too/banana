@@ -71,7 +71,8 @@ Why a new method (instead of letting the remove state machine call `projectOnBog
 Instantiate the remove state machine alongside the existing ones and pass it into the tool switcher factory:
 
 ```ts
-const bogieRemoveStateMachine = createBogieRemoveStateMachine(bogieEditorEngine);
+const bogieRemoveStateMachine =
+    createBogieRemoveStateMachine(bogieEditorEngine);
 // ...
 const toolSwitcher = createTrainEditorToolSwitcher(
     bogieEditStateMachine,
@@ -91,15 +92,15 @@ const toolSwitcher = createTrainEditorToolSwitcher(
 - Import `Trash2` from `@/assets/icons` (already re-exported there).
 - Add a `ToolbarButton` immediately below the existing Add Bogie button (and before the first `<Separator>`):
 
-  ```tsx
-  <ToolbarButton
-      tooltip={mode === 'remove-bogie' ? t('endRemove') : t('removeBogie')}
-      active={mode === 'remove-bogie'}
-      onClick={handleRemoveBogieToggle}
-  >
-      <Trash2 />
-  </ToolbarButton>
-  ```
+    ```tsx
+    <ToolbarButton
+        tooltip={mode === 'remove-bogie' ? t('endRemove') : t('removeBogie')}
+        active={mode === 'remove-bogie'}
+        onClick={handleRemoveBogieToggle}
+    >
+        <Trash2 />
+    </ToolbarButton>
+    ```
 
 ### 6. `src/train-editor/index.ts` (modified)
 
@@ -109,10 +110,10 @@ Re-export `createBogieRemoveStateMachine` and its types alongside the existing a
 
 Add two keys next to `addBogie` / `endAdd`:
 
-| key | en | zh-TW | ja |
-| --- | --- | --- | --- |
+| key           | en           | zh-TW      | ja         |
+| ------------- | ------------ | ---------- | ---------- |
 | `removeBogie` | Remove Bogie | 移除轉向架 | 台車を削除 |
-| `endRemove` | End Remove | 結束移除 | 削除終了 |
+| `endRemove`   | End Remove   | 結束移除   | 削除終了   |
 
 ## Data flow
 
