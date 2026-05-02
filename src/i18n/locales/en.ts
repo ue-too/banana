@@ -150,7 +150,6 @@ const en = {
         depot: 'Depot',
         noCarsInStock: 'No cars in stock',
         bogieCount: '{{count}} bogies',
-        templates: 'Templates',
         carTemplates: 'Car Templates',
         formationTemplates: 'Formation Templates',
         newFormationTemplate: 'New formation template',

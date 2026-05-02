@@ -144,7 +144,6 @@ const zhTW = {
         depot: '車庫',
         noCarsInStock: '車庫中沒有車輛',
         bogieCount: '{{count}} 個轉向架',
-        templates: '範本',
         carTemplates: '車廂樣板',
         formationTemplates: '編組樣板',
         newFormationTemplate: '新編組樣板',

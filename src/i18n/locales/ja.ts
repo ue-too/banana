@@ -149,7 +149,6 @@ const ja = {
         depot: '車庫',
         noCarsInStock: '車庫に車両がありません',
         bogieCount: '{{count}} 台車',
-        templates: 'テンプレート',
         carTemplates: '車両テンプレート',
         formationTemplates: '編成テンプレート',
         newFormationTemplate: '新しい編成テンプレート',
