@@ -227,6 +227,8 @@ const en = {
         endEdit: 'End Edit',
         addBogie: 'Add Bogie',
         endAdd: 'End Add',
+        removeBogie: 'Remove Bogie',
+        endRemove: 'End Remove',
         importImage: 'Import Image',
         editImage: 'Edit Image',
         endImageEdit: 'End Image Edit',

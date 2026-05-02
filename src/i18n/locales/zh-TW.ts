@@ -219,6 +219,8 @@ const zhTW = {
         endEdit: '結束編輯',
         addBogie: '新增轉向架',
         endAdd: '結束新增',
+        removeBogie: '移除轉向架',
+        endRemove: '結束移除',
         importImage: '匯入圖片',
         editImage: '編輯圖片',
         endImageEdit: '結束圖片編輯',
