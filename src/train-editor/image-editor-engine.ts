@@ -56,13 +56,33 @@ export class ImageEditorEngine {
         return this._image;
     }
 
-    setImage(src: string, width: number, height: number): void {
+    setImage(
+        src: string,
+        width: number,
+        height: number,
+        position: Point = { x: 0, y: 0 }
+    ): void {
         this._image = {
             src,
-            position: { x: 0, y: 0 },
+            position: { ...position },
             width,
             height,
         };
+        this._imageChangedObservable.notify(this._image);
+    }
+
+    /**
+     * Rescales the image so its world-space height equals `newHeight`,
+     * preserving aspect ratio and current position. No-op without an image
+     * or when the new height equals the current height.
+     */
+    rescaleToWidth(newHeight: number): void {
+        if (!this._image) return;
+        if (newHeight <= 0) return;
+        if (this._image.height === newHeight) return;
+        const aspect = this._image.width / this._image.height;
+        this._image.height = newHeight;
+        this._image.width = newHeight * aspect;
         this._imageChangedObservable.notify(this._image);
     }
 
