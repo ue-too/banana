@@ -9,6 +9,11 @@ import { createBogieAddStateMachine } from '@/train-editor/bogie-add-state-machi
 import { BogieEditorEngine } from '@/train-editor/bogie-editor-engine';
 import { BogieEditorRenderSystem } from '@/train-editor/bogie-editor-render-system';
 import { createBogieEditStateMachine } from '@/train-editor/bogie-kmt-state-machine';
+import {
+    ImageCropEngine,
+    createCanvasCropRenderer,
+} from '@/train-editor/image-crop-engine';
+import { createImageCropStateMachine } from '@/train-editor/image-crop-state-machine';
 import { createImageEditStateMachine } from '@/train-editor/image-edit-state-machine';
 import { ImageEditorEngine } from '@/train-editor/image-editor-engine';
 import { ImageRenderSystem } from '@/train-editor/image-render-system';
@@ -43,6 +48,20 @@ const initTrainEditor = async (
         components.camera
     );
 
+    // Crop engine + state machine
+    const imageCropEngine = new ImageCropEngine(
+        imageEditorEngine,
+        createCanvasCropRenderer(),
+        components.camera
+    );
+    imageRenderSystem.attachCropEngine(imageCropEngine);
+
+    const imageCropStateMachine = createImageCropStateMachine({
+        cropEngine: imageCropEngine,
+        setup: () => {},
+        cleanup: () => {},
+    });
+
     // State machines
     const bogieEditStateMachine =
         createBogieEditStateMachine(bogieEditorEngine);
@@ -56,7 +75,8 @@ const initTrainEditor = async (
     const toolSwitcher = createTrainEditorToolSwitcher(
         bogieEditStateMachine,
         bogieAddStateMachine,
-        imageEditStateMachine
+        imageEditStateMachine,
+        imageCropStateMachine
     );
 
     const trainEditorKmtStateMachine = createTrainEditorKmtExtension(
@@ -92,6 +112,8 @@ const initTrainEditor = async (
         bogieEditorRenderSystem,
         imageEditorEngine,
         imageRenderSystem,
+        imageCropEngine,
+        imageCropStateMachine,
         trainEditorKmtStateMachine,
     };
 };
