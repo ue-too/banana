@@ -4,6 +4,8 @@ import type { CarType } from './cars';
 
 export type CarTemplate = {
     id: string;
+    /** User-editable display name. Falls back to a synthesized subtitle when absent. */
+    name?: string;
     bogieOffsets: number[];
     edgeToBogie: number;
     bogieToEdge: number;
@@ -43,6 +45,9 @@ export function validateCarDefinition(
         !obj.bogieOffsets.every((v: unknown) => typeof v === 'number' && v > 0)
     ) {
         return { valid: false, error: 'bogieOffsets must be positive numbers' };
+    }
+    if (obj.name !== undefined && typeof obj.name !== 'string') {
+        return { valid: false, error: 'name must be a string when provided' };
     }
     if (obj.width !== undefined) {
         if (typeof obj.width !== 'number' || !Number.isFinite(obj.width)) {

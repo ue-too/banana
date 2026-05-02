@@ -5,3 +5,5 @@ export * from './r-tree';
 export * from './train-manager';
 export * from './train-render-system';
 export * from './train-serialization';
+export * from './formation-template';
+export * from './formation-template-materialize';

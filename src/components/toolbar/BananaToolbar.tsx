@@ -3,7 +3,13 @@ import {
     useCoordinateConversion,
     useToggleKmtInput,
 } from '@ue-too/board-pixi-react-integration';
-import { useCallback, useEffect, useRef, useState } from 'react';
+import {
+    useCallback,
+    useEffect,
+    useRef,
+    useState,
+    useSyncExternalStore,
+} from 'react';
 import { useTranslation } from 'react-i18next';
 import { useShallow } from 'zustand/react/shallow';
 
@@ -70,6 +76,7 @@ import {
 } from '@/trains/car-template';
 import type { CarType } from '@/trains/cars';
 import type { ThrottleSteps } from '@/trains/formation';
+import type { FormationTemplate } from '@/trains/formation-template';
 import { ELEVATION } from '@/trains/tracks/types';
 import type { SerializedTrackData } from '@/trains/tracks/types';
 import { validateSerializedTrackData } from '@/trains/tracks/types';
@@ -107,6 +114,12 @@ import { TrackStyleSelector } from './TrackStyleSelector';
 import { TrainPanel } from './TrainPanel';
 import { TOOLBAR_LEFT } from './types';
 import { downloadJson, uploadJson } from './utils';
+
+const NOOP = () => {};
+const EMPTY_CAR_TEMPLATES: readonly CarTemplate[] = Object.freeze([]);
+const EMPTY_FORMATION_TEMPLATES: readonly FormationTemplate[] = Object.freeze(
+    []
+);
 
 export function BananaToolbar({
     showMap = false,
@@ -220,7 +233,17 @@ export function BananaToolbar({
     const [, setTrainListVersion] = useState(0);
     const [stressStartX, setStressStartX] = useState(0);
     const [stressStartY, setStressStartY] = useState(0);
-    const [carTemplates, setCarTemplates] = useState<CarTemplate[]>([]);
+    const carTemplateStore = app?.carTemplateStore ?? null;
+    const formationTemplateStore = app?.formationTemplateStore ?? null;
+
+    const carTemplates = useSyncExternalStore(
+        cb => carTemplateStore?.subscribe(cb) ?? NOOP,
+        () => carTemplateStore?.getAll() ?? EMPTY_CAR_TEMPLATES
+    );
+    const formationTemplates = useSyncExternalStore(
+        cb => formationTemplateStore?.subscribe(cb) ?? NOOP,
+        () => formationTemplateStore?.getAll() ?? EMPTY_FORMATION_TEMPLATES
+    );
     const [libraryDialogOpen, setLibraryDialogOpen] = useState(false);
     const [editingPlatform, setEditingPlatform] =
         useState<PlatformTarget | null>(null);
@@ -684,9 +707,10 @@ export function BananaToolbar({
                 type: def.carType,
                 image: def.image,
             };
-            setCarTemplates(prev => [...prev, template]);
+            if (!carTemplateStore) return;
+            carTemplateStore.add(template);
         },
-        []
+        [carTemplateStore]
     );
 
     const handleImportCarDefinition = useCallback(() => {
@@ -1297,8 +1321,9 @@ export function BananaToolbar({
                 <DepotPanel
                     carStockManager={app.carStockManager}
                     carImageRegistry={app.carImageRegistry}
-                    carTemplates={carTemplates}
-                    onCarTemplatesChange={setCarTemplates}
+                    carTemplateStore={carTemplateStore}
+                    formationTemplateStore={formationTemplateStore}
+                    formationManager={app.formationManager}
                     onClose={() => setPanel('depot', false)}
                 />
             )}
