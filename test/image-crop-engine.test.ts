@@ -16,8 +16,8 @@ const camera = {
 } as any;
 const canvas = { width: 800, height: 600 } as any;
 
-const stubRenderer: CropRenderer = async ({ pxWidth, pxHeight }) => {
-    return `data:image/png;base64,stub-${pxWidth}x${pxHeight}`;
+const stubRenderer: CropRenderer = async ({ sx, sy, sw, sh }) => {
+    return `data:image/png;base64,stub-sx${sx}-sy${sy}-${sw}x${sh}`;
 };
 
 function makeEngines() {
@@ -113,7 +113,34 @@ describe('ImageCropEngine.commit', () => {
         expect(img.width).toBeCloseTo(4, 6);
         expect(img.height).toBeCloseTo(4, 6);
         expect(img.position).toEqual({ x: 2, y: 0 });
-        expect(img.src).toBe('data:image/png;base64,stub-400x400');
+        expect(img.src).toBe('data:image/png;base64,stub-sx400-sy0-400x400');
+    });
+
+    it('computes pixel rect correctly when the image is at a non-origin position', async () => {
+        const imageEngine = new ImageEditorEngine(camera, canvas);
+        imageEngine.setImage('data:image/png;base64,orig', 8, 4, {
+            x: 10,
+            y: 5,
+        });
+        const cropEngine = new ImageCropEngine(
+            imageEngine,
+            stubRenderer,
+            camera
+        );
+        cropEngine.beginCrop();
+        // Image bounds: x ∈ [6, 14], y ∈ [3, 7]. Take the right half: x ∈ [10, 14], y ∈ [3, 7].
+        cropEngine.startResize('top-left');
+        cropEngine.updateResize({ x: 10, y: 3 });
+        cropEngine.endInteraction();
+
+        const result = await cropEngine.commit({ pxWidth: 800, pxHeight: 400 });
+        expect(result).toBe(true);
+
+        const img = imageEngine.getImage()!;
+        expect(img.width).toBeCloseTo(4, 6);
+        expect(img.height).toBeCloseTo(4, 6);
+        expect(img.position).toEqual({ x: 12, y: 5 });
+        expect(img.src).toBe('data:image/png;base64,stub-sx400-sy0-400x400');
     });
 
     it('returns false and leaves the image untouched when there is no rect', async () => {
@@ -122,6 +149,15 @@ describe('ImageCropEngine.commit', () => {
         const result = await cropEngine.commit({ pxWidth: 800, pxHeight: 400 });
         expect(result).toBe(false);
         expect(imageEngine.getImage()!.src).toBe(before.src);
+    });
+
+    it('returns false and leaves the image untouched when source pixel dims are zero', async () => {
+        const { imageEngine, cropEngine } = makeEngines();
+        cropEngine.beginCrop();
+        const before = imageEngine.getImage()!.src;
+        const result = await cropEngine.commit({ pxWidth: 0, pxHeight: 0 });
+        expect(result).toBe(false);
+        expect(imageEngine.getImage()!.src).toBe(before);
     });
 });
 

@@ -177,6 +177,9 @@ export class ImageCropEngine {
     }): Promise<boolean> {
         const img = this._imageEngine.getImage();
         if (!img || !this._rect) return false;
+        if (sourcePixelDims.pxWidth <= 0 || sourcePixelDims.pxHeight <= 0) {
+            return false;
+        }
 
         const { pxWidth, pxHeight } = sourcePixelDims;
         const scaleX = pxWidth / img.width;
