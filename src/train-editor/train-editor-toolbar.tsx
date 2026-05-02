@@ -153,31 +153,24 @@ export function TrainEditorToolbar() {
         pxHeight: 0,
     });
 
-    // Subscribe to image changes:
-    //   - couple image height → car body width when an image is present
-    //   - keep source pixel dims fresh for crop commit (read by handleConfirmCrop)
+    const carWidthRef = useRef(carWidth);
+    useEffect(() => {
+        carWidthRef.current = carWidth;
+    }, [carWidth]);
+
     useEffect(() => {
         if (!app) return;
         const unsub = app.imageEditorEngine.onImageChanged(image => {
             if (!image) return;
             // Couple height → car width
-            if (image.height !== carWidth) {
+            if (image.height !== carWidthRef.current) {
                 setCarWidth(image.height);
                 app.bogieEditorEngine.setWidth(image.height);
             }
-            // Refresh source pixel dims so the next commit uses the correct
-            // bitmap size. Decoding a data URL is cheap and runs off the hot path.
-            const probe = new window.Image();
-            probe.onload = () => {
-                sourcePixelDimsRef.current = {
-                    pxWidth: probe.width,
-                    pxHeight: probe.height,
-                };
-            };
-            probe.src = image.src;
+            // (pixel-dim probe handled in handleImportImage now — see Fix 2.)
         });
         return unsub;
-    }, [app, carWidth]);
+    }, [app]);
 
     const exitAllModes = useCallback(() => {
         if (!app) return;
@@ -244,7 +237,13 @@ export function TrainEditorToolbar() {
         if (!app) return;
         // Toolbar owns commit so it can pass the source bitmap pixel dims
         // captured by the onImageChanged subscription above.
-        await app.imageCropEngine.commit(sourcePixelDimsRef.current);
+        const ok = await app.imageCropEngine.commit(sourcePixelDimsRef.current);
+        if (!ok) {
+            // Commit was rejected (no rect or invalid source dims). Leave the
+            // user in crop mode so they can adjust or cancel explicitly.
+            console.warn('[crop] commit failed; staying in crop mode');
+            return;
+        }
         app.imageCropStateMachine.happens('commitCrop', {});
         app.trainEditorKmtStateMachine.happens('switchToIdle');
         app.imageRenderSystem.showCropRect = false;
@@ -267,6 +266,7 @@ export function TrainEditorToolbar() {
             const aspect = pxW / pxH;
             const worldH = carWidth;
             const worldW = worldH * aspect;
+            sourcePixelDimsRef.current = { pxWidth: pxW, pxHeight: pxH };
             app.imageEditorEngine.setImage(src, worldW, worldH);
             // Auto-switch to image edit mode
             exitAllModes();
@@ -322,6 +322,15 @@ export function TrainEditorToolbar() {
                     img.height = data.image.height;
                 }
                 app.imageEditorEngine.notifyChange();
+                // Probe the loaded image's pixel dims for the next crop commit.
+                const probe = new window.Image();
+                probe.onload = () => {
+                    sourcePixelDimsRef.current = {
+                        pxWidth: probe.width,
+                        pxHeight: probe.height,
+                    };
+                };
+                probe.src = data.image.src;
             }
             setCarType(data.carType ?? CarType.COACH);
             const w = typeof data.width === 'number' ? data.width : 2.5;
