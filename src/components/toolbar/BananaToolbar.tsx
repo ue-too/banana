@@ -3,7 +3,13 @@ import {
     useCoordinateConversion,
     useToggleKmtInput,
 } from '@ue-too/board-pixi-react-integration';
-import { useCallback, useEffect, useRef, useState } from 'react';
+import {
+    useCallback,
+    useEffect,
+    useRef,
+    useState,
+    useSyncExternalStore,
+} from 'react';
 import { useTranslation } from 'react-i18next';
 import { useShallow } from 'zustand/react/shallow';
 
@@ -221,10 +227,17 @@ export function BananaToolbar({
     const [, setTrainListVersion] = useState(0);
     const [stressStartX, setStressStartX] = useState(0);
     const [stressStartY, setStressStartY] = useState(0);
-    const [carTemplates, setCarTemplates] = useState<CarTemplate[]>([]);
-    const [formationTemplates, setFormationTemplates] = useState<
-        FormationTemplate[]
-    >([]);
+    const carTemplateStore = app.carTemplateStore;
+    const formationTemplateStore = app.formationTemplateStore;
+
+    const carTemplates = useSyncExternalStore(
+        cb => carTemplateStore.subscribe(cb),
+        () => carTemplateStore.getAll()
+    );
+    const formationTemplates = useSyncExternalStore(
+        cb => formationTemplateStore.subscribe(cb),
+        () => formationTemplateStore.getAll()
+    );
     const [libraryDialogOpen, setLibraryDialogOpen] = useState(false);
     const [editingPlatform, setEditingPlatform] =
         useState<PlatformTarget | null>(null);
@@ -688,9 +701,9 @@ export function BananaToolbar({
                 type: def.carType,
                 image: def.image,
             };
-            setCarTemplates(prev => [...prev, template]);
+            carTemplateStore.add(template);
         },
-        []
+        [carTemplateStore]
     );
 
     const handleImportCarDefinition = useCallback(() => {
@@ -1301,10 +1314,8 @@ export function BananaToolbar({
                 <DepotPanel
                     carStockManager={app.carStockManager}
                     carImageRegistry={app.carImageRegistry}
-                    carTemplates={carTemplates}
-                    onCarTemplatesChange={setCarTemplates}
-                    formationTemplates={formationTemplates}
-                    onFormationTemplatesChange={setFormationTemplates}
+                    carTemplateStore={carTemplateStore}
+                    formationTemplateStore={formationTemplateStore}
                     formationManager={app.formationManager}
                     onClose={() => setPanel('depot', false)}
                 />

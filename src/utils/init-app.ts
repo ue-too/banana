@@ -48,9 +48,11 @@ import { TimeManager } from '@/time';
 import { ScheduleClock, TimetableManager } from '@/timetable';
 import { CarImageRegistry } from '@/trains/car-image-registry';
 import { CarStockManager } from '@/trains/car-stock-manager';
+import { CarTemplateStore } from '@/trains/car-template-store';
 import { CollisionGuard, CrossingMap } from '@/trains/collision-guard';
 import { Train, type TrainPosition } from '@/trains/formation';
 import { FormationManager } from '@/trains/formation-manager';
+import { FormationTemplateStore } from '@/trains/formation-template-store';
 import { CatenaryLayoutEngine } from '@/trains/input-state-machine/catenary-layout-engine';
 import { createCatenaryLayoutStateMachine } from '@/trains/input-state-machine/catenary-layout-state-machine';
 import { CurveCreationEngine } from '@/trains/input-state-machine/curve-engine';
@@ -301,6 +303,8 @@ export type BananaAppComponents = BaseAppComponents & {
     trainStateMachine: TrainPlacementStateMachine;
     debugOverlayRenderSystem: DebugOverlayRenderSystem;
     carImageRegistry: CarImageRegistry;
+    carTemplateStore: CarTemplateStore;
+    formationTemplateStore: FormationTemplateStore;
     timeManager: TimeManager;
     cameraMux: CameraMuxWithAnimationAndLock;
     startFocusAnimation: (params: FocusAnimationParams) => void;
@@ -697,6 +701,8 @@ export const initApp = async (
         }
     );
     const carImageRegistry = new CarImageRegistry();
+    const carTemplateStore = new CarTemplateStore();
+    const formationTemplateStore = new FormationTemplateStore();
     const trainRenderSystem = new TrainRenderSystem(
         worldRenderSystem,
         () => trainManager.getPlacedTrains(),
@@ -1099,6 +1105,8 @@ export const initApp = async (
         trainStateMachine,
         debugOverlayRenderSystem,
         carImageRegistry,
+        carTemplateStore,
+        formationTemplateStore,
         timeManager,
         scheduleClock,
         timetableManager,

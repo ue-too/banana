@@ -1,11 +1,4 @@
-import {
-    type Dispatch,
-    type SetStateAction,
-    useCallback,
-    useRef,
-    useState,
-    useSyncExternalStore,
-} from 'react';
+import { useCallback, useRef, useState, useSyncExternalStore } from 'react';
 import { useTranslation } from 'react-i18next';
 
 import {
@@ -31,6 +24,7 @@ import type { CarImageRegistry } from '@/trains/car-image-registry';
 import type { CarStockManager } from '@/trains/car-stock-manager';
 import type { CarStockEntry } from '@/trains/car-stock-manager';
 import type { CarTemplate } from '@/trains/car-template';
+import type { CarTemplateStore } from '@/trains/car-template-store';
 import { CarType } from '@/trains/cars';
 import type { FormationManager } from '@/trains/formation-manager';
 import {
@@ -42,16 +36,15 @@ import {
     type MaterializeFormationTemplateResult,
     materializeFormationTemplate,
 } from '@/trains/formation-template-materialize';
+import type { FormationTemplateStore } from '@/trains/formation-template-store';
 
 const CAR_TYPES = Object.values(CarType);
 
 type DepotPanelProps = {
     carStockManager: CarStockManager;
     carImageRegistry: CarImageRegistry;
-    carTemplates: CarTemplate[];
-    onCarTemplatesChange: Dispatch<SetStateAction<CarTemplate[]>>;
-    formationTemplates: FormationTemplate[];
-    onFormationTemplatesChange: Dispatch<SetStateAction<FormationTemplate[]>>;
+    carTemplateStore: CarTemplateStore;
+    formationTemplateStore: FormationTemplateStore;
     formationManager: FormationManager;
     onClose: () => void;
 };
@@ -59,10 +52,8 @@ type DepotPanelProps = {
 export function DepotPanel({
     carStockManager,
     carImageRegistry,
-    carTemplates,
-    onCarTemplatesChange,
-    formationTemplates,
-    onFormationTemplatesChange,
+    carTemplateStore,
+    formationTemplateStore,
     formationManager,
     onClose,
 }: DepotPanelProps) {
@@ -75,6 +66,14 @@ export function DepotPanel({
         [carStockManager]
     );
     const availableCars = useSyncExternalStore(subscribe, getSnapshot);
+    const carTemplates = useSyncExternalStore(
+        cb => carTemplateStore.subscribe(cb),
+        () => carTemplateStore.getAll()
+    );
+    const formationTemplates = useSyncExternalStore(
+        cb => formationTemplateStore.subscribe(cb),
+        () => formationTemplateStore.getAll()
+    );
     const { t } = useTranslation();
     const [newCarType, setNewCarType] = useState<CarType>(CarType.COACH);
 
@@ -84,9 +83,9 @@ export function DepotPanel({
             name: t('newFormationTemplate'),
             slots: [{ carTemplateId: carTemplates[0]?.id ?? '' }],
         };
-        onFormationTemplatesChange(prev => [...prev, tpl]);
+        formationTemplateStore.add(tpl);
         setEditingTemplateId(tpl.id);
-    }, [t, carTemplates, onFormationTemplatesChange]);
+    }, [t, carTemplates, formationTemplateStore]);
 
     const handleMaterializeFormationTemplate = useCallback(
         (tpl: FormationTemplate) => {
@@ -107,10 +106,10 @@ export function DepotPanel({
 
     const handleDeleteFormationTemplate = useCallback(
         (id: string) => {
-            onFormationTemplatesChange(prev => prev.filter(t => t.id !== id));
+            formationTemplateStore.remove(id);
             setEditingTemplateId(prev => (prev === id ? null : prev));
         },
-        [onFormationTemplatesChange]
+        [formationTemplateStore]
     );
 
     const [editingTemplateId, setEditingTemplateId] = useState<string | null>(
@@ -119,20 +118,16 @@ export function DepotPanel({
 
     const handleRenameFormationTemplate = useCallback(
         (id: string, name: string) => {
-            onFormationTemplatesChange(prev =>
-                prev.map(t => (t.id === id ? { ...t, name } : t))
-            );
+            formationTemplateStore.update(id, { name });
         },
-        [onFormationTemplatesChange]
+        [formationTemplateStore]
     );
 
     const handleUpdateFormationTemplateSlots = useCallback(
         (id: string, slots: FormationTemplate['slots']) => {
-            onFormationTemplatesChange(prev =>
-                prev.map(t => (t.id === id ? { ...t, slots } : t))
-            );
+            formationTemplateStore.update(id, { slots });
         },
-        [onFormationTemplatesChange]
+        [formationTemplateStore]
     );
 
     return (
@@ -201,17 +196,9 @@ export function DepotPanel({
                                 carStockManager={carStockManager}
                                 carImageRegistry={carImageRegistry}
                                 onRename={(id, name) =>
-                                    onCarTemplatesChange(prev =>
-                                        prev.map(t =>
-                                            t.id === id ? { ...t, name } : t
-                                        )
-                                    )
+                                    carTemplateStore.update(id, { name })
                                 }
-                                onDelete={id =>
-                                    onCarTemplatesChange(prev =>
-                                        prev.filter(t => t.id !== id)
-                                    )
-                                }
+                                onDelete={id => carTemplateStore.remove(id)}
                             />
                         ))}
                     </div>
