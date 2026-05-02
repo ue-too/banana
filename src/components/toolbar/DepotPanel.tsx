@@ -739,10 +739,11 @@ function FormationTemplatePreview({
     carTemplates: CarTemplate[];
 }) {
     const knownById = new Map(carTemplates.map(c => [c.id, c]));
-    const PX_PER_M = 2;
-    const HEIGHT = 32;
-    const MIN_WIDTH = 24;
-    const UNKNOWN_WIDTH = 50;
+    const PX_PER_M = 4;
+    const FALLBACK_HEIGHT_M = 4;
+    const MIN_WIDTH = 28;
+    const UNKNOWN_HEIGHT_PX = FALLBACK_HEIGHT_M * PX_PER_M;
+    const UNKNOWN_WIDTH_PX = 50;
 
     return (
         <div className="bg-muted/30 mt-1 flex items-center gap-px overflow-x-auto rounded border p-1">
@@ -754,8 +755,8 @@ function FormationTemplatePreview({
                             key={`${i}-unknown`}
                             className="bg-destructive/20 text-destructive flex flex-shrink-0 items-center justify-center text-[10px]"
                             style={{
-                                width: UNKNOWN_WIDTH,
-                                height: HEIGHT,
+                                width: UNKNOWN_WIDTH_PX,
+                                height: UNKNOWN_HEIGHT_PX,
                             }}
                             title={slot.carTemplateId}
                         >
@@ -763,23 +764,30 @@ function FormationTemplatePreview({
                         </div>
                     );
                 }
-                const length =
+                // When the template has an image, size the tile to the image's
+                // intrinsic dimensions (in meters) so head/tail asymmetry is
+                // preserved with no cropping. Otherwise fall back to car
+                // length × a placeholder height.
+                const lengthM =
+                    ct.image?.width ??
                     ct.edgeToBogie +
-                    ct.bogieOffsets.reduce((a, b) => a + b, 0) +
-                    ct.bogieToEdge;
-                const widthPx = Math.max(length * PX_PER_M, MIN_WIDTH);
+                        ct.bogieOffsets.reduce((a, b) => a + b, 0) +
+                        ct.bogieToEdge;
+                const heightM = ct.image?.height ?? FALLBACK_HEIGHT_M;
+                const widthPx = Math.max(lengthM * PX_PER_M, MIN_WIDTH);
+                const heightPx = heightM * PX_PER_M;
                 return (
                     <div
                         key={`${i}-${ct.id}`}
                         className="bg-foreground/10 relative flex-shrink-0 overflow-hidden rounded-sm"
-                        style={{ width: widthPx, height: HEIGHT }}
+                        style={{ width: widthPx, height: heightPx }}
                         title={ct.name ?? ct.id}
                     >
                         {ct.image ? (
                             <img
                                 src={ct.image.src}
                                 alt=""
-                                className="h-full w-full object-cover"
+                                className="h-full w-full object-fill"
                             />
                         ) : (
                             <div className="text-muted-foreground flex h-full w-full items-center justify-center truncate px-1 text-[8px]">
