@@ -208,20 +208,20 @@ Re-export `AlertTriangle` if it isn't already present, alongside the icons curre
 
 ### 7. i18n (`src/i18n/locales/en.ts`, `zh-TW.ts`, `ja.ts`)
 
-| key                       | en                                          | zh-TW                  | ja                              |
-| ------------------------- | ------------------------------------------- | ---------------------- | ------------------------------- |
-| `formationTemplates`      | Formation Templates                         | 編組樣板               | 編成テンプレート                |
-| `carTemplates`            | Car Templates                               | 車廂樣板               | 車両テンプレート                |
-| `newFormationTemplate`    | New formation template                      | 新編組樣板             | 新しい編成テンプレート          |
-| `noFormationTemplates`    | No formation templates yet                  | 尚無編組樣板           | 編成テンプレートはまだありません |
-| `slot_one`                | {{count}} slot                              | {{count}} 節           | {{count}} 両分                  |
-| `slot_other`              | {{count}} slots                             | {{count}} 節           | {{count}} 両分                  |
-| `missingCarTemplates`     | {{count}} missing template                  | 缺少 {{count}} 個樣板  | テンプレート {{count}} 件不足   |
-| `unknownCarTemplate`      | unknown (was {{id}})                        | 未知（{{id}}）         | 不明（{{id}}）                  |
-| `addSlot`                 | Add slot                                    | 新增節                 | 両を追加                        |
-| `materializeFormation`    | Create formation                            | 建立編組               | 編成を作成                      |
-| `cannotMaterializeMissing`| Resolve missing car templates first         | 請先處理缺少的車廂樣板 | 不足テンプレートを先に解決      |
-| `addSlotNoCarTemplates`   | Add a car template first                    | 請先建立車廂樣板       | 先に車両テンプレートを作成      |
+| key                        | en                                  | zh-TW                  | ja                               |
+| -------------------------- | ----------------------------------- | ---------------------- | -------------------------------- |
+| `formationTemplates`       | Formation Templates                 | 編組樣板               | 編成テンプレート                 |
+| `carTemplates`             | Car Templates                       | 車廂樣板               | 車両テンプレート                 |
+| `newFormationTemplate`     | New formation template              | 新編組樣板             | 新しい編成テンプレート           |
+| `noFormationTemplates`     | No formation templates yet          | 尚無編組樣板           | 編成テンプレートはまだありません |
+| `slot_one`                 | {{count}} slot                      | {{count}} 節           | {{count}} 両分                   |
+| `slot_other`               | {{count}} slots                     | {{count}} 節           | {{count}} 両分                   |
+| `missingCarTemplates`      | {{count}} missing template          | 缺少 {{count}} 個樣板  | テンプレート {{count}} 件不足    |
+| `unknownCarTemplate`       | unknown (was {{id}})                | 未知（{{id}}）         | 不明（{{id}}）                   |
+| `addSlot`                  | Add slot                            | 新增節                 | 両を追加                         |
+| `materializeFormation`     | Create formation                    | 建立編組               | 編成を作成                       |
+| `cannotMaterializeMissing` | Resolve missing car templates first | 請先處理缺少的車廂樣板 | 不足テンプレートを先に解決       |
+| `addSlotNoCarTemplates`    | Add a car template first            | 請先建立車廂樣板       | 先に車両テンプレートを作成       |
 
 The existing `templates` key (used today as the car-templates section header) is replaced with `carTemplates`. A grep confirms `templates` is not referenced elsewhere; no alias is needed.
 

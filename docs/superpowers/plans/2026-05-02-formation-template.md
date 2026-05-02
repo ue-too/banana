@@ -330,10 +330,7 @@ describe('materializeFormationTemplate', () => {
             template: {
                 id: 'ftpl-2',
                 name: 'Mixed',
-                slots: [
-                    { carTemplateId: 'img' },
-                    { carTemplateId: 'plain' },
-                ],
+                slots: [{ carTemplateId: 'img' }, { carTemplateId: 'plain' }],
             },
             carTemplates: [withImage, plain],
             carStockManager,
@@ -633,7 +630,7 @@ This task threads the new state through `BananaToolbar` and renders the read-onl
 Locate the existing line (around line 223):
 
 ```ts
-    const [carTemplates, setCarTemplates] = useState<CarTemplate[]>([]);
+const [carTemplates, setCarTemplates] = useState<CarTemplate[]>([]);
 ```
 
 Add the import next to the existing `CarTemplate` import (around line 67):
@@ -650,10 +647,10 @@ import type { FormationTemplate } from '@/trains/formation-template';
 Add the sibling state immediately after `carTemplates`:
 
 ```ts
-    const [carTemplates, setCarTemplates] = useState<CarTemplate[]>([]);
-    const [formationTemplates, setFormationTemplates] = useState<
-        FormationTemplate[]
-    >([]);
+const [carTemplates, setCarTemplates] = useState<CarTemplate[]>([]);
+const [formationTemplates, setFormationTemplates] = useState<
+    FormationTemplate[]
+>([]);
 ```
 
 - [ ] **Step 2: Pass new props to `<DepotPanel />`**
@@ -661,18 +658,20 @@ Add the sibling state immediately after `carTemplates`:
 Locate the `<DepotPanel ... />` usage (around line 1297). Add three props:
 
 ```tsx
-            {showDepot && (
-                <DepotPanel
-                    carStockManager={app.carStockManager}
-                    carImageRegistry={app.carImageRegistry}
-                    carTemplates={carTemplates}
-                    onCarTemplatesChange={setCarTemplates}
-                    formationTemplates={formationTemplates}
-                    onFormationTemplatesChange={setFormationTemplates}
-                    formationManager={app.formationManager}
-                    onClose={() => setPanel('depot', false)}
-                />
-            )}
+{
+    showDepot && (
+        <DepotPanel
+            carStockManager={app.carStockManager}
+            carImageRegistry={app.carImageRegistry}
+            carTemplates={carTemplates}
+            onCarTemplatesChange={setCarTemplates}
+            formationTemplates={formationTemplates}
+            onFormationTemplatesChange={setFormationTemplates}
+            formationManager={app.formationManager}
+            onClose={() => setPanel('depot', false)}
+        />
+    );
+}
 ```
 
 This will compile-error against the current `DepotPanelProps` until step 3.
@@ -682,20 +681,15 @@ This will compile-error against the current `DepotPanelProps` until step 3.
 In `src/components/toolbar/DepotPanel.tsx`, extend imports at the top of the file:
 
 ```ts
-import {
-    Pencil,
-    Plus,
-    Trash2,
-    TriangleAlertIcon,
-} from '@/assets/icons';
+import { Pencil, Plus, Trash2, TriangleAlertIcon } from '@/assets/icons';
 import type { FormationManager } from '@/trains/formation-manager';
 import type { FormationTemplate } from '@/trains/formation-template';
-import {
-    materializeFormationTemplate,
-    type MaterializeFormationTemplateResult,
-} from '@/trains/formation-template-materialize';
 import { resolveFormationTemplate } from '@/trains/formation-template';
 import { generateFormationTemplateId } from '@/trains/formation-template';
+import {
+    type MaterializeFormationTemplateResult,
+    materializeFormationTemplate,
+} from '@/trains/formation-template-materialize';
 ```
 
 (Consolidate to a single `from '@/trains/formation-template'` import block in the final file.)
@@ -735,17 +729,17 @@ export function DepotPanel({
 Locate the existing line in `DepotPanel.tsx` (around line 113):
 
 ```tsx
-                    <span className="text-muted-foreground mb-1 text-[10px] font-medium tracking-wider uppercase">
-                        {t('templates')}
-                    </span>
+<span className="text-muted-foreground mb-1 text-[10px] font-medium tracking-wider uppercase">
+    {t('templates')}
+</span>
 ```
 
 Change to:
 
 ```tsx
-                    <span className="text-muted-foreground mb-1 text-[10px] font-medium tracking-wider uppercase">
-                        {t('carTemplates')}
-                    </span>
+<span className="text-muted-foreground mb-1 text-[10px] font-medium tracking-wider uppercase">
+    {t('carTemplates')}
+</span>
 ```
 
 - [ ] **Step 5: Add the formation-template handlers**
@@ -753,43 +747,38 @@ Change to:
 Add the following inside `DepotPanel` body, near the `newCarType` state declaration (the exact placement just needs to be inside the function so the closures see `carTemplates`, `formationTemplates`, `onFormationTemplatesChange`, etc.):
 
 ```tsx
-    const handleCreateFormationTemplate = useCallback(() => {
-        const tpl: FormationTemplate = {
-            id: generateFormationTemplateId(),
-            name: t('newFormationTemplate'),
-            slots: [{ carTemplateId: carTemplates[0]?.id ?? '' }],
-        };
-        onFormationTemplatesChange(prev => [...prev, tpl]);
-    }, [t, carTemplates, onFormationTemplatesChange]);
+const handleCreateFormationTemplate = useCallback(() => {
+    const tpl: FormationTemplate = {
+        id: generateFormationTemplateId(),
+        name: t('newFormationTemplate'),
+        slots: [{ carTemplateId: carTemplates[0]?.id ?? '' }],
+    };
+    onFormationTemplatesChange(prev => [...prev, tpl]);
+}, [t, carTemplates, onFormationTemplatesChange]);
 
-    const handleMaterializeFormationTemplate = useCallback(
-        (tpl: FormationTemplate) => {
-            const result: MaterializeFormationTemplateResult =
-                materializeFormationTemplate({
-                    template: tpl,
-                    carTemplates,
-                    carStockManager,
-                    formationManager,
-                    carImageRegistry,
-                });
-            // The UI disables the trigger when the resolver reports missing ids,
-            // so the failure branch is a defensive fallback (no toast).
-            void result;
-        },
-        [
-            carTemplates,
-            carStockManager,
-            formationManager,
-            carImageRegistry,
-        ]
-    );
+const handleMaterializeFormationTemplate = useCallback(
+    (tpl: FormationTemplate) => {
+        const result: MaterializeFormationTemplateResult =
+            materializeFormationTemplate({
+                template: tpl,
+                carTemplates,
+                carStockManager,
+                formationManager,
+                carImageRegistry,
+            });
+        // The UI disables the trigger when the resolver reports missing ids,
+        // so the failure branch is a defensive fallback (no toast).
+        void result;
+    },
+    [carTemplates, carStockManager, formationManager, carImageRegistry]
+);
 
-    const handleDeleteFormationTemplate = useCallback(
-        (id: string) => {
-            onFormationTemplatesChange(prev => prev.filter(t => t.id !== id));
-        },
-        [onFormationTemplatesChange]
-    );
+const handleDeleteFormationTemplate = useCallback(
+    (id: string) => {
+        onFormationTemplatesChange(prev => prev.filter(t => t.id !== id));
+    },
+    [onFormationTemplatesChange]
+);
 ```
 
 - [ ] **Step 6: Render the formation-template section**
@@ -797,48 +786,48 @@ Add the following inside `DepotPanel` body, near the `newCarType` state declarat
 Add a new block immediately **after** the closing fragment of the existing car-template block (i.e. right before the closing `</DraggablePanel>` of `DepotPanel`):
 
 ```tsx
-            {(formationTemplates.length > 0 || carTemplates.length > 0) && (
-                <>
-                    <Separator className="my-2" />
-                    <div className="mb-1 flex items-center justify-between">
-                        <span className="text-muted-foreground text-[10px] font-medium tracking-wider uppercase">
-                            {t('formationTemplates')}
-                        </span>
-                        <Button
-                            variant="ghost"
-                            size="icon-xs"
-                            onClick={handleCreateFormationTemplate}
-                            disabled={carTemplates.length === 0}
-                            title={
-                                carTemplates.length === 0
-                                    ? t('addSlotNoCarTemplates')
-                                    : t('newFormationTemplate')
-                            }
-                        >
-                            <Plus className="size-3" />
-                        </Button>
-                    </div>
-                    {formationTemplates.length === 0 ? (
-                        <span className="text-muted-foreground py-2 text-center text-[10px]">
-                            {t('noFormationTemplates')}
-                        </span>
-                    ) : (
-                        <div className="flex max-h-48 flex-col gap-1 overflow-y-auto">
-                            {formationTemplates.map(tpl => (
-                                <FormationTemplateRow
-                                    key={tpl.id}
-                                    template={tpl}
-                                    carTemplates={carTemplates}
-                                    onMaterialize={
-                                        handleMaterializeFormationTemplate
-                                    }
-                                    onDelete={handleDeleteFormationTemplate}
-                                />
-                            ))}
-                        </div>
-                    )}
-                </>
+{
+    (formationTemplates.length > 0 || carTemplates.length > 0) && (
+        <>
+            <Separator className="my-2" />
+            <div className="mb-1 flex items-center justify-between">
+                <span className="text-muted-foreground text-[10px] font-medium tracking-wider uppercase">
+                    {t('formationTemplates')}
+                </span>
+                <Button
+                    variant="ghost"
+                    size="icon-xs"
+                    onClick={handleCreateFormationTemplate}
+                    disabled={carTemplates.length === 0}
+                    title={
+                        carTemplates.length === 0
+                            ? t('addSlotNoCarTemplates')
+                            : t('newFormationTemplate')
+                    }
+                >
+                    <Plus className="size-3" />
+                </Button>
+            </div>
+            {formationTemplates.length === 0 ? (
+                <span className="text-muted-foreground py-2 text-center text-[10px]">
+                    {t('noFormationTemplates')}
+                </span>
+            ) : (
+                <div className="flex max-h-48 flex-col gap-1 overflow-y-auto">
+                    {formationTemplates.map(tpl => (
+                        <FormationTemplateRow
+                            key={tpl.id}
+                            template={tpl}
+                            carTemplates={carTemplates}
+                            onMaterialize={handleMaterializeFormationTemplate}
+                            onDelete={handleDeleteFormationTemplate}
+                        />
+                    ))}
+                </div>
             )}
+        </>
+    );
+}
 ```
 
 - [ ] **Step 7: Add the `FormationTemplateRow` subcomponent**
@@ -957,9 +946,7 @@ This task adds the editor that opens under a row when the user clicks the pencil
 Inside `DepotPanel`, add a local state:
 
 ```tsx
-    const [editingTemplateId, setEditingTemplateId] = useState<string | null>(
-        null
-    );
+const [editingTemplateId, setEditingTemplateId] = useState<string | null>(null);
 ```
 
 - [ ] **Step 2: Add slot/name mutators**
@@ -967,23 +954,23 @@ Inside `DepotPanel`, add a local state:
 Inside `DepotPanel`:
 
 ```tsx
-    const handleRenameFormationTemplate = useCallback(
-        (id: string, name: string) => {
-            onFormationTemplatesChange(prev =>
-                prev.map(t => (t.id === id ? { ...t, name } : t))
-            );
-        },
-        [onFormationTemplatesChange]
-    );
+const handleRenameFormationTemplate = useCallback(
+    (id: string, name: string) => {
+        onFormationTemplatesChange(prev =>
+            prev.map(t => (t.id === id ? { ...t, name } : t))
+        );
+    },
+    [onFormationTemplatesChange]
+);
 
-    const handleUpdateFormationTemplateSlots = useCallback(
-        (id: string, slots: FormationTemplate['slots']) => {
-            onFormationTemplatesChange(prev =>
-                prev.map(t => (t.id === id ? { ...t, slots } : t))
-            );
-        },
-        [onFormationTemplatesChange]
-    );
+const handleUpdateFormationTemplateSlots = useCallback(
+    (id: string, slots: FormationTemplate['slots']) => {
+        onFormationTemplatesChange(prev =>
+            prev.map(t => (t.id === id ? { ...t, slots } : t))
+        );
+    },
+    [onFormationTemplatesChange]
+);
 ```
 
 - [ ] **Step 3: Wire row edit toggle and pass mutators down**
@@ -991,27 +978,23 @@ Inside `DepotPanel`:
 Update the row render (from Task 5 Step 6) so each row gets the edit-state props:
 
 ```tsx
-                            {formationTemplates.map(tpl => (
-                                <FormationTemplateRow
-                                    key={tpl.id}
-                                    template={tpl}
-                                    carTemplates={carTemplates}
-                                    isEditing={editingTemplateId === tpl.id}
-                                    onToggleEdit={() =>
-                                        setEditingTemplateId(prev =>
-                                            prev === tpl.id ? null : tpl.id
-                                        )
-                                    }
-                                    onRename={handleRenameFormationTemplate}
-                                    onSlotsChange={
-                                        handleUpdateFormationTemplateSlots
-                                    }
-                                    onMaterialize={
-                                        handleMaterializeFormationTemplate
-                                    }
-                                    onDelete={handleDeleteFormationTemplate}
-                                />
-                            ))}
+{
+    formationTemplates.map(tpl => (
+        <FormationTemplateRow
+            key={tpl.id}
+            template={tpl}
+            carTemplates={carTemplates}
+            isEditing={editingTemplateId === tpl.id}
+            onToggleEdit={() =>
+                setEditingTemplateId(prev => (prev === tpl.id ? null : tpl.id))
+            }
+            onRename={handleRenameFormationTemplate}
+            onSlotsChange={handleUpdateFormationTemplateSlots}
+            onMaterialize={handleMaterializeFormationTemplate}
+            onDelete={handleDeleteFormationTemplate}
+        />
+    ));
+}
 ```
 
 - [ ] **Step 4: Update `FormationTemplateRow` props and render the pencil + editor**
@@ -1135,9 +1118,7 @@ function FormationTemplateRow({
                 <FormationTemplateSlotEditor
                     template={template}
                     carTemplates={carTemplates}
-                    onSlotsChange={slots =>
-                        onSlotsChange(template.id, slots)
-                    }
+                    onSlotsChange={slots => onSlotsChange(template.id, slots)}
                 />
             )}
         </div>
@@ -1164,7 +1145,12 @@ function FormationTemplateSlotEditor({
     const fallbackId = carTemplates[0]?.id;
 
     const swap = (i: number, j: number) => {
-        if (i < 0 || j < 0 || i >= template.slots.length || j >= template.slots.length) {
+        if (
+            i < 0 ||
+            j < 0 ||
+            i >= template.slots.length ||
+            j >= template.slots.length
+        ) {
             return;
         }
         const next = [...template.slots];
@@ -1191,7 +1177,9 @@ function FormationTemplateSlotEditor({
 
     const labelFor = (ct: CarTemplate) => {
         const length =
-            ct.edgeToBogie + ct.bogieOffsets.reduce((a, b) => a + b, 0) + ct.bogieToEdge;
+            ct.edgeToBogie +
+            ct.bogieOffsets.reduce((a, b) => a + b, 0) +
+            ct.bogieToEdge;
         return `${t('bogieCount', { count: ct.bogieOffsets.length + 1 })} · ${length}m · ${ct.width.toFixed(1)}m (${ct.id})`;
     };
 
@@ -1216,9 +1204,7 @@ function FormationTemplateSlotEditor({
                             </span>
                         ) : null}
                         <Select
-                            value={
-                                isUnknown ? '' : slot.carTemplateId
-                            }
+                            value={isUnknown ? '' : slot.carTemplateId}
                             onValueChange={(value: string) =>
                                 setSlotCarTemplate(i, value)
                             }
