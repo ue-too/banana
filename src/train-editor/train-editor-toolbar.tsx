@@ -324,18 +324,15 @@ export function TrainEditorToolbar() {
                 }
             }
             if (data.image) {
+                // One notify only — the render system's async sprite creation
+                // races with concurrent change notifications and orphans sprites
+                // in the container.
                 app.imageEditorEngine.setImage(
                     data.image.src,
                     data.image.width,
-                    data.image.height
+                    data.image.height,
+                    data.image.position
                 );
-                const img = app.imageEditorEngine.getImage();
-                if (img) {
-                    img.position = { ...data.image.position };
-                    img.width = data.image.width;
-                    img.height = data.image.height;
-                }
-                app.imageEditorEngine.notifyChange();
                 // Probe the loaded image's pixel dims for the next crop commit.
                 const probe = new window.Image();
                 probe.onload = () => {
