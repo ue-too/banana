@@ -177,7 +177,7 @@ rescaleToWidth(newHeight: number): void {
 }
 ```
 
-Note on naming: the method is called `rescaleToWidth` because the *car body width* is what the caller is matching, but mechanically it sets the *image's height* (the world axis perpendicular to car length). The doc comment makes this explicit so future readers don't get confused.
+Note on naming: the method is called `rescaleToWidth` because the _car body width_ is what the caller is matching, but mechanically it sets the _image's height_ (the world axis perpendicular to car length). The doc comment makes this explicit so future readers don't get confused.
 
 - [ ] **Step 4: Run tests and confirm they pass**
 
@@ -279,8 +279,8 @@ Create `test/image-crop-engine.test.ts`:
 import { describe, expect, it } from 'bun:test';
 
 import {
-    ImageCropEngine,
     type CropRenderer,
+    ImageCropEngine,
 } from '../src/train-editor/image-crop-engine';
 import { ImageEditorEngine } from '../src/train-editor/image-editor-engine';
 
@@ -1205,12 +1205,12 @@ Add new fields below the existing `_handles`/`_border` fields:
 In the constructor, after `this._container.addChild(this._handles);`:
 
 ```ts
-        this._cropOverlay = new Graphics();
-        this._cropBorder = new Graphics();
-        this._cropHandles = new Graphics();
-        this._container.addChild(this._cropOverlay);
-        this._container.addChild(this._cropBorder);
-        this._container.addChild(this._cropHandles);
+this._cropOverlay = new Graphics();
+this._cropBorder = new Graphics();
+this._cropHandles = new Graphics();
+this._container.addChild(this._cropOverlay);
+this._container.addChild(this._cropBorder);
+this._container.addChild(this._cropHandles);
 ```
 
 Add a public method to attach the crop engine (called once at app init):
@@ -1259,20 +1259,20 @@ Update the existing `set showHandles(...)` so edit and crop visuals never coexis
 In the existing `_camera.on('zoom', ...)` callback, also redraw crop visuals when zoom changes:
 
 ```ts
-        this._camera.on(
-            'zoom',
-            (_event: CameraZoomEventPayload, state: CameraState) => {
-                this._zoomLevel = state.zoomLevel;
-                const currentImage = this._engine.getImage();
-                if (currentImage && this._showHandles) {
-                    this._drawHandlesAndBorder(currentImage);
-                }
-                if (this._showCropRect) {
-                    this._redrawCrop();
-                }
-            },
-            { signal: this._abortController.signal }
-        );
+this._camera.on(
+    'zoom',
+    (_event: CameraZoomEventPayload, state: CameraState) => {
+        this._zoomLevel = state.zoomLevel;
+        const currentImage = this._engine.getImage();
+        if (currentImage && this._showHandles) {
+            this._drawHandlesAndBorder(currentImage);
+        }
+        if (this._showCropRect) {
+            this._redrawCrop();
+        }
+    },
+    { signal: this._abortController.signal }
+);
 ```
 
 Add the `_redrawCrop` method below `_drawHandlesAndBorder`:
@@ -1448,30 +1448,30 @@ import type { TrainEditorComponents } from '@/train-editor/types';
 Inside `initTrainEditor`, after the `imageRenderSystem` line (`new ImageRenderSystem(...)`):
 
 ```ts
-    // Crop engine + state machine
-    const imageCropEngine = new ImageCropEngine(
-        imageEditorEngine,
-        createCanvasCropRenderer(),
-        components.camera
-    );
-    imageRenderSystem.attachCropEngine(imageCropEngine);
+// Crop engine + state machine
+const imageCropEngine = new ImageCropEngine(
+    imageEditorEngine,
+    createCanvasCropRenderer(),
+    components.camera
+);
+imageRenderSystem.attachCropEngine(imageCropEngine);
 
-    const imageCropStateMachine = createImageCropStateMachine({
-        cropEngine: imageCropEngine,
-        setup: () => {},
-        cleanup: () => {},
-    });
+const imageCropStateMachine = createImageCropStateMachine({
+    cropEngine: imageCropEngine,
+    setup: () => {},
+    cleanup: () => {},
+});
 ```
 
 Update the tool-switcher call to pass the new state machine:
 
 ```ts
-    const toolSwitcher = createTrainEditorToolSwitcher(
-        bogieEditStateMachine,
-        bogieAddStateMachine,
-        imageEditStateMachine,
-        imageCropStateMachine
-    );
+const toolSwitcher = createTrainEditorToolSwitcher(
+    bogieEditStateMachine,
+    bogieAddStateMachine,
+    imageEditStateMachine,
+    imageCropStateMachine
+);
 ```
 
 In the returned components object, add:
@@ -1545,7 +1545,12 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 Update the mode union near line 46:
 
 ```ts
-type TrainEditorMode = 'idle' | 'edit-bogie' | 'add-bogie' | 'edit-image' | 'crop-image';
+type TrainEditorMode =
+    | 'idle'
+    | 'edit-bogie'
+    | 'add-bogie'
+    | 'edit-image'
+    | 'crop-image';
 ```
 
 - [ ] **Step 2: Replace the `uploadImage` helper and import handler**
@@ -1582,22 +1587,22 @@ function uploadImage(
 Replace the `handleImportImage` callback (around lines 190–200):
 
 ```ts
-    const handleImportImage = useCallback(() => {
-        if (!app) return;
-        uploadImage((src, pxW, pxH) => {
-            // Image's world height is set to the current car body width;
-            // image world width derives from aspect ratio.
-            const aspect = pxW / pxH;
-            const worldH = carWidth;
-            const worldW = worldH * aspect;
-            app.imageEditorEngine.setImage(src, worldW, worldH);
-            // Auto-switch to image edit mode
-            exitAllModes();
-            app.trainEditorKmtStateMachine.happens('switchToEditImage');
-            app.imageRenderSystem.showHandles = true;
-            setMode('edit-image');
-        });
-    }, [app, carWidth, exitAllModes]);
+const handleImportImage = useCallback(() => {
+    if (!app) return;
+    uploadImage((src, pxW, pxH) => {
+        // Image's world height is set to the current car body width;
+        // image world width derives from aspect ratio.
+        const aspect = pxW / pxH;
+        const worldH = carWidth;
+        const worldW = worldH * aspect;
+        app.imageEditorEngine.setImage(src, worldW, worldH);
+        // Auto-switch to image edit mode
+        exitAllModes();
+        app.trainEditorKmtStateMachine.happens('switchToEditImage');
+        app.imageRenderSystem.showHandles = true;
+        setMode('edit-image');
+    });
+}, [app, carWidth, exitAllModes]);
 ```
 
 - [ ] **Step 3: Track source pixel dims and add the image→width coupling**
@@ -1607,36 +1612,36 @@ Add a ref for source pixel dims so we can keep the crop state machine's context 
 Inside the component body, after the existing `useState` calls and before `exitAllModes`:
 
 ```ts
-    const sourcePixelDimsRef = useRef<{ pxWidth: number; pxHeight: number }>({
-        pxWidth: 0,
-        pxHeight: 0,
-    });
+const sourcePixelDimsRef = useRef<{ pxWidth: number; pxHeight: number }>({
+    pxWidth: 0,
+    pxHeight: 0,
+});
 
-    // Subscribe to image changes:
-    //   - couple image height → car body width when an image is present
-    //   - keep source pixel dims fresh for crop commit (read by handleConfirmCrop)
-    useEffect(() => {
-        if (!app) return;
-        const unsub = app.imageEditorEngine.onImageChanged(image => {
-            if (!image) return;
-            // Couple height → car width
-            if (image.height !== carWidth) {
-                setCarWidth(image.height);
-                app.bogieEditorEngine.setWidth(image.height);
-            }
-            // Refresh source pixel dims so the next commit uses the correct
-            // bitmap size. Decoding a data URL is cheap and runs off the hot path.
-            const probe = new window.Image();
-            probe.onload = () => {
-                sourcePixelDimsRef.current = {
-                    pxWidth: probe.width,
-                    pxHeight: probe.height,
-                };
+// Subscribe to image changes:
+//   - couple image height → car body width when an image is present
+//   - keep source pixel dims fresh for crop commit (read by handleConfirmCrop)
+useEffect(() => {
+    if (!app) return;
+    const unsub = app.imageEditorEngine.onImageChanged(image => {
+        if (!image) return;
+        // Couple height → car width
+        if (image.height !== carWidth) {
+            setCarWidth(image.height);
+            app.bogieEditorEngine.setWidth(image.height);
+        }
+        // Refresh source pixel dims so the next commit uses the correct
+        // bitmap size. Decoding a data URL is cheap and runs off the hot path.
+        const probe = new window.Image();
+        probe.onload = () => {
+            sourcePixelDimsRef.current = {
+                pxWidth: probe.width,
+                pxHeight: probe.height,
             };
-            probe.src = image.src;
-        });
-        return unsub;
-    }, [app, carWidth]);
+        };
+        probe.src = image.src;
+    });
+    return unsub;
+}, [app, carWidth]);
 ```
 
 - [ ] **Step 4: Update the width input to rescale the image**
@@ -1663,51 +1668,51 @@ Also disable the width input while in crop mode — add `disabled={mode === 'cro
 Below `handleEditImageToggle`:
 
 ```ts
-    const handleCropImageToggle = useCallback(() => {
-        if (!app) return;
-        if (mode === 'crop-image') {
-            app.trainEditorKmtStateMachine.happens('switchToIdle');
-            app.imageRenderSystem.showCropRect = false;
-            setMode('idle');
-        } else {
-            exitAllModes();
-            app.trainEditorKmtStateMachine.happens('switchToCropImage');
-            app.imageRenderSystem.showHandles = false;
-            app.imageRenderSystem.showCropRect = true;
-            setMode('crop-image');
-        }
-    }, [app, mode, exitAllModes]);
-
-    const handleConfirmCrop = useCallback(async () => {
-        if (!app) return;
-        // Toolbar owns commit so it can pass the source bitmap pixel dims
-        // captured by the onImageChanged subscription above.
-        await app.imageCropEngine.commit(sourcePixelDimsRef.current);
-        app.imageCropStateMachine.happens('commitCrop', {});
+const handleCropImageToggle = useCallback(() => {
+    if (!app) return;
+    if (mode === 'crop-image') {
         app.trainEditorKmtStateMachine.happens('switchToIdle');
         app.imageRenderSystem.showCropRect = false;
         setMode('idle');
-    }, [app]);
+    } else {
+        exitAllModes();
+        app.trainEditorKmtStateMachine.happens('switchToCropImage');
+        app.imageRenderSystem.showHandles = false;
+        app.imageRenderSystem.showCropRect = true;
+        setMode('crop-image');
+    }
+}, [app, mode, exitAllModes]);
 
-    const handleCancelCrop = useCallback(() => {
-        if (!app) return;
-        app.imageCropStateMachine.happens('cancelCrop', {});
-        app.trainEditorKmtStateMachine.happens('switchToIdle');
-        app.imageRenderSystem.showCropRect = false;
-        setMode('idle');
-    }, [app]);
+const handleConfirmCrop = useCallback(async () => {
+    if (!app) return;
+    // Toolbar owns commit so it can pass the source bitmap pixel dims
+    // captured by the onImageChanged subscription above.
+    await app.imageCropEngine.commit(sourcePixelDimsRef.current);
+    app.imageCropStateMachine.happens('commitCrop', {});
+    app.trainEditorKmtStateMachine.happens('switchToIdle');
+    app.imageRenderSystem.showCropRect = false;
+    setMode('idle');
+}, [app]);
+
+const handleCancelCrop = useCallback(() => {
+    if (!app) return;
+    app.imageCropStateMachine.happens('cancelCrop', {});
+    app.trainEditorKmtStateMachine.happens('switchToIdle');
+    app.imageRenderSystem.showCropRect = false;
+    setMode('idle');
+}, [app]);
 ```
 
 Update `exitAllModes` so leaving any mode also clears the crop overlay (defensive):
 
 ```ts
-    const exitAllModes = useCallback(() => {
-        if (!app) return;
-        app.trainEditorKmtStateMachine.happens('switchToIdle');
-        app.imageRenderSystem.showHandles = false;
-        app.imageRenderSystem.showCropRect = false;
-        setMode('idle');
-    }, [app]);
+const exitAllModes = useCallback(() => {
+    if (!app) return;
+    app.trainEditorKmtStateMachine.happens('switchToIdle');
+    app.imageRenderSystem.showHandles = false;
+    app.imageRenderSystem.showCropRect = false;
+    setMode('idle');
+}, [app]);
 ```
 
 - [ ] **Step 6: Add keyboard shortcuts (Enter = confirm, Escape = cancel)**
@@ -1715,20 +1720,20 @@ Update `exitAllModes` so leaving any mode also clears the crop overlay (defensiv
 Inside the component body, after the existing effects:
 
 ```ts
-    useEffect(() => {
-        if (mode !== 'crop-image') return;
-        const onKey = (e: KeyboardEvent) => {
-            if (e.key === 'Enter') {
-                e.preventDefault();
-                handleConfirmCrop();
-            } else if (e.key === 'Escape') {
-                e.preventDefault();
-                handleCancelCrop();
-            }
-        };
-        window.addEventListener('keydown', onKey);
-        return () => window.removeEventListener('keydown', onKey);
-    }, [mode, handleConfirmCrop, handleCancelCrop]);
+useEffect(() => {
+    if (mode !== 'crop-image') return;
+    const onKey = (e: KeyboardEvent) => {
+        if (e.key === 'Enter') {
+            e.preventDefault();
+            handleConfirmCrop();
+        } else if (e.key === 'Escape') {
+            e.preventDefault();
+            handleCancelCrop();
+        }
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+}, [mode, handleConfirmCrop, handleCancelCrop]);
 ```
 
 - [ ] **Step 7: Add the Crop button + Confirm/Cancel buttons to the toolbar JSX**
@@ -1736,56 +1741,46 @@ Inside the component body, after the existing effects:
 In the toolbar JSX (inside the bg-background panel), after the "Edit image" `ToolbarButton`, add:
 
 ```tsx
-                    {/* Crop image */}
-                    <ToolbarButton
-                        tooltip={
-                            mode === 'crop-image'
-                                ? t('endCrop')
-                                : t('cropImage')
-                        }
-                        active={mode === 'crop-image'}
-                        disabled={!hasImage && mode !== 'crop-image'}
-                        onClick={handleCropImageToggle}
-                    >
-                        <Crop />
-                    </ToolbarButton>
+{
+    /* Crop image */
+}
+<ToolbarButton
+    tooltip={mode === 'crop-image' ? t('endCrop') : t('cropImage')}
+    active={mode === 'crop-image'}
+    disabled={!hasImage && mode !== 'crop-image'}
+    onClick={handleCropImageToggle}
+>
+    <Crop />
+</ToolbarButton>;
 
-                    {mode === 'crop-image' && (
-                        <>
-                            <ToolbarButton
-                                tooltip={t('confirmCrop')}
-                                onClick={handleConfirmCrop}
-                            >
-                                <Check />
-                            </ToolbarButton>
-                            <ToolbarButton
-                                tooltip={t('cancelCrop')}
-                                onClick={handleCancelCrop}
-                            >
-                                <X />
-                            </ToolbarButton>
-                        </>
-                    )}
+{
+    mode === 'crop-image' && (
+        <>
+            <ToolbarButton
+                tooltip={t('confirmCrop')}
+                onClick={handleConfirmCrop}
+            >
+                <Check />
+            </ToolbarButton>
+            <ToolbarButton tooltip={t('cancelCrop')} onClick={handleCancelCrop}>
+                <X />
+            </ToolbarButton>
+        </>
+    );
+}
 ```
 
 Disable the Edit-image button while in crop mode by changing its `disabled` prop:
 
 ```tsx
-                    <ToolbarButton
-                        tooltip={
-                            mode === 'edit-image'
-                                ? t('endImageEdit')
-                                : t('editImage')
-                        }
-                        active={mode === 'edit-image'}
-                        disabled={
-                            (!hasImage && mode !== 'edit-image') ||
-                            mode === 'crop-image'
-                        }
-                        onClick={handleEditImageToggle}
-                    >
-                        <GripHorizontal />
-                    </ToolbarButton>
+<ToolbarButton
+    tooltip={mode === 'edit-image' ? t('endImageEdit') : t('editImage')}
+    active={mode === 'edit-image'}
+    disabled={(!hasImage && mode !== 'edit-image') || mode === 'crop-image'}
+    onClick={handleEditImageToggle}
+>
+    <GripHorizontal />
+</ToolbarButton>
 ```
 
 - [ ] **Step 8: Run formatter and build**
@@ -1820,33 +1815,33 @@ If the user re-imports an image (or hydrates a saved car definition) while in cr
 In `src/pages/train-editor.tsx`, after `imageRenderSystem.attachCropEngine(imageCropEngine);`:
 
 ```ts
-    // If the image is replaced (re-import / hydrate), abandon any in-progress crop.
-    const cropAutoCancelUnsub = imageEditorEngine.onImageChanged(() => {
-        if (imageCropEngine.getRect() !== null) {
-            // Cancel without recursing through setImage (engine.cancel only
-            // touches its own rect state).
-            imageCropEngine.cancel();
-        }
-    });
+// If the image is replaced (re-import / hydrate), abandon any in-progress crop.
+const cropAutoCancelUnsub = imageEditorEngine.onImageChanged(() => {
+    if (imageCropEngine.getRect() !== null) {
+        // Cancel without recursing through setImage (engine.cancel only
+        // touches its own rect state).
+        imageCropEngine.cancel();
+    }
+});
 ```
 
 In the existing `cleanups.push(...)` block, add the unsubscribe call at the top of the callback:
 
 ```ts
-    components.cleanups.push(() => {
-        cropAutoCancelUnsub();
-        // ... existing cleanup
-        bogieEditorRenderSystem.cleanup();
-        components.app.stage.removeChild(bogieEditorRenderSystem.container);
-        bogieEditorRenderSystem.container.destroy({ children: true });
+components.cleanups.push(() => {
+    cropAutoCancelUnsub();
+    // ... existing cleanup
+    bogieEditorRenderSystem.cleanup();
+    components.app.stage.removeChild(bogieEditorRenderSystem.container);
+    bogieEditorRenderSystem.container.destroy({ children: true });
 
-        imageRenderSystem.cleanup();
-        components.app.stage.removeChild(imageRenderSystem.container);
-        imageRenderSystem.container.destroy({ children: true });
-    });
+    imageRenderSystem.cleanup();
+    components.app.stage.removeChild(imageRenderSystem.container);
+    imageRenderSystem.container.destroy({ children: true });
+});
 ```
 
-Note: `imageCropEngine.cancel()` runs synchronously inside the `onImageChanged` callback, which itself runs synchronously when `setImage` is called. The `setImage` that triggered this callback has already updated the image, so cancelling here only resets `_rect` and notifies the render system — no re-entrancy risk. **Commit** also calls `setImage`, but Task 3's `commit()` clears `_rect = null` *before* calling `setImage`, so this auto-cancel hook sees a null rect and is a no-op for committed crops.
+Note: `imageCropEngine.cancel()` runs synchronously inside the `onImageChanged` callback, which itself runs synchronously when `setImage` is called. The `setImage` that triggered this callback has already updated the image, so cancelling here only resets `_rect` and notifies the render system — no re-entrancy risk. **Commit** also calls `setImage`, but Task 3's `commit()` clears `_rect = null` _before_ calling `setImage`, so this auto-cancel hook sees a null rect and is a no-op for committed crops.
 
 - [ ] **Step 2: Run all tests**
 
@@ -1879,18 +1874,21 @@ Open the train editor page in the browser.
 - [ ] **Step 2: Verify import sets width**
 
 Set car width to `3.0` in the toolbar. Import an image (any aspect ratio). Confirm:
+
 - The image is rendered with world-space height ≈ 3.0 (visually matches the bogie body width if visible).
 - Width input still reads `3.0`.
 
 - [ ] **Step 3: Verify drag-resize couples width**
 
 Enter Edit Image mode. Drag a corner handle outward. Confirm:
+
 - Width input value updates live.
 - The bogie editor's body width visual updates live.
 
 - [ ] **Step 4: Verify width-input rescales image**
 
 In Edit Image mode (or idle), type `1.5` into the width input. Confirm:
+
 - Image visibly shrinks so its world height is `1.5`.
 - Image position is unchanged.
 - Aspect ratio is preserved.
@@ -1898,6 +1896,7 @@ In Edit Image mode (or idle), type `1.5` into the width input. Confirm:
 - [ ] **Step 5: Verify crop**
 
 Click the Crop button. Confirm:
+
 - Image edit handles disappear; orange crop handles appear at the four corners.
 - Outside the crop rect is dimmed.
 - Drag a corner inward, confirm the rect updates and the dim region grows.
@@ -1911,6 +1910,7 @@ Enter crop mode → drag handles in → without confirming, click Import Image a
 - [ ] **Step 7: Verify save → load round-trip**
 
 Save the current car to the library, then reload from the library. Confirm:
+
 - Image renders at the saved size and position.
 - Width input reads the saved width.
 - Crop still works on the reloaded image.
@@ -1928,6 +1928,7 @@ If verification surfaced small fixes, commit them under a focused message. If ev
 ## Summary
 
 After all tasks, the car maker has:
+
 - A new Crop tool that destructively re-encodes the image to a tight cutout.
 - Bidirectional binding between car body width and the image's world-space height — typing the width rescales the image; resizing or cropping the image updates the width — so the two never drift.
 - No data-format changes; saved cars and exported JSON keep working unchanged.

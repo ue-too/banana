@@ -15,11 +15,13 @@ Today the import flow scales the image so `max(width, height) = 10` world units,
 ## Scope
 
 In scope:
+
 - A new "Crop" tool in the train-editor toolbar with handle-driven cropping that destructively re-encodes the image.
 - Continuous bidirectional coupling between the image's world-space height and the car body width.
 - Tests and minimal toolbar / wiring changes to support the above.
 
 Out of scope:
+
 - Non-rectangular crops, rotation, fixed aspect locking, undo/redo.
 - Real-world unit calibration (e.g. "this image is N meters tall").
 - Reworking how bogies relate to width beyond hooking the bogie editor's width to the new observable flow.
@@ -28,13 +30,13 @@ Out of scope:
 
 Single rule when an image is present: `imageHeight (world) === carBodyWidth`.
 
-| User action | Effect |
-| --- | --- |
-| Import image | Image scaled so `height = currentCarWidth`, aspect preserved. Width input value unchanged. |
-| Drag-resize image (corner handle, proportional) | `imageHeight` changes → `carBodyWidth` follows live; bogie-editor visual width follows; toolbar input value follows. |
-| Type a new width in the toolbar input | If an image is present, the engine rescales the image so `height = newWidth`, aspect preserved, position centered as before. If no image, behaves as today. |
-| Crop image (commit) | Image's new world-height = the crop rect's world-height → width follows automatically. |
-| Remove / replace image | Width input becomes manually editable as today. |
+| User action                                     | Effect                                                                                                                                                      |
+| ----------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Import image                                    | Image scaled so `height = currentCarWidth`, aspect preserved. Width input value unchanged.                                                                  |
+| Drag-resize image (corner handle, proportional) | `imageHeight` changes → `carBodyWidth` follows live; bogie-editor visual width follows; toolbar input value follows.                                        |
+| Type a new width in the toolbar input           | If an image is present, the engine rescales the image so `height = newWidth`, aspect preserved, position centered as before. If no image, behaves as today. |
+| Crop image (commit)                             | Image's new world-height = the crop rect's world-height → width follows automatically.                                                                      |
+| Remove / replace image                          | Width input becomes manually editable as today.                                                                                                             |
 
 There is no separate "deduction" branching — it is one source of truth (`EditorImage.height`) flowing through `ImageEditorEngine` and observed by both the toolbar input and the bogie editor. Resize remains corner-only and proportional, matching today's behavior.
 
@@ -57,6 +59,7 @@ States: `INACTIVE`, `IDLE`, `RESIZING`.
 Events: `startCrop`, `endCrop`, `commitCrop`, `cancelCrop`, `leftPointerDown`, `leftPointerUp`, `leftPointerMove`, `pointerMove`.
 
 Transitions:
+
 - `INACTIVE --startCrop--> IDLE`
 - `IDLE --leftPointerDown[hitHandle]--> RESIZING`
 - `RESIZING --leftPointerUp--> IDLE`
@@ -69,6 +72,7 @@ Context: `{ cropEngine: ImageCropEngine }`.
 ### Engine
 
 `src/train-editor/image-crop-engine.ts`. Holds:
+
 - A reference to `ImageEditorEngine` for reading the current image and writing the cropped result.
 - A `CropRect` in world space `{ x, y, width, height }` for the area inside the image to keep. Initialized to the full image bounds when crop mode starts.
 - Hit-testing for four corner crop handles, using the same screen-pixel radius convention as the edit handles (`HANDLE_HIT_RADIUS_PX`).
@@ -82,6 +86,7 @@ PNG is chosen to preserve transparency on cutouts. Source bitmap is loaded via `
 ### Render system
 
 `ImageRenderSystem` is extended with a `showCropRect` toggle (parallel to the existing `showHandles`). When the toggle is on it draws:
+
 - A semi-transparent dim overlay over the parts of the image outside the crop rect.
 - The crop rect border.
 - Four inner corner handles in a distinct color (orange) so the mode is visually unambiguous.
