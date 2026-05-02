@@ -12,6 +12,7 @@ import {
     MousePointer2,
     Plus,
     Save,
+    Trash2,
     Upload,
     X,
 } from '@/assets/icons';
@@ -50,6 +51,7 @@ type TrainEditorMode =
     | 'idle'
     | 'edit-bogie'
     | 'add-bogie'
+    | 'remove-bogie'
     | 'edit-image'
     | 'crop-image';
 
@@ -201,6 +203,18 @@ export function TrainEditorToolbar() {
             exitAllModes();
             app.trainEditorKmtStateMachine.happens('switchToAddBogie');
             setMode('add-bogie');
+        }
+    }, [app, mode, exitAllModes]);
+
+    const handleRemoveBogieToggle = useCallback(() => {
+        if (!app) return;
+        if (mode === 'remove-bogie') {
+            app.trainEditorKmtStateMachine.happens('switchToIdle');
+            setMode('idle');
+        } else {
+            exitAllModes();
+            app.trainEditorKmtStateMachine.happens('switchToRemoveBogie');
+            setMode('remove-bogie');
         }
     }, [app, mode, exitAllModes]);
 
@@ -485,6 +499,19 @@ export function TrainEditorToolbar() {
                         onClick={handleAddBogieToggle}
                     >
                         <Plus />
+                    </ToolbarButton>
+
+                    {/* Remove bogie */}
+                    <ToolbarButton
+                        tooltip={
+                            mode === 'remove-bogie'
+                                ? t('endRemove')
+                                : t('removeBogie')
+                        }
+                        active={mode === 'remove-bogie'}
+                        onClick={handleRemoveBogieToggle}
+                    >
+                        <Trash2 />
                     </ToolbarButton>
 
                     <Separator />
