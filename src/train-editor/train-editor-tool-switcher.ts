@@ -10,6 +10,7 @@ import {
 
 import type { BogieAddStateMachine } from './bogie-add-state-machine';
 import type { BogieEditStateMachine } from './bogie-kmt-state-machine';
+import type { BogieRemoveStateMachine } from './bogie-remove-state-machine';
 import type { ImageCropStateMachine } from './image-crop-state-machine';
 import type { ImageEditStateMachine } from './image-edit-state-machine';
 
@@ -17,6 +18,7 @@ export const TRAIN_EDITOR_TOOL_STATES = [
     'IDLE',
     'EDIT_BOGIE',
     'ADD_BOGIE',
+    'REMOVE_BOGIE',
     'EDIT_IMAGE',
     'EDIT_IMAGE_CROP',
 ] as const;
@@ -26,6 +28,7 @@ export type TrainEditorToolStates = (typeof TRAIN_EDITOR_TOOL_STATES)[number];
 export type TrainEditorToolEvents = {
     switchToEditBogie: {};
     switchToAddBogie: {};
+    switchToRemoveBogie: {};
     switchToEditImage: {};
     switchToCropImage: {};
     switchToIdle: {};
@@ -56,6 +59,10 @@ class ToolIdleState extends TemplateState<
         switchToAddBogie: {
             action: NO_OP,
             defaultTargetState: 'ADD_BOGIE',
+        },
+        switchToRemoveBogie: {
+            action: NO_OP,
+            defaultTargetState: 'REMOVE_BOGIE',
         },
         switchToEditImage: {
             action: NO_OP,
@@ -120,6 +127,10 @@ class ToolEditBogieState extends TemplateState<
             action: NO_OP,
             defaultTargetState: 'ADD_BOGIE',
         },
+        switchToRemoveBogie: {
+            action: NO_OP,
+            defaultTargetState: 'REMOVE_BOGIE',
+        },
         switchToEditImage: {
             action: NO_OP,
             defaultTargetState: 'EDIT_IMAGE',
@@ -182,6 +193,78 @@ class ToolAddBogieState extends TemplateState<
             defaultTargetState: 'EDIT_BOGIE',
         },
         switchToAddBogie: {
+            action: NO_OP,
+        },
+        switchToRemoveBogie: {
+            action: NO_OP,
+            defaultTargetState: 'REMOVE_BOGIE',
+        },
+        switchToEditImage: {
+            action: NO_OP,
+            defaultTargetState: 'EDIT_IMAGE',
+        },
+        switchToCropImage: {
+            action: NO_OP,
+            defaultTargetState: 'EDIT_IMAGE_CROP',
+        },
+        switchToIdle: {
+            action: NO_OP,
+            defaultTargetState: 'IDLE',
+        },
+    };
+}
+
+class ToolRemoveBogieState extends TemplateState<
+    TrainEditorToolEvents,
+    TrainEditorToolContext,
+    TrainEditorToolStates
+> {
+    private _bogieRemoveStateMachine: BogieRemoveStateMachine;
+
+    constructor(bogieRemoveStateMachine: BogieRemoveStateMachine) {
+        super();
+        this._bogieRemoveStateMachine = bogieRemoveStateMachine;
+    }
+
+    uponEnter(): void {
+        this._bogieRemoveStateMachine.happens('startRemoving');
+    }
+
+    beforeExit(): void {
+        this._bogieRemoveStateMachine.happens('endRemoving');
+    }
+
+    protected _defer: Defer<
+        TrainEditorToolContext,
+        TrainEditorToolEvents,
+        TrainEditorToolStates
+    > = {
+        action: (_context, event, eventKey) => {
+            const result = this._bogieRemoveStateMachine.happens(
+                eventKey as string,
+                event
+            );
+            if (result.handled) {
+                return { handled: true, output: result.output };
+            }
+            return { handled: false };
+        },
+    };
+
+    protected _eventReactions: EventReactions<
+        TrainEditorToolEvents,
+        TrainEditorToolContext,
+        TrainEditorToolStates
+    > = {
+        switchToEditBogie: {
+            action: NO_OP,
+            defaultTargetState: 'EDIT_BOGIE',
+        },
+        switchToAddBogie: {
+            action: NO_OP,
+            defaultTargetState: 'ADD_BOGIE',
+        },
+        switchToRemoveBogie: {
             action: NO_OP,
         },
         switchToEditImage: {
@@ -249,6 +332,10 @@ class ToolEditImageState extends TemplateState<
             action: NO_OP,
             defaultTargetState: 'ADD_BOGIE',
         },
+        switchToRemoveBogie: {
+            action: NO_OP,
+            defaultTargetState: 'REMOVE_BOGIE',
+        },
         switchToEditImage: {
             action: NO_OP,
         },
@@ -313,6 +400,10 @@ class ToolCropImageState extends TemplateState<
             action: NO_OP,
             defaultTargetState: 'ADD_BOGIE',
         },
+        switchToRemoveBogie: {
+            action: NO_OP,
+            defaultTargetState: 'REMOVE_BOGIE',
+        },
         switchToEditImage: {
             action: NO_OP,
             defaultTargetState: 'EDIT_IMAGE',
@@ -330,6 +421,7 @@ class ToolCropImageState extends TemplateState<
 export const createTrainEditorToolSwitcher = (
     bogieEditStateMachine: BogieEditStateMachine,
     bogieAddStateMachine: BogieAddStateMachine,
+    bogieRemoveStateMachine: BogieRemoveStateMachine,
     imageEditStateMachine: ImageEditStateMachine,
     imageCropStateMachine: ImageCropStateMachine
 ): TrainEditorToolStateMachine => {
@@ -342,6 +434,7 @@ export const createTrainEditorToolSwitcher = (
             IDLE: new ToolIdleState(),
             EDIT_BOGIE: new ToolEditBogieState(bogieEditStateMachine),
             ADD_BOGIE: new ToolAddBogieState(bogieAddStateMachine),
+            REMOVE_BOGIE: new ToolRemoveBogieState(bogieRemoveStateMachine),
             EDIT_IMAGE: new ToolEditImageState(imageEditStateMachine),
             EDIT_IMAGE_CROP: new ToolCropImageState(imageCropStateMachine),
         },
