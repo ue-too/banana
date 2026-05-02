@@ -195,71 +195,24 @@ export function DepotPanel({
                     </span>
                     <div className="flex max-h-48 flex-col gap-1 overflow-y-auto">
                         {carTemplates.map(tpl => (
-                            <div
+                            <CarTemplateRow
                                 key={tpl.id}
-                                className="bg-muted/50 flex items-center justify-between rounded-lg px-2.5 py-1.5"
-                            >
-                                <div className="flex flex-col gap-0.5">
-                                    {tpl.image && (
-                                        <img
-                                            src={tpl.image.src}
-                                            alt="car"
-                                            className="h-6 w-auto rounded object-contain"
-                                        />
-                                    )}
-                                    <span className="text-muted-foreground text-[10px]">
-                                        {t('bogieCount', {
-                                            count: tpl.bogieOffsets.length + 1,
-                                        })}
-                                        {' · '}
-                                        {tpl.edgeToBogie +
-                                            tpl.bogieOffsets.reduce(
-                                                (a, b) => a + b,
-                                                0
-                                            ) +
-                                            tpl.bogieToEdge}
-                                        m{' · '}
-                                        {tpl.width.toFixed(1)}m
-                                    </span>
-                                </div>
-                                <div className="flex gap-0.5">
-                                    <Button
-                                        variant="ghost"
-                                        size="icon-xs"
-                                        onClick={() => {
-                                            const newCar =
-                                                carStockManager.createCar(
-                                                    [...tpl.bogieOffsets],
-                                                    tpl.edgeToBogie,
-                                                    tpl.bogieToEdge,
-                                                    tpl.type,
-                                                    tpl.width
-                                                );
-                                            if (tpl.image) {
-                                                carImageRegistry.set(
-                                                    newCar.id,
-                                                    tpl.image.src
-                                                );
-                                            }
-                                        }}
-                                    >
-                                        <Plus className="size-3" />
-                                    </Button>
-                                    <Button
-                                        variant="ghost"
-                                        size="icon-xs"
-                                        onClick={() =>
-                                            onCarTemplatesChange(prev =>
-                                                prev.filter(
-                                                    t => t.id !== tpl.id
-                                                )
-                                            )
-                                        }
-                                    >
-                                        <Trash2 className="size-3" />
-                                    </Button>
-                                </div>
-                            </div>
+                                template={tpl}
+                                carStockManager={carStockManager}
+                                carImageRegistry={carImageRegistry}
+                                onRename={(id, name) =>
+                                    onCarTemplatesChange(prev =>
+                                        prev.map(t =>
+                                            t.id === id ? { ...t, name } : t
+                                        )
+                                    )
+                                }
+                                onDelete={id =>
+                                    onCarTemplatesChange(prev =>
+                                        prev.filter(t => t.id !== id)
+                                    )
+                                }
+                            />
                         ))}
                     </div>
                 </>
@@ -403,6 +356,125 @@ function DepotCarRow({
             >
                 <Trash2 className="size-3" />
             </Button>
+        </div>
+    );
+}
+
+function CarTemplateRow({
+    template,
+    carStockManager,
+    carImageRegistry,
+    onRename,
+    onDelete,
+}: {
+    template: CarTemplate;
+    carStockManager: CarStockManager;
+    carImageRegistry: CarImageRegistry;
+    onRename: (id: string, name: string) => void;
+    onDelete: (id: string) => void;
+}) {
+    const { t } = useTranslation();
+    const [isEditing, setIsEditing] = useState(false);
+    const [editValue, setEditValue] = useState('');
+    const inputRef = useRef<HTMLInputElement>(null);
+
+    const length =
+        template.edgeToBogie +
+        template.bogieOffsets.reduce((a, b) => a + b, 0) +
+        template.bogieToEdge;
+
+    const startEditing = useCallback(() => {
+        setEditValue(template.name ?? '');
+        setIsEditing(true);
+        setTimeout(() => inputRef.current?.focus(), 0);
+    }, [template.name]);
+
+    const commitRename = useCallback(() => {
+        const trimmed = editValue.trim();
+        if (trimmed && trimmed !== template.name) {
+            onRename(template.id, trimmed);
+        }
+        setIsEditing(false);
+    }, [editValue, template.id, template.name, onRename]);
+
+    return (
+        <div className="bg-muted/50 flex items-center justify-between rounded-lg px-2.5 py-1.5">
+            <div className="flex min-w-0 flex-col gap-0.5">
+                {template.image && (
+                    <img
+                        src={template.image.src}
+                        alt="car"
+                        className="h-6 w-auto rounded object-contain"
+                    />
+                )}
+                <div className="flex min-w-0 items-center gap-1">
+                    {isEditing ? (
+                        <input
+                            ref={inputRef}
+                            className="text-foreground bg-background border-primary/40 w-24 rounded border px-1 py-0 text-xs outline-none"
+                            value={editValue}
+                            onChange={e => setEditValue(e.target.value)}
+                            onBlur={commitRename}
+                            onKeyDown={e => {
+                                if (e.key === 'Enter') commitRename();
+                                if (e.key === 'Escape') setIsEditing(false);
+                            }}
+                        />
+                    ) : (
+                        <span
+                            className="text-foreground truncate text-xs"
+                            title={t('renameCar')}
+                            onDoubleClick={startEditing}
+                        >
+                            {template.name ?? template.id}
+                        </span>
+                    )}
+                    {!isEditing && (
+                        <Button
+                            variant="ghost"
+                            size="icon-xs"
+                            onClick={startEditing}
+                        >
+                            <Pencil className="size-2.5" />
+                        </Button>
+                    )}
+                </div>
+                <span className="text-muted-foreground text-[10px]">
+                    {t('bogieCount', {
+                        count: template.bogieOffsets.length + 1,
+                    })}
+                    {' · '}
+                    {length}m{' · '}
+                    {template.width.toFixed(1)}m
+                </span>
+            </div>
+            <div className="flex gap-0.5">
+                <Button
+                    variant="ghost"
+                    size="icon-xs"
+                    onClick={() => {
+                        const newCar = carStockManager.createCar(
+                            [...template.bogieOffsets],
+                            template.edgeToBogie,
+                            template.bogieToEdge,
+                            template.type,
+                            template.width
+                        );
+                        if (template.image) {
+                            carImageRegistry.set(newCar.id, template.image.src);
+                        }
+                    }}
+                >
+                    <Plus className="size-3" />
+                </Button>
+                <Button
+                    variant="ghost"
+                    size="icon-xs"
+                    onClick={() => onDelete(template.id)}
+                >
+                    <Trash2 className="size-3" />
+                </Button>
+            </div>
         </div>
     );
 }
@@ -579,7 +651,8 @@ function FormationTemplateSlotEditor({
             ct.edgeToBogie +
             ct.bogieOffsets.reduce((a, b) => a + b, 0) +
             ct.bogieToEdge;
-        return `${t('bogieCount', { count: ct.bogieOffsets.length + 1 })} · ${length}m · ${ct.width.toFixed(1)}m (${ct.id})`;
+        const subtitle = `${t('bogieCount', { count: ct.bogieOffsets.length + 1 })} · ${length}m · ${ct.width.toFixed(1)}m`;
+        return ct.name ? `${ct.name} — ${subtitle}` : `${subtitle} (${ct.id})`;
     };
 
     return (

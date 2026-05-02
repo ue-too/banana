@@ -61,4 +61,26 @@ describe('validateCarDefinition', () => {
         });
         expect(result.valid).toBe(false);
     });
+
+    it('accepts a definition with a string name', () => {
+        const result = validateCarDefinition({
+            bogieOffsets: [10],
+            edgeToBogie: 2.5,
+            bogieToEdge: 2.5,
+            width: 2.5,
+            name: 'Local Coach',
+        });
+        expect(result.valid).toBe(true);
+    });
+
+    it('rejects a non-string name', () => {
+        const result = validateCarDefinition({
+            bogieOffsets: [10],
+            edgeToBogie: 2.5,
+            bogieToEdge: 2.5,
+            width: 2.5,
+            name: 42,
+        });
+        expect(result.valid).toBe(false);
+    });
 });
