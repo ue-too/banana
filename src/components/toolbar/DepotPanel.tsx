@@ -8,7 +8,7 @@ import {
 } from 'react';
 import { useTranslation } from 'react-i18next';
 
-import { Pencil, Plus, Trash2 } from '@/assets/icons';
+import { Pencil, Plus, Trash2, TriangleAlertIcon } from '@/assets/icons';
 import { Button } from '@/components/ui/button';
 import { DraggablePanel } from '@/components/ui/draggable-panel';
 import {
@@ -24,6 +24,16 @@ import type { CarStockManager } from '@/trains/car-stock-manager';
 import type { CarStockEntry } from '@/trains/car-stock-manager';
 import type { CarTemplate } from '@/trains/car-template';
 import { CarType } from '@/trains/cars';
+import type { FormationManager } from '@/trains/formation-manager';
+import {
+    type FormationTemplate,
+    generateFormationTemplateId,
+    resolveFormationTemplate,
+} from '@/trains/formation-template';
+import {
+    type MaterializeFormationTemplateResult,
+    materializeFormationTemplate,
+} from '@/trains/formation-template-materialize';
 
 const CAR_TYPES = Object.values(CarType);
 
@@ -32,6 +42,9 @@ type DepotPanelProps = {
     carImageRegistry: CarImageRegistry;
     carTemplates: CarTemplate[];
     onCarTemplatesChange: Dispatch<SetStateAction<CarTemplate[]>>;
+    formationTemplates: FormationTemplate[];
+    onFormationTemplatesChange: Dispatch<SetStateAction<FormationTemplate[]>>;
+    formationManager: FormationManager;
     onClose: () => void;
 };
 
@@ -40,6 +53,9 @@ export function DepotPanel({
     carImageRegistry,
     carTemplates,
     onCarTemplatesChange,
+    formationTemplates,
+    onFormationTemplatesChange,
+    formationManager,
     onClose,
 }: DepotPanelProps) {
     const subscribe = useCallback(
@@ -53,6 +69,39 @@ export function DepotPanel({
     const availableCars = useSyncExternalStore(subscribe, getSnapshot);
     const { t } = useTranslation();
     const [newCarType, setNewCarType] = useState<CarType>(CarType.COACH);
+
+    const handleCreateFormationTemplate = useCallback(() => {
+        const tpl: FormationTemplate = {
+            id: generateFormationTemplateId(),
+            name: t('newFormationTemplate'),
+            slots: [{ carTemplateId: carTemplates[0]?.id ?? '' }],
+        };
+        onFormationTemplatesChange(prev => [...prev, tpl]);
+    }, [t, carTemplates, onFormationTemplatesChange]);
+
+    const handleMaterializeFormationTemplate = useCallback(
+        (tpl: FormationTemplate) => {
+            const result: MaterializeFormationTemplateResult =
+                materializeFormationTemplate({
+                    template: tpl,
+                    carTemplates,
+                    carStockManager,
+                    formationManager,
+                    carImageRegistry,
+                });
+            // The UI disables the trigger when the resolver reports missing ids,
+            // so the failure branch is a defensive fallback (no toast).
+            void result;
+        },
+        [carTemplates, carStockManager, formationManager, carImageRegistry]
+    );
+
+    const handleDeleteFormationTemplate = useCallback(
+        (id: string) => {
+            onFormationTemplatesChange(prev => prev.filter(t => t.id !== id));
+        },
+        [onFormationTemplatesChange]
+    );
 
     return (
         <DraggablePanel title={t('depot')} onClose={onClose} className="w-56">
@@ -110,7 +159,7 @@ export function DepotPanel({
                 <>
                     <Separator className="my-2" />
                     <span className="text-muted-foreground mb-1 text-[10px] font-medium tracking-wider uppercase">
-                        {t('templates')}
+                        {t('carTemplates')}
                     </span>
                     <div className="flex max-h-48 flex-col gap-1 overflow-y-auto">
                         {carTemplates.map(tpl => (
@@ -181,6 +230,49 @@ export function DepotPanel({
                             </div>
                         ))}
                     </div>
+                </>
+            )}
+
+            {(formationTemplates.length > 0 || carTemplates.length > 0) && (
+                <>
+                    <Separator className="my-2" />
+                    <div className="mb-1 flex items-center justify-between">
+                        <span className="text-muted-foreground text-[10px] font-medium tracking-wider uppercase">
+                            {t('formationTemplates')}
+                        </span>
+                        <Button
+                            variant="ghost"
+                            size="icon-xs"
+                            onClick={handleCreateFormationTemplate}
+                            disabled={carTemplates.length === 0}
+                            title={
+                                carTemplates.length === 0
+                                    ? t('addSlotNoCarTemplates')
+                                    : t('newFormationTemplate')
+                            }
+                        >
+                            <Plus className="size-3" />
+                        </Button>
+                    </div>
+                    {formationTemplates.length === 0 ? (
+                        <span className="text-muted-foreground py-2 text-center text-[10px]">
+                            {t('noFormationTemplates')}
+                        </span>
+                    ) : (
+                        <div className="flex max-h-48 flex-col gap-1 overflow-y-auto">
+                            {formationTemplates.map(tpl => (
+                                <FormationTemplateRow
+                                    key={tpl.id}
+                                    template={tpl}
+                                    carTemplates={carTemplates}
+                                    onMaterialize={
+                                        handleMaterializeFormationTemplate
+                                    }
+                                    onDelete={handleDeleteFormationTemplate}
+                                />
+                            ))}
+                        </div>
+                    )}
                 </>
             )}
         </DraggablePanel>
@@ -269,6 +361,71 @@ function DepotCarRow({
             >
                 <Trash2 className="size-3" />
             </Button>
+        </div>
+    );
+}
+
+function FormationTemplateRow({
+    template,
+    carTemplates,
+    onMaterialize,
+    onDelete,
+}: {
+    template: FormationTemplate;
+    carTemplates: CarTemplate[];
+    onMaterialize: (tpl: FormationTemplate) => void;
+    onDelete: (id: string) => void;
+}) {
+    const { t } = useTranslation();
+    const resolution = resolveFormationTemplate(template, carTemplates);
+    const missingCount = resolution.ok
+        ? 0
+        : resolution.missingTemplateIds.length;
+    const slotCount = template.slots.length;
+
+    return (
+        <div className="bg-muted/50 flex items-center justify-between rounded-lg px-2.5 py-1.5">
+            <div className="flex min-w-0 flex-col gap-0.5">
+                <span
+                    className="text-foreground truncate text-xs"
+                    title={template.name}
+                >
+                    {template.name}
+                </span>
+                <span className="text-muted-foreground flex items-center gap-1 text-[10px]">
+                    <span>{t('slot', { count: slotCount })}</span>
+                    {missingCount > 0 && (
+                        <span className="text-destructive flex items-center gap-0.5">
+                            <TriangleAlertIcon className="size-2.5" />
+                            {t('missingCarTemplates', {
+                                count: missingCount,
+                            })}
+                        </span>
+                    )}
+                </span>
+            </div>
+            <div className="flex gap-0.5">
+                <Button
+                    variant="ghost"
+                    size="icon-xs"
+                    onClick={() => onMaterialize(template)}
+                    disabled={missingCount > 0}
+                    title={
+                        missingCount > 0
+                            ? t('cannotMaterializeMissing')
+                            : t('materializeFormation')
+                    }
+                >
+                    <Plus className="size-3" />
+                </Button>
+                <Button
+                    variant="ghost"
+                    size="icon-xs"
+                    onClick={() => onDelete(template.id)}
+                >
+                    <Trash2 className="size-3" />
+                </Button>
+            </div>
         </div>
     );
 }

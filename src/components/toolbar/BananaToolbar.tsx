@@ -70,6 +70,7 @@ import {
 } from '@/trains/car-template';
 import type { CarType } from '@/trains/cars';
 import type { ThrottleSteps } from '@/trains/formation';
+import type { FormationTemplate } from '@/trains/formation-template';
 import { ELEVATION } from '@/trains/tracks/types';
 import type { SerializedTrackData } from '@/trains/tracks/types';
 import { validateSerializedTrackData } from '@/trains/tracks/types';
@@ -221,6 +222,9 @@ export function BananaToolbar({
     const [stressStartX, setStressStartX] = useState(0);
     const [stressStartY, setStressStartY] = useState(0);
     const [carTemplates, setCarTemplates] = useState<CarTemplate[]>([]);
+    const [formationTemplates, setFormationTemplates] = useState<
+        FormationTemplate[]
+    >([]);
     const [libraryDialogOpen, setLibraryDialogOpen] = useState(false);
     const [editingPlatform, setEditingPlatform] =
         useState<PlatformTarget | null>(null);
@@ -1299,6 +1303,9 @@ export function BananaToolbar({
                     carImageRegistry={app.carImageRegistry}
                     carTemplates={carTemplates}
                     onCarTemplatesChange={setCarTemplates}
+                    formationTemplates={formationTemplates}
+                    onFormationTemplatesChange={setFormationTemplates}
+                    formationManager={app.formationManager}
                     onClose={() => setPanel('depot', false)}
                 />
             )}
