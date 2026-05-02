@@ -107,6 +107,7 @@ export function DepotPanel({
     const handleDeleteFormationTemplate = useCallback(
         (id: string) => {
             onFormationTemplatesChange(prev => prev.filter(t => t.id !== id));
+            setEditingTemplateId(prev => (prev === id ? null : prev));
         },
         [onFormationTemplatesChange]
     );
@@ -586,7 +587,7 @@ function FormationTemplateSlotEditor({
                 const isUnknown = !knownIds.has(slot.carTemplateId);
                 return (
                     <div
-                        key={i}
+                        key={`${i}-${slot.carTemplateId}`}
                         className="flex items-center gap-1 text-[10px]"
                     >
                         <span className="text-muted-foreground w-4 text-right">
