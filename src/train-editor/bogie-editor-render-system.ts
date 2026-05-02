@@ -14,6 +14,8 @@ const BOGIE_FILL_COLOR = 0x3498db;
 const BOGIE_STROKE_COLOR = 0x000000;
 const LINE_COLOR = 0x888888;
 const LINE_HALF_LENGTH = 500;
+const BODY_COLOR = 0xaaaaaa;
+const BODY_MARGIN = 2.5;
 const LABEL_FONT_SIZE = 12;
 const LABEL_OFFSET_Y = -14;
 const DISTANCE_FONT_SIZE = 11;
@@ -69,9 +71,11 @@ export class BogieEditorRenderSystem {
     /** Distance labels placed between adjacent bogies */
     private _distanceContainers: Container[] = [];
     private _lineGraphics: Graphics;
+    private _bodyGraphics: Graphics;
     private _unsubscribePosition: (() => void) | null = null;
     private _unsubscribeAdded: (() => void) | null = null;
     private _unsubscribeRemoved: (() => void) | null = null;
+    private _unsubscribeWidth: (() => void) | null = null;
     private _abortController: AbortController = new AbortController();
     private _zoomLevel = 1;
 
@@ -82,7 +86,10 @@ export class BogieEditorRenderSystem {
         this._zoomLevel = camera.zoomLevel;
         this._lineGraphics = new Graphics();
         this._container.addChild(this._lineGraphics);
+        this._bodyGraphics = new Graphics();
+        this._container.addChild(this._bodyGraphics);
         this._drawLine();
+        this._drawBody();
     }
 
     get container(): Container {
@@ -99,6 +106,9 @@ export class BogieEditorRenderSystem {
         );
         this._unsubscribeRemoved = this._engine.onBogieRemoved(() =>
             this._syncAll()
+        );
+        this._unsubscribeWidth = this._engine.onWidthChanged(() =>
+            this._drawBody()
         );
         this._camera.on(
             'zoom',
@@ -128,6 +138,10 @@ export class BogieEditorRenderSystem {
             this._unsubscribeRemoved();
             this._unsubscribeRemoved = null;
         }
+        if (this._unsubscribeWidth) {
+            this._unsubscribeWidth();
+            this._unsubscribeWidth = null;
+        }
         this._abortController.abort();
         this._abortController = new AbortController();
         this._removeAllDrawables();
@@ -155,6 +169,44 @@ export class BogieEditorRenderSystem {
             bc.position.set(position.x, position.y);
         }
         this._updateDistanceLabels();
+        this._drawBody();
+    }
+
+    private _drawBody(): void {
+        this._bodyGraphics.clear();
+        const bogies = this._engine.getBogies();
+        if (bogies.length < 2) return;
+
+        const dir = this._engine.lineDirection;
+        const origin = this._engine.lineOrigin;
+        const projections = bogies.map(b => {
+            const dx = b.x - origin.x;
+            const dy = b.y - origin.y;
+            return dx * dir.x + dy * dir.y;
+        });
+        const minProj = Math.min(...projections) - BODY_MARGIN;
+        const maxProj = Math.max(...projections) + BODY_MARGIN;
+        const halfW = this._engine.width / 2;
+        const normal = { x: -dir.y, y: dir.x };
+
+        const corner = (t: number, n: number) => ({
+            x: origin.x + dir.x * t + normal.x * n,
+            y: origin.y + dir.y * t + normal.y * n,
+        });
+        const c1 = corner(minProj, halfW);
+        const c2 = corner(maxProj, halfW);
+        const c3 = corner(maxProj, -halfW);
+        const c4 = corner(minProj, -halfW);
+
+        this._bodyGraphics.moveTo(c1.x, c1.y);
+        this._bodyGraphics.lineTo(c2.x, c2.y);
+        this._bodyGraphics.lineTo(c3.x, c3.y);
+        this._bodyGraphics.lineTo(c4.x, c4.y);
+        this._bodyGraphics.closePath();
+        this._bodyGraphics.stroke({
+            color: BODY_COLOR,
+            width: 1.0 / this._zoomLevel,
+        });
     }
 
     private _syncAll(): void {
@@ -180,6 +232,7 @@ export class BogieEditorRenderSystem {
         }
 
         this._updateDistanceLabels();
+        this._drawBody();
     }
 
     private _updateDistanceLabels(): void {
@@ -227,6 +280,7 @@ export class BogieEditorRenderSystem {
             dc.scale.set(scale);
         }
         this._drawLine();
+        this._drawBody();
     }
 
     private _removeAllDrawables(): void {

@@ -45,7 +45,8 @@ export class CarStockManager {
         bogieOffsets: number[] = [20],
         edgeToBogie: number = 2.5,
         bogieToEdge: number = 2.5,
-        type?: CarType
+        type?: CarType,
+        width: number = 2.5
     ): Car {
         const car = new Car(
             generateCarId(),
@@ -53,7 +54,8 @@ export class CarStockManager {
             edgeToBogie,
             bogieToEdge,
             undefined,
-            type
+            type,
+            width
         );
         this.addCar(car);
         return car;

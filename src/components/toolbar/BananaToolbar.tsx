@@ -666,6 +666,7 @@ export function BananaToolbar({
             bogieOffsets: number[];
             edgeToBogie?: number;
             bogieToEdge?: number;
+            width?: number;
             carType?: CarType;
             image?: {
                 src: string;
@@ -679,6 +680,7 @@ export function BananaToolbar({
                 bogieOffsets: def.bogieOffsets,
                 edgeToBogie: def.edgeToBogie ?? 2.5,
                 bogieToEdge: def.bogieToEdge ?? 2.5,
+                width: def.width ?? 2.5,
                 type: def.carType,
                 image: def.image,
             };

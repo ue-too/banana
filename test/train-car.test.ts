@@ -17,6 +17,31 @@ describe('Train Car', () => {
         });
     });
 
+    describe('Formation width', () => {
+        it('returns the width of the first child', () => {
+            const carA = new Car(
+                'car-A',
+                [20],
+                2.5,
+                2.5,
+                undefined,
+                undefined,
+                3.2
+            );
+            const carB = new Car(
+                'car-B',
+                [20],
+                2.5,
+                2.5,
+                undefined,
+                undefined,
+                2.0
+            );
+            const formation = new Formation('f-1', [carA, carB]);
+            expect(formation.width).toBe(3.2);
+        });
+    });
+
     describe('_flatCars', () => {
         describe('Car (leaf)', () => {
             it('should return itself with an empty path', () => {
@@ -732,6 +757,24 @@ describe('Train decoupleAtCar', () => {
             expect(train.maxSpeed).toBe(42);
             expect(newTrain.maxSpeed).toBe(42);
         });
+    });
+});
+
+describe('Car width', () => {
+    it('defaults to 2.5 meters when not provided', () => {
+        const car = new Car('car-A', [20], 2.5, 2.5);
+        expect(car.width).toBe(2.5);
+    });
+
+    it('uses the provided width', () => {
+        const car = new Car('car-B', [20], 2.5, 2.5, undefined, undefined, 3.2);
+        expect(car.width).toBe(3.2);
+    });
+
+    it('does not change width when switchDirection is called', () => {
+        const car = new Car('car-C', [20], 2.5, 2.5, undefined, undefined, 3.0);
+        car.switchDirection();
+        expect(car.width).toBe(3.0);
     });
 });
 

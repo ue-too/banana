@@ -230,6 +230,7 @@ const en = {
         importImage: 'Import Image',
         editImage: 'Edit Image',
         endImageEdit: 'End Image Edit',
+        carWidth: 'Body width (m)',
         exportCarDefinition: 'Export Car Definition',
         importCarDefinition: 'Import Car Definition',
         saveToLibrary: 'Save to Library',

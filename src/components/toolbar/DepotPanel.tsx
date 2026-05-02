@@ -137,7 +137,8 @@ export function DepotPanel({
                                                 0
                                             ) +
                                             tpl.bogieToEdge}
-                                        m
+                                        m{' · '}
+                                        {tpl.width.toFixed(1)}m
                                     </span>
                                 </div>
                                 <div className="flex gap-0.5">
@@ -150,7 +151,8 @@ export function DepotPanel({
                                                     [...tpl.bogieOffsets],
                                                     tpl.edgeToBogie,
                                                     tpl.bogieToEdge,
-                                                    tpl.type
+                                                    tpl.type,
+                                                    tpl.width
                                                 );
                                             if (tpl.image) {
                                                 carImageRegistry.set(
@@ -256,7 +258,8 @@ function DepotCarRow({
                     {entry.car.edgeToBogie +
                         entry.car.bogieOffsets().reduce((a, b) => a + b, 0) +
                         entry.car.bogieToEdge}
-                    m
+                    m{' · '}
+                    {entry.car.width.toFixed(1)}m
                 </span>
             </div>
             <Button

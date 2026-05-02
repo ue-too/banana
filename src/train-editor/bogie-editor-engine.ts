@@ -50,6 +50,9 @@ export class BogieEditorEngine implements BogieEditContext {
     private _lineOrigin: Point = { x: 0, y: 0 };
     private _lineDirection: Point = { x: 1, y: 0 };
 
+    private _width: number = 2.5;
+    private _widthListeners: Array<(width: number) => void> = [];
+
     private _camera: ObservableBoardCamera;
     private _canvas: Canvas;
     private _positionObservable: SynchronousObservable<[number, Point]>;
@@ -72,6 +75,24 @@ export class BogieEditorEngine implements BogieEditContext {
 
     get lineDirection(): Point {
         return this._lineDirection;
+    }
+
+    get width(): number {
+        return this._width;
+    }
+
+    setWidth(value: number): void {
+        if (value === this._width) return;
+        this._width = value;
+        for (const cb of this._widthListeners) cb(value);
+    }
+
+    onWidthChanged(cb: (width: number) => void): () => void {
+        this._widthListeners.push(cb);
+        return () => {
+            const i = this._widthListeners.indexOf(cb);
+            if (i >= 0) this._widthListeners.splice(i, 1);
+        };
     }
 
     /**
@@ -232,14 +253,17 @@ export class BogieEditorEngine implements BogieEditContext {
      *
      * @param edgeToBogie - Distance from leading car edge to first bogie (default 2.5)
      * @param bogieToEdge - Distance from last bogie to trailing car edge (default 2.5)
+     * @param width - Lateral width of the car (default 2.5)
      */
     exportCarDefinition(
         edgeToBogie: number = 2.5,
-        bogieToEdge: number = 2.5
+        bogieToEdge: number = 2.5,
+        width: number = this._width
     ): {
         bogieOffsets: number[];
         edgeToBogie: number;
         bogieToEdge: number;
+        width: number;
     } | null {
         if (this._bogies.length < 2) return null;
 
@@ -261,6 +285,6 @@ export class BogieEditorEngine implements BogieEditContext {
             bogieOffsets.push(sorted[i] - sorted[i - 1]);
         }
 
-        return { bogieOffsets, edgeToBogie, bogieToEdge };
+        return { bogieOffsets, edgeToBogie, bogieToEdge, width };
     }
 }
