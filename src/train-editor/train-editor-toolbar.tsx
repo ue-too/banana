@@ -1,8 +1,10 @@
 import type { ReactNode } from 'react';
-import { useCallback, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
 import {
+    Check,
+    Crop,
     Download,
     FolderOpen,
     GripHorizontal,
@@ -11,6 +13,7 @@ import {
     Plus,
     Save,
     Upload,
+    X,
 } from '@/assets/icons';
 import { CarDefinitionLibraryDialog } from '@/components/car-definition-library/CarDefinitionLibraryDialog';
 import { SaveCarDefinitionDialog } from '@/components/car-definition-library/SaveCarDefinitionDialog';
@@ -43,7 +46,12 @@ import { useTrainEditorApp } from './use-train-editor-app';
 
 const CAR_TYPES = Object.values(CarType);
 
-type TrainEditorMode = 'idle' | 'edit-bogie' | 'add-bogie' | 'edit-image';
+type TrainEditorMode =
+    | 'idle'
+    | 'edit-bogie'
+    | 'add-bogie'
+    | 'edit-image'
+    | 'crop-image';
 
 function ToolbarButton({
     tooltip,
@@ -104,7 +112,7 @@ function uploadJson(
 }
 
 function uploadImage(
-    onLoad: (src: string, width: number, height: number) => void
+    onLoad: (src: string, pxWidth: number, pxHeight: number) => void
 ): void {
     const input = document.createElement('input');
     input.type = 'file';
@@ -117,10 +125,7 @@ function uploadImage(
             const dataUrl = reader.result as string;
             const img = new window.Image();
             img.onload = () => {
-                // Scale image to a reasonable world size (max dimension = 10 world units)
-                const maxDim = Math.max(img.width, img.height);
-                const scale = 10 / maxDim;
-                onLoad(dataUrl, img.width * scale, img.height * scale);
+                onLoad(dataUrl, img.width, img.height);
             };
             img.src = dataUrl;
         };
@@ -143,9 +148,35 @@ export function TrainEditorToolbar() {
     const [libraryDialogOpen, setLibraryDialogOpen] = useState(false);
     const [pendingInitialName, setPendingInitialName] = useState('');
 
+    const sourcePixelDimsRef = useRef<{ pxWidth: number; pxHeight: number }>({
+        pxWidth: 0,
+        pxHeight: 0,
+    });
+
+    const carWidthRef = useRef(carWidth);
+    useEffect(() => {
+        carWidthRef.current = carWidth;
+    }, [carWidth]);
+
+    useEffect(() => {
+        if (!app) return;
+        const unsub = app.imageEditorEngine.onImageChanged(image => {
+            if (!image) return;
+            // Couple height → car width
+            if (image.height !== carWidthRef.current) {
+                setCarWidth(image.height);
+                app.bogieEditorEngine.setWidth(image.height);
+            }
+            // (pixel-dim probe handled in handleImportImage now — see Fix 2.)
+        });
+        return unsub;
+    }, [app]);
+
     const exitAllModes = useCallback(() => {
         if (!app) return;
         app.trainEditorKmtStateMachine.happens('switchToIdle');
+        app.imageRenderSystem.showHandles = false;
+        app.imageRenderSystem.showCropRect = false;
         setMode('idle');
     }, [app]);
 
@@ -187,17 +218,63 @@ export function TrainEditorToolbar() {
         }
     }, [app, mode, exitAllModes]);
 
+    const handleCropImageToggle = useCallback(() => {
+        if (!app) return;
+        if (mode === 'crop-image') {
+            app.trainEditorKmtStateMachine.happens('switchToIdle');
+            app.imageRenderSystem.showCropRect = false;
+            setMode('idle');
+        } else {
+            exitAllModes();
+            app.trainEditorKmtStateMachine.happens('switchToCropImage');
+            app.imageRenderSystem.showHandles = false;
+            app.imageRenderSystem.showCropRect = true;
+            setMode('crop-image');
+        }
+    }, [app, mode, exitAllModes]);
+
+    const handleConfirmCrop = useCallback(async () => {
+        if (!app) return;
+        // Toolbar owns commit so it can pass the source bitmap pixel dims
+        // captured by the onImageChanged subscription above.
+        const ok = await app.imageCropEngine.commit(sourcePixelDimsRef.current);
+        if (!ok) {
+            // Commit was rejected (no rect or invalid source dims). Leave the
+            // user in crop mode so they can adjust or cancel explicitly.
+            console.warn('[crop] commit failed; staying in crop mode');
+            return;
+        }
+        app.imageCropStateMachine.happens('commitCrop', {});
+        app.trainEditorKmtStateMachine.happens('switchToIdle');
+        app.imageRenderSystem.showCropRect = false;
+        setMode('idle');
+    }, [app]);
+
+    const handleCancelCrop = useCallback(() => {
+        if (!app) return;
+        app.imageCropStateMachine.happens('cancelCrop', {});
+        app.trainEditorKmtStateMachine.happens('switchToIdle');
+        app.imageRenderSystem.showCropRect = false;
+        setMode('idle');
+    }, [app]);
+
     const handleImportImage = useCallback(() => {
         if (!app) return;
-        uploadImage((src, width, height) => {
-            app.imageEditorEngine.setImage(src, width, height);
+        uploadImage((src, pxW, pxH) => {
+            // Image's world height is set to the current car body width;
+            // image world width derives from aspect ratio.
+            const aspect = pxW / pxH;
+            const worldH = carWidth;
+            const worldW = worldH * aspect;
+            sourcePixelDimsRef.current = { pxWidth: pxW, pxHeight: pxH };
+            app.imageEditorEngine.setImage(src, worldW, worldH);
             // Auto-switch to image edit mode
             exitAllModes();
             app.trainEditorKmtStateMachine.happens('switchToEditImage');
             app.imageRenderSystem.showHandles = true;
             setMode('edit-image');
         });
-    }, [app, exitAllModes]);
+    }, [app, carWidth, exitAllModes]);
 
     const buildCarDefinitionData = useCallback((): CarDefinitionData | null => {
         if (!app) return null;
@@ -245,6 +322,15 @@ export function TrainEditorToolbar() {
                     img.height = data.image.height;
                 }
                 app.imageEditorEngine.notifyChange();
+                // Probe the loaded image's pixel dims for the next crop commit.
+                const probe = new window.Image();
+                probe.onload = () => {
+                    sourcePixelDimsRef.current = {
+                        pxWidth: probe.width,
+                        pxHeight: probe.height,
+                    };
+                };
+                probe.src = data.image.src;
             }
             setCarType(data.carType ?? CarType.COACH);
             const w = typeof data.width === 'number' ? data.width : 2.5;
@@ -349,6 +435,21 @@ export function TrainEditorToolbar() {
         [hydrateFromCarDefinition]
     );
 
+    useEffect(() => {
+        if (mode !== 'crop-image') return;
+        const onKey = (e: KeyboardEvent) => {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                handleConfirmCrop();
+            } else if (e.key === 'Escape') {
+                e.preventDefault();
+                handleCancelCrop();
+            }
+        };
+        window.addEventListener('keydown', onKey);
+        return () => window.removeEventListener('keydown', onKey);
+    }, [mode, handleConfirmCrop, handleCancelCrop]);
+
     if (!app) return null;
 
     const hasImage = app.imageEditorEngine.getImage() !== null;
@@ -426,11 +527,13 @@ export function TrainEditorToolbar() {
                             max={10}
                             step={0.1}
                             value={carWidth}
+                            disabled={mode === 'crop-image'}
                             onChange={e => {
                                 const v = parseFloat(e.target.value);
                                 if (Number.isFinite(v) && v > 0) {
                                     setCarWidth(v);
                                     app?.bogieEditorEngine.setWidth(v);
+                                    app?.imageEditorEngine.rescaleToWidth(v);
                                 }
                             }}
                             className="border-input bg-background h-6 w-full rounded-md border px-2 text-[10px]"
@@ -455,11 +558,45 @@ export function TrainEditorToolbar() {
                                 : t('editImage')
                         }
                         active={mode === 'edit-image'}
-                        disabled={!hasImage && mode !== 'edit-image'}
+                        disabled={
+                            (!hasImage && mode !== 'edit-image') ||
+                            mode === 'crop-image'
+                        }
                         onClick={handleEditImageToggle}
                     >
                         <GripHorizontal />
                     </ToolbarButton>
+
+                    {/* Crop image */}
+                    <ToolbarButton
+                        tooltip={
+                            mode === 'crop-image'
+                                ? t('endCrop')
+                                : t('cropImage')
+                        }
+                        active={mode === 'crop-image'}
+                        disabled={!hasImage && mode !== 'crop-image'}
+                        onClick={handleCropImageToggle}
+                    >
+                        <Crop />
+                    </ToolbarButton>
+
+                    {mode === 'crop-image' && (
+                        <>
+                            <ToolbarButton
+                                tooltip={t('confirmCrop')}
+                                onClick={handleConfirmCrop}
+                            >
+                                <Check />
+                            </ToolbarButton>
+                            <ToolbarButton
+                                tooltip={t('cancelCrop')}
+                                onClick={handleCancelCrop}
+                            >
+                                <X />
+                            </ToolbarButton>
+                        </>
+                    )}
 
                     <Separator />
 

@@ -24,3 +24,7 @@ export type {
 } from './train-editor-tool-switcher';
 export { createTrainEditorKmtExtension } from './train-editor-kmt-extension';
 export type { TrainEditorKmtStateMachine } from './train-editor-kmt-extension';
+export { ImageCropEngine, createCanvasCropRenderer } from './image-crop-engine';
+export type { CropRenderer, CropHandle, CropRect } from './image-crop-engine';
+export { createImageCropStateMachine } from './image-crop-state-machine';
+export type { ImageCropStateMachine } from './image-crop-state-machine';
