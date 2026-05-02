@@ -157,6 +157,7 @@ const zhTW = {
         materializeFormation: '建立編組',
         cannotMaterializeMissing: '請先處理缺少的車廂樣板',
         addSlotNoCarTemplates: '請先建立車廂樣板',
+        pickReplacementCarTemplate: '選擇替代車廂樣板…',
         editSlots: '編輯節',
         carType: '類型',
         carType_locomotive: '機車',

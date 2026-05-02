@@ -162,6 +162,7 @@ const ja = {
         materializeFormation: '編成を作成',
         cannotMaterializeMissing: '不足テンプレートを先に解決',
         addSlotNoCarTemplates: '先に車両テンプレートを作成',
+        pickReplacementCarTemplate: '代わりのテンプレートを選択…',
         editSlots: 'スロットを編集',
         carType: 'タイプ',
         carType_locomotive: '機関車',

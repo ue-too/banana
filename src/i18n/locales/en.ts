@@ -163,6 +163,7 @@ const en = {
         materializeFormation: 'Create formation',
         cannotMaterializeMissing: 'Resolve missing car templates first',
         addSlotNoCarTemplates: 'Add a car template first',
+        pickReplacementCarTemplate: 'Pick replacement…',
         editSlots: 'Edit slots',
         carType: 'Type',
         carType_locomotive: 'Locomotive',

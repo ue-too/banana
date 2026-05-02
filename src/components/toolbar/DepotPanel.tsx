@@ -85,6 +85,7 @@ export function DepotPanel({
             slots: [{ carTemplateId: carTemplates[0]?.id ?? '' }],
         };
         onFormationTemplatesChange(prev => [...prev, tpl]);
+        setEditingTemplateId(tpl.id);
     }, [t, carTemplates, onFormationTemplatesChange]);
 
     const handleMaterializeFormationTemplate = useCallback(
@@ -612,7 +613,9 @@ function FormationTemplateSlotEditor({
                                 className="h-6 flex-1 text-[10px]"
                             >
                                 <SelectValue
-                                    placeholder={t('addSlotNoCarTemplates')}
+                                    placeholder={t(
+                                        'pickReplacementCarTemplate'
+                                    )}
                                 />
                             </SelectTrigger>
                             <SelectContent>
