@@ -16,6 +16,8 @@ import {
 import type { SerializedTerrainData } from '@/terrain/terrain-data';
 import { TimetableManager } from '@/timetable';
 import type { SerializedTimetableData } from '@/timetable/types';
+import { type CarTemplate, validateCarDefinition } from '@/trains/car-template';
+import type { FormationTemplate } from '@/trains/formation-template';
 import {
     JointDirectionPreferenceMap,
     type SerializedJointDirectionPreference,
@@ -54,6 +56,10 @@ export type SerializedSceneData = {
     trackAlignedPlatforms?: SerializedTrackAlignedPlatformData;
     jointDirectionPreferences?: SerializedJointDirectionPreference[];
     resources?: SerializedResourcesV1;
+    /** Saved CarTemplate blueprints. Optional; omitted in pre-templates scene files. */
+    carTemplates?: CarTemplate[];
+    /** Saved FormationTemplate blueprints. Optional; omitted in pre-templates scene files. */
+    formationTemplates?: FormationTemplate[];
 };
 
 export function serializeSceneData(
@@ -79,6 +85,8 @@ export function serializeSceneData(
         trackAlignedPlatforms: app.trackAlignedPlatformManager.serialize(),
         jointDirectionPreferences: app.jointDirectionPreferenceMap.serialize(),
         resources,
+        carTemplates: [...app.carTemplateStore.getAll()],
+        formationTemplates: [...app.formationTemplateStore.getAll()],
     };
 }
 
@@ -258,6 +266,19 @@ export async function deserializeSceneData(
         });
         app.carCargoStore.hydrate([]);
     }
+
+    // Hydrate template stores. Always clear first so closing+reopening a
+    // pre-templates scene doesn't carry templates over from a prior load.
+    if (data.carTemplates !== undefined) {
+        app.carTemplateStore.hydrate(data.carTemplates);
+    } else {
+        app.carTemplateStore.clearForLoad();
+    }
+    if (data.formationTemplates !== undefined) {
+        app.formationTemplateStore.hydrate(data.formationTemplates);
+    } else {
+        app.formationTemplateStore.clearForLoad();
+    }
 }
 
 export function validateSerializedSceneData(
@@ -286,6 +307,21 @@ export function validateSerializedSceneData(
         const terrainRes = validateSerializedTerrainData(obj.terrain);
         if (!terrainRes.valid)
             return { valid: false, error: `terrain: ${terrainRes.error}` };
+    }
+    if (obj.carTemplates !== undefined) {
+        const res = validateSerializedCarTemplateArray(obj.carTemplates);
+        if (!res.valid)
+            return { valid: false, error: `carTemplates: ${res.error}` };
+    }
+    if (obj.formationTemplates !== undefined) {
+        const res = validateSerializedFormationTemplateArray(
+            obj.formationTemplates
+        );
+        if (!res.valid)
+            return {
+                valid: false,
+                error: `formationTemplates: ${res.error}`,
+            };
     }
     return { valid: true };
 }
@@ -339,6 +375,76 @@ function validateSerializedStationData(
                 valid: false,
                 error: `${prefix}.joints must be a number[]`,
             };
+        }
+    }
+    return { valid: true };
+}
+
+function validateSerializedCarTemplateArray(
+    data: unknown
+): { valid: true } | { valid: false; error: string } {
+    if (!Array.isArray(data)) {
+        return { valid: false, error: 'must be an array' };
+    }
+    for (let i = 0; i < data.length; i++) {
+        const entry = data[i];
+        if (entry == null || typeof entry !== 'object') {
+            return { valid: false, error: `[${i}] must be an object` };
+        }
+        const obj = entry as Record<string, unknown>;
+        if (typeof obj.id !== 'string' || obj.id.length === 0) {
+            return {
+                valid: false,
+                error: `[${i}].id must be a non-empty string`,
+            };
+        }
+        const inner = validateCarDefinition(entry);
+        if (!inner.valid) {
+            return { valid: false, error: `[${i}]: ${inner.error}` };
+        }
+    }
+    return { valid: true };
+}
+
+function validateSerializedFormationTemplateArray(
+    data: unknown
+): { valid: true } | { valid: false; error: string } {
+    if (!Array.isArray(data)) {
+        return { valid: false, error: 'must be an array' };
+    }
+    for (let i = 0; i < data.length; i++) {
+        const entry = data[i];
+        if (entry == null || typeof entry !== 'object') {
+            return { valid: false, error: `[${i}] must be an object` };
+        }
+        const obj = entry as Record<string, unknown>;
+        if (typeof obj.id !== 'string' || obj.id.length === 0) {
+            return {
+                valid: false,
+                error: `[${i}].id must be a non-empty string`,
+            };
+        }
+        if (typeof obj.name !== 'string') {
+            return { valid: false, error: `[${i}].name must be a string` };
+        }
+        if (!Array.isArray(obj.slots) || obj.slots.length === 0) {
+            return {
+                valid: false,
+                error: `[${i}].slots must be a non-empty array`,
+            };
+        }
+        for (let j = 0; j < obj.slots.length; j++) {
+            const slot = obj.slots[j] as Record<string, unknown>;
+            if (
+                slot == null ||
+                typeof slot !== 'object' ||
+                typeof slot.carTemplateId !== 'string'
+            ) {
+                return {
+                    valid: false,
+                    error: `[${i}].slots[${j}].carTemplateId must be a string`,
+                };
+            }
         }
     }
     return { valid: true };
