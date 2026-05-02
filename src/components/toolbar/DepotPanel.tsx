@@ -633,14 +633,7 @@ function FormationTemplateSlotEditor({
         onSlotsChange(next);
     };
 
-    const labelFor = (ct: CarTemplate) => {
-        const length =
-            ct.edgeToBogie +
-            ct.bogieOffsets.reduce((a, b) => a + b, 0) +
-            ct.bogieToEdge;
-        const subtitle = `${t('bogieCount', { count: ct.bogieOffsets.length + 1 })} · ${length}m · ${ct.width.toFixed(1)}m`;
-        return ct.name ? `${ct.name} — ${subtitle}` : `${subtitle} (${ct.id})`;
-    };
+    const labelFor = (ct: CarTemplate) => ct.name ?? ct.id;
 
     return (
         <div className="mt-1.5 flex flex-col gap-1 border-t pt-1.5">
@@ -715,6 +708,10 @@ function FormationTemplateSlotEditor({
                     </div>
                 );
             })}
+            <FormationTemplatePreview
+                template={template}
+                carTemplates={carTemplates}
+            />
             <Button
                 variant="ghost"
                 size="sm"
@@ -730,6 +727,68 @@ function FormationTemplateSlotEditor({
                 <Plus className="size-3" />
                 {t('addSlot')}
             </Button>
+        </div>
+    );
+}
+
+function FormationTemplatePreview({
+    template,
+    carTemplates,
+}: {
+    template: FormationTemplate;
+    carTemplates: CarTemplate[];
+}) {
+    const knownById = new Map(carTemplates.map(c => [c.id, c]));
+    const PX_PER_M = 2;
+    const HEIGHT = 32;
+    const MIN_WIDTH = 24;
+    const UNKNOWN_WIDTH = 50;
+
+    return (
+        <div className="bg-muted/30 mt-1 flex items-center gap-px overflow-x-auto rounded border p-1">
+            {template.slots.map((slot, i) => {
+                const ct = knownById.get(slot.carTemplateId);
+                if (ct === undefined) {
+                    return (
+                        <div
+                            key={`${i}-unknown`}
+                            className="bg-destructive/20 text-destructive flex flex-shrink-0 items-center justify-center text-[10px]"
+                            style={{
+                                width: UNKNOWN_WIDTH,
+                                height: HEIGHT,
+                            }}
+                            title={slot.carTemplateId}
+                        >
+                            ?
+                        </div>
+                    );
+                }
+                const length =
+                    ct.edgeToBogie +
+                    ct.bogieOffsets.reduce((a, b) => a + b, 0) +
+                    ct.bogieToEdge;
+                const widthPx = Math.max(length * PX_PER_M, MIN_WIDTH);
+                return (
+                    <div
+                        key={`${i}-${ct.id}`}
+                        className="bg-foreground/10 relative flex-shrink-0 overflow-hidden rounded-sm"
+                        style={{ width: widthPx, height: HEIGHT }}
+                        title={ct.name ?? ct.id}
+                    >
+                        {ct.image ? (
+                            <img
+                                src={ct.image.src}
+                                alt=""
+                                className="h-full w-full object-cover"
+                            />
+                        ) : (
+                            <div className="text-muted-foreground flex h-full w-full items-center justify-center truncate px-1 text-[8px]">
+                                {ct.name ?? ct.id}
+                            </div>
+                        )}
+                    </div>
+                );
+            })}
         </div>
     );
 }
