@@ -43,24 +43,24 @@ export function resolveFormationTemplate(
     const byId = new Map<string, CarTemplate>();
     for (const ct of available) byId.set(ct.id, ct);
 
-    const resolved: CarTemplate[] = [];
     const missing: string[] = [];
     const seenMissing = new Set<string>();
 
     for (const slot of tpl.slots) {
-        const found = byId.get(slot.carTemplateId);
-        if (found === undefined) {
+        if (!byId.has(slot.carTemplateId)) {
             if (!seenMissing.has(slot.carTemplateId)) {
                 seenMissing.add(slot.carTemplateId);
                 missing.push(slot.carTemplateId);
             }
-        } else {
-            resolved.push(found);
         }
     }
 
     if (missing.length > 0) {
         return { ok: false, missingTemplateIds: missing };
     }
-    return { ok: true, carTemplates: resolved };
+
+    return {
+        ok: true,
+        carTemplates: tpl.slots.map(s => byId.get(s.carTemplateId)!),
+    };
 }
