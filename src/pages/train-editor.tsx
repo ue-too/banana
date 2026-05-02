@@ -56,6 +56,15 @@ const initTrainEditor = async (
     );
     imageRenderSystem.attachCropEngine(imageCropEngine);
 
+    // If the image is replaced (re-import / hydrate), abandon any in-progress crop.
+    const cropAutoCancelUnsub = imageEditorEngine.onImageChanged(() => {
+        if (imageCropEngine.getRect() !== null) {
+            // Cancel without recursing through setImage (engine.cancel only
+            // touches its own rect state).
+            imageCropEngine.cancel();
+        }
+    });
+
     const imageCropStateMachine = createImageCropStateMachine({
         cropEngine: imageCropEngine,
         setup: () => {},
@@ -97,6 +106,8 @@ const initTrainEditor = async (
 
     // Cleanup
     components.cleanups.push(() => {
+        cropAutoCancelUnsub();
+
         bogieEditorRenderSystem.cleanup();
         components.app.stage.removeChild(bogieEditorRenderSystem.container);
         bogieEditorRenderSystem.container.destroy({ children: true });
