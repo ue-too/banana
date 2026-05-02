@@ -55,3 +55,52 @@ describe('BogieEditorEngine.exportCarDefinition', () => {
         expect(engine.exportCarDefinition(2.5, 2.5, 3.0)).toBeNull();
     });
 });
+
+describe('BogieEditorEngine.removeBogieAt', () => {
+    it('removes the bogie under the pointer and returns true', () => {
+        const engine = makeEngine();
+        engine.addBogie({ x: 0, y: 0 });
+        engine.addBogie({ x: 10, y: 0 });
+
+        const removed = engine.removeBogieAt({ x: 10, y: 0 });
+
+        expect(removed).toBe(true);
+        expect(engine.getBogies()).toEqual([{ x: 0, y: 0 }]);
+    });
+
+    it('returns false and changes nothing when no bogie is under the pointer', () => {
+        const engine = makeEngine();
+        engine.addBogie({ x: 0, y: 0 });
+        engine.addBogie({ x: 10, y: 0 });
+
+        const removed = engine.removeBogieAt({ x: 5, y: 0 });
+
+        expect(removed).toBe(false);
+        expect(engine.getBogies()).toHaveLength(2);
+    });
+
+    it('hits a bogie within the BOGIE_RADIUS (0.5) tolerance', () => {
+        const engine = makeEngine();
+        engine.addBogie({ x: 0, y: 0 });
+
+        // Within 0.5 units of the bogie at (0,0)
+        const removed = engine.removeBogieAt({ x: 0.4, y: 0 });
+
+        expect(removed).toBe(true);
+        expect(engine.getBogies()).toHaveLength(0);
+    });
+
+    it('notifies bogieRemoved subscribers with the removed index', () => {
+        const engine = makeEngine();
+        engine.addBogie({ x: 0, y: 0 });
+        engine.addBogie({ x: 10, y: 0 });
+        engine.addBogie({ x: 20, y: 0 });
+
+        const removedIndices: number[] = [];
+        engine.onBogieRemoved(index => removedIndices.push(index));
+
+        engine.removeBogieAt({ x: 10, y: 0 });
+
+        expect(removedIndices).toEqual([1]);
+    });
+});

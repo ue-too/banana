@@ -224,6 +224,8 @@ const ja = {
         endEdit: '編集終了',
         addBogie: '台車を追加',
         endAdd: '追加終了',
+        removeBogie: '台車を削除',
+        endRemove: '削除終了',
         importImage: '画像をインポート',
         editImage: '画像を編集',
         endImageEdit: '画像編集を終了',

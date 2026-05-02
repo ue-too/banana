@@ -200,6 +200,22 @@ export class BogieEditorEngine implements BogieEditContext {
         return true;
     }
 
+    /**
+     * Hit-tests a world-space position against all bogies and removes the
+     * matching one if any. Uses the same BOGIE_RADIUS tolerance as projectOnBogie.
+     * Unlike projectOnBogie, this method does not *set* the edit-mode selection
+     * (`_currentBogie`). If the removed bogie happens to be selected, the
+     * selection is cleared by the underlying removeBogie call.
+     */
+    removeBogieAt(position: Point): boolean {
+        const index = this._bogies.findIndex(
+            bogie =>
+                PointCal.distanceBetweenPoints(position, bogie) < BOGIE_RADIUS
+        );
+        if (index === -1) return false;
+        return this.removeBogie(index);
+    }
+
     setup(): void {}
 
     cleanup(): void {}

@@ -12,6 +12,7 @@ import {
     MousePointer2,
     Plus,
     Save,
+    Trash2,
     Upload,
     X,
 } from '@/assets/icons';
@@ -50,6 +51,7 @@ type TrainEditorMode =
     | 'idle'
     | 'edit-bogie'
     | 'add-bogie'
+    | 'remove-bogie'
     | 'edit-image'
     | 'crop-image';
 
@@ -204,6 +206,18 @@ export function TrainEditorToolbar() {
         }
     }, [app, mode, exitAllModes]);
 
+    const handleRemoveBogieToggle = useCallback(() => {
+        if (!app) return;
+        if (mode === 'remove-bogie') {
+            app.trainEditorKmtStateMachine.happens('switchToIdle');
+            setMode('idle');
+        } else {
+            exitAllModes();
+            app.trainEditorKmtStateMachine.happens('switchToRemoveBogie');
+            setMode('remove-bogie');
+        }
+    }, [app, mode, exitAllModes]);
+
     const handleEditImageToggle = useCallback(() => {
         if (!app) return;
         if (mode === 'edit-image') {
@@ -310,18 +324,15 @@ export function TrainEditorToolbar() {
                 }
             }
             if (data.image) {
+                // One notify only — the render system's async sprite creation
+                // races with concurrent change notifications and orphans sprites
+                // in the container.
                 app.imageEditorEngine.setImage(
                     data.image.src,
                     data.image.width,
-                    data.image.height
+                    data.image.height,
+                    data.image.position
                 );
-                const img = app.imageEditorEngine.getImage();
-                if (img) {
-                    img.position = { ...data.image.position };
-                    img.width = data.image.width;
-                    img.height = data.image.height;
-                }
-                app.imageEditorEngine.notifyChange();
                 // Probe the loaded image's pixel dims for the next crop commit.
                 const probe = new window.Image();
                 probe.onload = () => {
@@ -485,6 +496,19 @@ export function TrainEditorToolbar() {
                         onClick={handleAddBogieToggle}
                     >
                         <Plus />
+                    </ToolbarButton>
+
+                    {/* Remove bogie */}
+                    <ToolbarButton
+                        tooltip={
+                            mode === 'remove-bogie'
+                                ? t('endRemove')
+                                : t('removeBogie')
+                        }
+                        active={mode === 'remove-bogie'}
+                        onClick={handleRemoveBogieToggle}
+                    >
+                        <Trash2 />
                     </ToolbarButton>
 
                     <Separator />

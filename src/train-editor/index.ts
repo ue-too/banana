@@ -12,6 +12,11 @@ export type {
     BogieAddContext,
     BogieAddStateMachine,
 } from './bogie-add-state-machine';
+export { createBogieRemoveStateMachine } from './bogie-remove-state-machine';
+export type {
+    BogieRemoveContext,
+    BogieRemoveStateMachine,
+} from './bogie-remove-state-machine';
 export { ImageEditorEngine } from './image-editor-engine';
 export type { EditorImage } from './image-editor-engine';
 export { ImageRenderSystem } from './image-render-system';

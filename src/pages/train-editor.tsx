@@ -9,6 +9,7 @@ import { createBogieAddStateMachine } from '@/train-editor/bogie-add-state-machi
 import { BogieEditorEngine } from '@/train-editor/bogie-editor-engine';
 import { BogieEditorRenderSystem } from '@/train-editor/bogie-editor-render-system';
 import { createBogieEditStateMachine } from '@/train-editor/bogie-kmt-state-machine';
+import { createBogieRemoveStateMachine } from '@/train-editor/bogie-remove-state-machine';
 import {
     ImageCropEngine,
     createCanvasCropRenderer,
@@ -75,6 +76,8 @@ const initTrainEditor = async (
     const bogieEditStateMachine =
         createBogieEditStateMachine(bogieEditorEngine);
     const bogieAddStateMachine = createBogieAddStateMachine(bogieEditorEngine);
+    const bogieRemoveStateMachine =
+        createBogieRemoveStateMachine(bogieEditorEngine);
     const imageEditStateMachine = createImageEditStateMachine({
         imageEngine: imageEditorEngine,
         setup: () => {},
@@ -84,6 +87,7 @@ const initTrainEditor = async (
     const toolSwitcher = createTrainEditorToolSwitcher(
         bogieEditStateMachine,
         bogieAddStateMachine,
+        bogieRemoveStateMachine,
         imageEditStateMachine,
         imageCropStateMachine
     );
