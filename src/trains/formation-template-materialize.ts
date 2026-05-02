@@ -51,8 +51,10 @@ export function materializeFormationTemplate(
         };
     }
 
+    const byId = new Map(carTemplates.map(c => [c.id, c]));
     const newCarIds: string[] = [];
-    for (const ct of resolution.carTemplates) {
+    for (const slot of template.slots) {
+        const ct = byId.get(slot.carTemplateId)!;
         const car = carStockManager.createCar(
             [...ct.bogieOffsets],
             ct.edgeToBogie,
@@ -62,6 +64,9 @@ export function materializeFormationTemplate(
         );
         if (ct.image) {
             carImageRegistry.set(car.id, ct.image.src);
+        }
+        if (slot.flipped) {
+            car.switchDirection();
         }
         newCarIds.push(car.id);
     }

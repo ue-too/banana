@@ -2,6 +2,7 @@ import { useCallback, useRef, useState, useSyncExternalStore } from 'react';
 import { useTranslation } from 'react-i18next';
 
 import {
+    ArrowLeftRight,
     ChevronDown,
     ChevronUp,
     Pencil,
@@ -633,6 +634,13 @@ function FormationTemplateSlotEditor({
         onSlotsChange(next);
     };
 
+    const toggleSlotFlipped = (i: number) => {
+        const next = template.slots.map((slot, idx) =>
+            idx === i ? { ...slot, flipped: !slot.flipped } : slot
+        );
+        onSlotsChange(next);
+    };
+
     const labelFor = (ct: CarTemplate) => ct.name ?? ct.id;
 
     return (
@@ -679,6 +687,19 @@ function FormationTemplateSlotEditor({
                                 ))}
                             </SelectContent>
                         </Select>
+                        <Button
+                            variant="ghost"
+                            size="icon-xs"
+                            onClick={() => toggleSlotFlipped(i)}
+                            className={
+                                slot.flipped
+                                    ? 'bg-accent text-accent-foreground'
+                                    : undefined
+                            }
+                            title={t('flipCar')}
+                        >
+                            <ArrowLeftRight className="size-3" />
+                        </Button>
                         <Button
                             variant="ghost"
                             size="icon-xs"
@@ -780,7 +801,11 @@ function FormationTemplatePreview({
                     <div
                         key={`${i}-${ct.id}`}
                         className="bg-foreground/10 relative flex-shrink-0 overflow-hidden rounded-sm"
-                        style={{ width: widthPx, height: heightPx }}
+                        style={{
+                            width: widthPx,
+                            height: heightPx,
+                            transform: slot.flipped ? 'scaleX(-1)' : undefined,
+                        }}
                         title={ct.name ?? ct.id}
                     >
                         {ct.image ? (
@@ -790,7 +815,14 @@ function FormationTemplatePreview({
                                 className="h-full w-full object-fill"
                             />
                         ) : (
-                            <div className="text-muted-foreground flex h-full w-full items-center justify-center truncate px-1 text-[8px]">
+                            <div
+                                className="text-muted-foreground flex h-full w-full items-center justify-center truncate px-1 text-[8px]"
+                                style={{
+                                    transform: slot.flipped
+                                        ? 'scaleX(-1)'
+                                        : undefined,
+                                }}
+                            >
                                 {ct.name ?? ct.id}
                             </div>
                         )}

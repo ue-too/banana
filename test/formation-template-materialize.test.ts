@@ -161,4 +161,46 @@ describe('materializeFormationTemplate', () => {
             .flatCars();
         expect(cars[0].type).toBe(CarType.COACH);
     });
+
+    it('flips a slot via Car.switchDirection when slot.flipped is true', () => {
+        const { carStockManager, formationManager, carImageRegistry } =
+            makeManagers();
+        // Asymmetric template: edgeToBogie != bogieToEdge so we can detect the
+        // swap that switchDirection performs.
+        const ct: CarTemplate = {
+            id: 'asym',
+            bogieOffsets: [10],
+            edgeToBogie: 1.5,
+            bogieToEdge: 4.5,
+            width: 2.5,
+            type: CarType.COACH,
+        };
+
+        const result = materializeFormationTemplate({
+            template: {
+                id: 'ftpl-flip',
+                name: 'Flipped',
+                slots: [
+                    { carTemplateId: 'asym' },
+                    { carTemplateId: 'asym', flipped: true },
+                ],
+            },
+            carTemplates: [ct],
+            carStockManager,
+            formationManager,
+            carImageRegistry,
+        });
+
+        expect(result.ok).toBe(true);
+        if (!result.ok) return;
+        const cars = formationManager
+            .getFormation(result.formationId)!
+            .flatCars();
+        // First car: untouched orientation.
+        expect(cars[0].edgeToBogie).toBe(1.5);
+        expect(cars[0].bogieToEdge).toBe(4.5);
+        // Second car: switchDirection swaps edgeToBogie and bogieToEdge.
+        expect(cars[1].edgeToBogie).toBe(4.5);
+        expect(cars[1].bogieToEdge).toBe(1.5);
+    });
 });

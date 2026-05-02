@@ -165,6 +165,7 @@ const en = {
         addSlotNoCarTemplates: 'Add a car template first',
         pickReplacementCarTemplate: 'Pick replacement…',
         editSlots: 'Edit slots',
+        flipCar: 'Flip car direction',
         carType: 'Type',
         carType_locomotive: 'Locomotive',
         carType_coach: 'Coach',

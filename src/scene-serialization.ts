@@ -445,6 +445,15 @@ function validateSerializedFormationTemplateArray(
                     error: `[${i}].slots[${j}].carTemplateId must be a string`,
                 };
             }
+            if (
+                slot.flipped !== undefined &&
+                typeof slot.flipped !== 'boolean'
+            ) {
+                return {
+                    valid: false,
+                    error: `[${i}].slots[${j}].flipped must be a boolean when provided`,
+                };
+            }
         }
     }
     return { valid: true };

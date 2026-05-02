@@ -7,6 +7,8 @@ import type { CarTemplate } from './car-template';
  */
 export type FormationTemplateSlot = {
     carTemplateId: string;
+    /** When true, the materialized Car is flipped via Car.switchDirection. */
+    flipped?: boolean;
 };
 
 /**

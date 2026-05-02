@@ -159,6 +159,7 @@ const zhTW = {
         addSlotNoCarTemplates: '請先建立車廂樣板',
         pickReplacementCarTemplate: '選擇替代車廂樣板…',
         editSlots: '編輯節',
+        flipCar: '翻轉車廂方向',
         carType: '類型',
         carType_locomotive: '機車',
         carType_coach: '客車',

@@ -164,6 +164,7 @@ const ja = {
         addSlotNoCarTemplates: '先に車両テンプレートを作成',
         pickReplacementCarTemplate: '代わりのテンプレートを選択…',
         editSlots: 'スロットを編集',
+        flipCar: '車両の向きを反転',
         carType: 'タイプ',
         carType_locomotive: '機関車',
         carType_coach: '客車',
