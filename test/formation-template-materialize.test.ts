@@ -129,4 +129,36 @@ describe('materializeFormationTemplate', () => {
         expect(formationManager.count).toBe(0);
         expect(carStockManager.getAvailableCars().length).toBe(0);
     });
+
+    it('falls back to CarType.COACH when the source template omits type', () => {
+        const { carStockManager, formationManager, carImageRegistry } =
+            makeManagers();
+        const noType: CarTemplate = {
+            id: 'no-type',
+            bogieOffsets: [10],
+            edgeToBogie: 2.5,
+            bogieToEdge: 2.5,
+            width: 2.5,
+            // type intentionally omitted
+        };
+
+        const result = materializeFormationTemplate({
+            template: {
+                id: 'ftpl-no-type',
+                name: 'Default Type',
+                slots: [{ carTemplateId: 'no-type' }],
+            },
+            carTemplates: [noType],
+            carStockManager,
+            formationManager,
+            carImageRegistry,
+        });
+
+        expect(result.ok).toBe(true);
+        if (!result.ok) return;
+        const cars = formationManager
+            .getFormation(result.formationId)!
+            .flatCars();
+        expect(cars[0].type).toBe(CarType.COACH);
+    });
 });
