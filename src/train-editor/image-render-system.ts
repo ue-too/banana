@@ -5,6 +5,7 @@ import type {
 } from '@ue-too/board';
 import { Assets, Container, Graphics, Sprite, Texture } from 'pixi.js';
 
+import type { CropRect, ImageCropEngine } from './image-crop-engine';
 import type { EditorImage, ImageEditorEngine } from './image-editor-engine';
 
 /** Screen-space radius for visual handle circles (pixels). */
@@ -24,6 +25,13 @@ export class ImageRenderSystem {
     private _sprite: Sprite | null = null;
     private _handles: Graphics;
     private _border: Graphics;
+    private _cropOverlay: Graphics;
+    private _cropBorder: Graphics;
+    private _cropHandles: Graphics;
+    private _showCropRect = false;
+    private _cropEngine: ImageCropEngine | null = null;
+    private _cropRect: CropRect | null = null;
+    private _cropUnsubscribe: (() => void) | null = null;
     private _unsubscribe: (() => void) | null = null;
     private _abortController: AbortController = new AbortController();
     private _showHandles = false;
@@ -38,6 +46,12 @@ export class ImageRenderSystem {
         this._border = new Graphics();
         this._container.addChild(this._border);
         this._container.addChild(this._handles);
+        this._cropOverlay = new Graphics();
+        this._cropBorder = new Graphics();
+        this._cropHandles = new Graphics();
+        this._container.addChild(this._cropOverlay);
+        this._container.addChild(this._cropBorder);
+        this._container.addChild(this._cropHandles);
     }
 
     get container(): Container {
@@ -55,6 +69,27 @@ export class ImageRenderSystem {
         }
     }
 
+    attachCropEngine(engine: ImageCropEngine): void {
+        if (this._cropUnsubscribe) {
+            this._cropUnsubscribe();
+        }
+        this._cropEngine = engine;
+        this._cropUnsubscribe = engine.onRectChanged(
+            (rect: CropRect | null) => {
+                this._cropRect = rect;
+                this._redrawCrop();
+            }
+        );
+    }
+
+    set showCropRect(value: boolean) {
+        this._showCropRect = value;
+        if (value && this._cropEngine) {
+            this._cropRect = this._cropEngine.getRect();
+        }
+        this._redrawCrop();
+    }
+
     setup(): void {
         this._unsubscribe = this._engine.onImageChanged(
             (image: EditorImage | null) => this._onImageChanged(image)
@@ -66,6 +101,9 @@ export class ImageRenderSystem {
                 const currentImage = this._engine.getImage();
                 if (currentImage && this._showHandles) {
                     this._drawHandlesAndBorder(currentImage);
+                }
+                if (this._showCropRect) {
+                    this._redrawCrop();
                 }
             },
             { signal: this._abortController.signal }
@@ -81,6 +119,10 @@ export class ImageRenderSystem {
         if (this._unsubscribe) {
             this._unsubscribe();
             this._unsubscribe = null;
+        }
+        if (this._cropUnsubscribe) {
+            this._cropUnsubscribe();
+            this._cropUnsubscribe = null;
         }
         this._abortController.abort();
         this._abortController = new AbortController();
@@ -149,6 +191,63 @@ export class ImageRenderSystem {
                 this._handles.fill({ color: HANDLE_COLOR });
                 this._handles.stroke({ color: 0xffffff, pixelLine: true });
             }
+        }
+    }
+
+    private _redrawCrop(): void {
+        const image = this._engine.getImage();
+        this._cropOverlay.clear();
+        this._cropBorder.clear();
+        this._cropHandles.clear();
+
+        if (!this._showCropRect || !this._cropRect || !image) return;
+
+        const handleRadius = HANDLE_VISUAL_RADIUS_PX / this._zoomLevel;
+        const borderWidth = BORDER_WIDTH_PX / this._zoomLevel;
+        const cropColor = 0xff8800;
+
+        // Dim mask: four strips covering the area outside the crop rect.
+        const imgL = image.position.x - image.width / 2;
+        const imgT = image.position.y - image.height / 2;
+        const imgR = image.position.x + image.width / 2;
+        const imgB = image.position.y + image.height / 2;
+        const r = this._cropRect;
+
+        // Top strip
+        this._cropOverlay.rect(imgL, imgT, image.width, r.y - imgT);
+        // Bottom strip
+        this._cropOverlay.rect(
+            imgL,
+            r.y + r.height,
+            image.width,
+            imgB - (r.y + r.height)
+        );
+        // Left strip
+        this._cropOverlay.rect(imgL, r.y, r.x - imgL, r.height);
+        // Right strip
+        this._cropOverlay.rect(
+            r.x + r.width,
+            r.y,
+            imgR - (r.x + r.width),
+            r.height
+        );
+        this._cropOverlay.fill({ color: 0x000000, alpha: 0.45 });
+
+        // Crop border
+        this._cropBorder.rect(r.x, r.y, r.width, r.height);
+        this._cropBorder.stroke({ color: cropColor, width: borderWidth });
+
+        // Corner handles
+        const corners = [
+            { x: r.x, y: r.y },
+            { x: r.x + r.width, y: r.y },
+            { x: r.x, y: r.y + r.height },
+            { x: r.x + r.width, y: r.y + r.height },
+        ];
+        for (const c of corners) {
+            this._cropHandles.circle(c.x, c.y, handleRadius);
+            this._cropHandles.fill({ color: cropColor });
+            this._cropHandles.stroke({ color: 0xffffff, pixelLine: true });
         }
     }
 }
