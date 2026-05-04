@@ -47,6 +47,7 @@ import { TerrainData } from '@/terrain/terrain-data';
 import { TerrainRenderSystem } from '@/terrain/terrain-render-system';
 import { TimeManager } from '@/time';
 import { ScheduleClock, TimetableManager } from '@/timetable';
+import { AutoCoupler } from '@/trains/auto-coupler';
 import { CarImageRegistry } from '@/trains/car-image-registry';
 import { CarStockManager } from '@/trains/car-stock-manager';
 import { CarTemplateStore } from '@/trains/car-template-store';
@@ -905,6 +906,23 @@ export const initApp = async (
     const crossingMap = new CrossingMap();
     const collisionGuard = new CollisionGuard(trackGraph, crossingMap);
     trainRenderSystem.collisionGuard = collisionGuard;
+    collisionGuard.setCouplingApproachDetector(
+        trainRenderSystem.couplingApproachDetector
+    );
+    const autoCoupler = new AutoCoupler(
+        trainRenderSystem.couplingApproachDetector,
+        trainManager,
+        {
+            onSuccess: () => {
+                toast.success(i18n.t('couplingAutoSuccess'));
+            },
+            onFailure: reason => {
+                if (reason === 'depth_exceeded') {
+                    toast.warning(i18n.t('couplingDepthExceeded'));
+                }
+            },
+        }
+    );
 
     const trackCurveManager = trackGraph.trackCurveManager;
 
@@ -1006,6 +1024,10 @@ export const initApp = async (
             // Timetable auto-drivers set throttle before physics update
             timetableRef.current.update(currentTime, deltaTime);
             trainRenderSystem.update(deltaTime);
+            // Run auto-coupler after physics + detectors + collision-guard.
+            // Order matters: detector and collision-guard run inside
+            // trainRenderSystem.update(); auto-coupler must run after both.
+            autoCoupler.update();
             // Recompute signal aspects from fresh occupancy, then update visuals
             signalStateEngine.update(
                 trainRenderSystem.occupancyRegistry,
