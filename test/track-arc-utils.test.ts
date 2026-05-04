@@ -5,10 +5,7 @@ import type {
     Train,
     TrainPosition,
 } from '../src/trains/formation';
-import {
-    closingSpeed,
-    effectiveDistance,
-} from '../src/trains/track-arc-utils';
+import { closingSpeed, effectiveDistance } from '../src/trains/track-arc-utils';
 
 function pos(
     segment: number,
@@ -84,6 +81,16 @@ describe('closingSpeed', () => {
             0
         );
     });
+
+    it('returns higher minus lower when both move reverseTangent and rear is faster', () => {
+        // Both reverseTangent → moving toward lower arc.
+        // Higher arc = rear, lower arc = front. Rear faster (5 vs 2) → closing speed 3.
+        const a = pos(1, 0.5, 'reverseTangent');
+        const b = pos(1, 0.1, 'reverseTangent');
+        expect(closingSpeed(a, b, lengthAtT(0.5), lengthAtT(0.1), 5, 2)).toBe(
+            3
+        );
+    });
 });
 
 describe('effectiveDistance', () => {
@@ -140,5 +147,31 @@ describe('effectiveDistance', () => {
                 seg
             )
         ).toBe(35);
+    });
+
+    it('falls back to head-to-head distance when front train has no bogies', () => {
+        // Both tangent, following direction. trainA at 0.1 (rear), trainB at 0.5 (front).
+        // trainB has null bogies → _tailArcOnSegment returns null → fallback to |arcA - arcB| = 40.
+        const headA = pos(1, 0.1, 'tangent');
+        const headB = pos(1, 0.5, 'tangent');
+        const trainA = mockTrain({
+            headPosition: headA,
+            bogiePositions: [headA],
+            speed: 1,
+        });
+        const trainBNullBogies = {
+            getBogiePositions: () => null,
+        };
+        expect(
+            effectiveDistance(
+                headA,
+                headB,
+                trainA,
+                trainBNullBogies,
+                lengthAtT(0.1),
+                lengthAtT(0.5),
+                seg
+            )
+        ).toBe(40);
     });
 });
