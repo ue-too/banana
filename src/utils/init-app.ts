@@ -906,11 +906,10 @@ export const initApp = async (
     const crossingMap = new CrossingMap();
     const collisionGuard = new CollisionGuard(trackGraph, crossingMap);
     trainRenderSystem.collisionGuard = collisionGuard;
-    collisionGuard.setCouplingApproachDetector(
-        trainRenderSystem.couplingApproachDetector
-    );
+    const couplingApproachDetector = trainRenderSystem.couplingApproachDetector;
+    collisionGuard.setCouplingApproachDetector(couplingApproachDetector);
     const autoCoupler = new AutoCoupler(
-        trainRenderSystem.couplingApproachDetector,
+        couplingApproachDetector,
         trainManager,
         {
             onSuccess: () => {
@@ -1026,7 +1025,10 @@ export const initApp = async (
             trainRenderSystem.update(deltaTime);
             // Run auto-coupler after physics + detectors + collision-guard.
             // Order matters: detector and collision-guard run inside
-            // trainRenderSystem.update(); auto-coupler must run after both.
+            // trainRenderSystem.update(); auto-coupler must run after both
+            // so it never tries to couple a pair that collision-guard just
+            // emergency-stopped this frame (the result would be 'invalid'
+            // and we'd burn cycles every frame until the trains separate).
             autoCoupler.update();
             // Recompute signal aspects from fresh occupancy, then update visuals
             signalStateEngine.update(
