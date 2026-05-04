@@ -145,6 +145,11 @@ export class CollisionGuard {
     /** IDs of trains currently hard-stopped by Tier 2. */
     private _lockedTrains: Set<number> = new Set();
 
+    /**
+     * Optional detector consulted per same-track pair. When `null`, no
+     * exemption is applied — every pair is checked normally. Wired in via
+     * `setCouplingApproachDetector()` after construction (see init-app).
+     */
     private _couplingApproachDetector: CouplingApproachExemption | null = null;
 
     constructor(trackGraph: TrackGraph, crossingMap: CrossingMap) {
@@ -225,6 +230,9 @@ export class CollisionGuard {
         trainB: PlacedTrainEntry['train'],
         dangerousThisFrame: Set<number>
     ): void {
+        // Strict === true: optional-chaining yields `undefined` when the
+        // detector hasn't been wired, which is falsy but not equal to `true`,
+        // so the exemption never fires accidentally.
         if (this._couplingApproachDetector?.isExempt(idA, idB) === true) {
             return;
         }

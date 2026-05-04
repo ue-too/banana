@@ -1054,4 +1054,40 @@ describe('CouplingApproachDetector exemption', () => {
         expect(trainA.collisionLocked).toBe(true);
         expect(trainB.collisionLocked).toBe(true);
     });
+
+    it('still applies Tier 1 when the pair is not exempt', () => {
+        // Same geometry as the existing "Tier 1 emergency brake" describe block
+        // (segment 1000, speed 10 head-on at t=0.10 vs t=0.15, distance 50 ≤ 69.23).
+        // With a detector installed but reporting non-exempt, Tier 1 must still fire.
+        const trackGraph = mockTrackGraph(1000);
+        const guard = new CollisionGuard(trackGraph, crossingMap);
+
+        guard.setCouplingApproachDetector({
+            isExempt: () => false,
+        });
+
+        const trainA = mockTrain({
+            headPosition: makePosition(1, 0.1, 'tangent'),
+            bogiePositions: [makePosition(1, 0.1, 'tangent')],
+            speed: 10,
+            occupiedSegments: [{ trackNumber: 1, inTrackDirection: 'tangent' }],
+        });
+        const trainB = mockTrain({
+            headPosition: makePosition(1, 0.15, 'reverseTangent'),
+            bogiePositions: [makePosition(1, 0.15, 'reverseTangent')],
+            speed: 10,
+            occupiedSegments: [
+                { trackNumber: 1, inTrackDirection: 'reverseTangent' },
+            ],
+        });
+
+        const entries = [entry(1, trainA), entry(2, trainB)];
+        registry.updateFromTrains(entries);
+        guard.update(entries, registry);
+
+        expect(trainA.collisionLocked).toBe(false);
+        expect(trainA.throttleStep).toBe('er');
+        expect(trainB.collisionLocked).toBe(false);
+        expect(trainB.throttleStep).toBe('er');
+    });
 });
