@@ -302,6 +302,7 @@ const ja = {
         coupleWith: '列車{{number}}と連結',
         couplingDepthExceeded:
             '連結不可：編成の入れ子が深すぎます。先にどちらかの編成を整理してください。',
+        couplingAutoSuccess: '列車を連結しました',
         proximityLines: '連結近接表示',
         nested: 'ネスト',
         containsNestedFormations: 'ネストされた編成を含む',

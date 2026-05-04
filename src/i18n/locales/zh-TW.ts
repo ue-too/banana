@@ -364,6 +364,7 @@ const zhTW = {
         couple: '連結',
         coupleWith: '與列車{{number}}連結',
         couplingDepthExceeded: '無法連結：編組巢狀過深，請先整合其中一個編組。',
+        couplingAutoSuccess: '列車已連結',
         proximityLines: '連結近接顯示',
         nested: '巢狀',
         containsNestedFormations: '包含巢狀編組',

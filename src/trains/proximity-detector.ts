@@ -5,8 +5,9 @@ import type { PlacedTrainEntry } from './train-manager';
 /**
  * Base gap tolerance (world units) added on top of the two coupler lengths.
  * Accounts for placement imprecision and the physical gap between couplers.
+ * Mirror of the constant in coupling-approach-detector.ts — keep in sync.
  */
-const COUPLING_GAP_TOLERANCE = 2;
+const COUPLING_GAP_TOLERANCE = 0.5;
 
 /**
  * Describes a proximity match between two train endpoints that are

@@ -16,7 +16,8 @@ function makePosition(
 /**
  * Minimal mock train for proximity detection tests.
  * Trains are spread 50+ units apart so only the intended endpoint pair is within threshold.
- * Default couplerLength is 0; the base gap tolerance (2 units) is the effective threshold.
+ * Default couplerLength is 1 each; combined with the 0.5 base gap tolerance the
+ * effective threshold is 2.5 units, so endpoint pairs ≤ 2 units apart match.
  */
 function mockTrain(opts: {
     headPosition: TrainPosition | null;
@@ -40,8 +41,8 @@ function mockTrain(opts: {
         occupiedTrackSegments: opts.occupiedSegments ?? [],
         occupiedJointNumbers: opts.occupiedJoints ?? [],
         formation: {
-            headCouplerLength: opts.headCouplerLength ?? 0,
-            tailCouplerLength: opts.tailCouplerLength ?? 0,
+            headCouplerLength: opts.headCouplerLength ?? 1,
+            tailCouplerLength: opts.tailCouplerLength ?? 1,
         },
     } as unknown as Train;
 }

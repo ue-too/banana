@@ -384,6 +384,7 @@ const en = {
         coupleWith: 'Couple with Train {{number}}',
         couplingDepthExceeded:
             'Cannot couple: formation nesting too deep. Consolidate one of the formations first.',
+        couplingAutoSuccess: 'Trains coupled',
         proximityLines: 'Coupling proximity',
         renameFormation: 'Click to rename',
         renameCar: 'Click to rename',

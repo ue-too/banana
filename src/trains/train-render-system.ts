@@ -13,6 +13,7 @@ import { WorldRenderSystem } from '@/world-render-system';
 import type { CarImageRegistry } from './car-image-registry';
 import { Car } from './cars';
 import type { CollisionGuard } from './collision-guard';
+import { CouplingApproachDetector } from './coupling-approach-detector';
 import { Train, TrainPosition } from './formation';
 import { OccupancyRegistry } from './occupancy-registry';
 import { ProximityDetector } from './proximity-detector';
@@ -404,6 +405,8 @@ export class TrainRenderSystem {
 
     private _occupancyRegistry: OccupancyRegistry = new OccupancyRegistry();
     private _proximityDetector: ProximityDetector = new ProximityDetector();
+    // Initialized in the constructor because it requires the trackGraph param.
+    private _couplingApproachDetector: CouplingApproachDetector;
     private _collisionGuard: CollisionGuard | null = null;
     private _stationPresenceDetector: StationPresenceDetector | null = null;
     private _transferManager: TransferManager | null = null;
@@ -442,6 +445,9 @@ export class TrainRenderSystem {
         this._trackRenderSystem = trackRenderSystem;
         this._textureRenderer = textureRenderer ?? null;
         this._carImageRegistry = carImageRegistry ?? null;
+        this._couplingApproachDetector = new CouplingApproachDetector(
+            trackGraph
+        );
 
         this._previewContainer = new Container();
         this._previewContainer.sortableChildren = true;
@@ -462,7 +468,12 @@ export class TrainRenderSystem {
         this._getPreviewTrain().update(deltaTime);
 
         this._occupancyRegistry.updateFromTrains(placed);
+        // Order matters: couplingApproachDetector must run BEFORE collisionGuard
+        // so the guard can consult fresh exemption data this frame. Reordering
+        // breaks the auto-coupling approach corridor — see proximity-based
+        // coupling design doc.
         this._proximityDetector.update(placed, this._occupancyRegistry);
+        this._couplingApproachDetector.update(placed, this._occupancyRegistry);
         this._collisionGuard?.update(placed, this._occupancyRegistry);
         this._stationPresenceDetector?.update(placed, this._occupancyRegistry);
         this._transferManager?.update(deltaTime / 1000);
@@ -525,6 +536,11 @@ export class TrainRenderSystem {
     /** The proximity detector, updated each frame. */
     get proximityDetector(): ProximityDetector {
         return this._proximityDetector;
+    }
+
+    /** The coupling-approach detector, updated each frame. */
+    get couplingApproachDetector(): CouplingApproachDetector {
+        return this._couplingApproachDetector;
     }
 
     set collisionGuard(guard: CollisionGuard) {
