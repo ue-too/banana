@@ -109,6 +109,19 @@ export class CrossingMap {
 const EMPTY_CROSSINGS: readonly CrossingEntry[] = [];
 
 // ---------------------------------------------------------------------------
+// CouplingApproachExemption
+// ---------------------------------------------------------------------------
+
+/**
+ * Minimal contract that CollisionGuard needs from a coupling-approach
+ * detector — kept narrow so the guard isn't coupled to the detector's
+ * full surface area.
+ */
+export interface CouplingApproachExemption {
+    isExempt(idA: number, idB: number): boolean;
+}
+
+// ---------------------------------------------------------------------------
 // CollisionGuard
 // ---------------------------------------------------------------------------
 
@@ -132,9 +145,16 @@ export class CollisionGuard {
     /** IDs of trains currently hard-stopped by Tier 2. */
     private _lockedTrains: Set<number> = new Set();
 
+    private _couplingApproachDetector: CouplingApproachExemption | null = null;
+
     constructor(trackGraph: TrackGraph, crossingMap: CrossingMap) {
         this._trackGraph = trackGraph;
         this._crossingMap = crossingMap;
+    }
+
+    /** Inject the coupling-approach detector for the per-pair exemption. */
+    setCouplingApproachDetector(detector: CouplingApproachExemption): void {
+        this._couplingApproachDetector = detector;
     }
 
     /**
@@ -205,6 +225,10 @@ export class CollisionGuard {
         trainB: PlacedTrainEntry['train'],
         dangerousThisFrame: Set<number>
     ): void {
+        if (this._couplingApproachDetector?.isExempt(idA, idB) === true) {
+            return;
+        }
+
         const posA = trainA.position;
         const posB = trainB.position;
         if (!posA || !posB) return;

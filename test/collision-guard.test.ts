@@ -973,3 +973,85 @@ describe('CollisionGuard — crossing detection', () => {
         expect(t2.throttleStep).toBe('er');
     });
 });
+
+// ---------------------------------------------------------------------------
+// CollisionGuard — CouplingApproachDetector exemption tests
+// ---------------------------------------------------------------------------
+
+describe('CouplingApproachDetector exemption', () => {
+    let registry: OccupancyRegistry;
+    let crossingMap: CrossingMap;
+
+    beforeEach(() => {
+        registry = new OccupancyRegistry();
+        crossingMap = new CrossingMap();
+    });
+
+    it('skips Tier 2 intervention for an exempt pair', () => {
+        const trackGraph = mockTrackGraph(100);
+        const guard = new CollisionGuard(trackGraph, crossingMap);
+
+        // Stub detector that flags the (1, 2) pair as exempt.
+        guard.setCouplingApproachDetector({
+            isExempt: (a: number, b: number) =>
+                (a === 1 && b === 2) || (a === 2 && b === 1),
+        });
+
+        // Geometry that would normally hit Tier 2 (distance 3 ≤ 5).
+        const trainA = mockTrain({
+            headPosition: makePosition(1, 0.04, 'tangent'),
+            bogiePositions: [makePosition(1, 0.04, 'tangent')],
+            speed: 1,
+            occupiedSegments: [{ trackNumber: 1, inTrackDirection: 'tangent' }],
+        });
+        const trainB = mockTrain({
+            headPosition: makePosition(1, 0.07, 'reverseTangent'),
+            bogiePositions: [makePosition(1, 0.07, 'reverseTangent')],
+            speed: 0,
+            occupiedSegments: [
+                { trackNumber: 1, inTrackDirection: 'reverseTangent' },
+            ],
+        });
+
+        const entries = [entry(1, trainA), entry(2, trainB)];
+        registry.updateFromTrains(entries);
+        guard.update(entries, registry);
+
+        // No emergencyStop, no throttle change.
+        expect(trainA.collisionLocked).toBe(false);
+        expect(trainA.throttleStep).toBe('N');
+        expect(trainB.collisionLocked).toBe(false);
+        expect(trainB.throttleStep).toBe('N');
+    });
+
+    it('still applies Tier 2 when the pair is not exempt', () => {
+        const trackGraph = mockTrackGraph(100);
+        const guard = new CollisionGuard(trackGraph, crossingMap);
+
+        guard.setCouplingApproachDetector({
+            isExempt: () => false,
+        });
+
+        const trainA = mockTrain({
+            headPosition: makePosition(1, 0.04, 'tangent'),
+            bogiePositions: [makePosition(1, 0.04, 'tangent')],
+            speed: 5,
+            occupiedSegments: [{ trackNumber: 1, inTrackDirection: 'tangent' }],
+        });
+        const trainB = mockTrain({
+            headPosition: makePosition(1, 0.07, 'reverseTangent'),
+            bogiePositions: [makePosition(1, 0.07, 'reverseTangent')],
+            speed: 5,
+            occupiedSegments: [
+                { trackNumber: 1, inTrackDirection: 'reverseTangent' },
+            ],
+        });
+
+        const entries = [entry(1, trainA), entry(2, trainB)];
+        registry.updateFromTrains(entries);
+        guard.update(entries, registry);
+
+        expect(trainA.collisionLocked).toBe(true);
+        expect(trainB.collisionLocked).toBe(true);
+    });
+});
