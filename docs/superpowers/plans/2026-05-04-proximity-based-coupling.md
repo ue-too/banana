@@ -15,16 +15,19 @@
 ## File Structure
 
 **New source files:**
+
 - `src/trains/track-arc-utils.ts` — pure functions for closing speed and effective collision-relevant distance, extracted from `collision-guard.ts`. Used by both `CollisionGuard` and `CouplingApproachDetector`.
 - `src/trains/coupling-approach-detector.ts` — per-frame classifier of colocated train pairs (`'in-range' | 'aligned-approach' | null`). Exposes `getInRangeMatches()` and `isExempt()`.
 - `src/trains/auto-coupler.ts` — orchestrator: reads in-range matches, calls `trainManager.coupleTrains()`, toasts results, dedupes by per-frame merged-train set.
 
 **New test files (in `test/` per project convention):**
+
 - `test/track-arc-utils.test.ts`
 - `test/coupling-approach-detector.test.ts`
 - `test/auto-coupler.test.ts`
 
 **Modified files:**
+
 - `src/trains/collision-guard.ts` — replace inline closing-speed / effective-distance with imports from `track-arc-utils`; add early-return exemption in `_checkSameTrack`; add detector setter.
 - `src/trains/train-render-system.ts` — own `CouplingApproachDetector`, update it in tick, expose getter, wire into `collisionGuard` setter so the guard sees the detector.
 - `src/utils/init-app.ts` — construct `AutoCoupler`; invoke `autoCoupler.update()` from inside the existing `timeManager.subscribe` callback after `trainRenderSystem.update(deltaTime)`.
@@ -38,6 +41,7 @@
 ## Task 1: Extract `track-arc-utils` with tests
 
 **Files:**
+
 - Create: `src/trains/track-arc-utils.ts`
 - Test: `test/track-arc-utils.test.ts`
 
@@ -55,10 +59,7 @@ import type {
     Train,
     TrainPosition,
 } from '../src/trains/formation';
-import {
-    closingSpeed,
-    effectiveDistance,
-} from '../src/trains/track-arc-utils';
+import { closingSpeed, effectiveDistance } from '../src/trains/track-arc-utils';
 
 function pos(
     segment: number,
@@ -342,7 +343,8 @@ Expected: all 6 tests PASS.
 
 ```bash
 git add src/trains/track-arc-utils.ts test/track-arc-utils.test.ts
-git commit -m "$(cat <<'EOF'
+git commit -m "$(
+    cat << 'EOF'
 refactor(trains): extract track-arc geometry helpers
 
 Pulls closing-speed and effective-distance computations into a shared
@@ -360,6 +362,7 @@ EOF
 ## Task 2: Refactor `CollisionGuard` to use `track-arc-utils`
 
 **Files:**
+
 - Modify: `src/trains/collision-guard.ts:200-419`
 - Verify: `test/collision-guard.test.ts` (existing tests must keep passing — no edits)
 
@@ -412,29 +415,21 @@ Replace it with (note the local variable is renamed to avoid shadowing the impor
 Around line 240, replace:
 
 ```typescript
-        const distance = this._effectiveDistance(
-            posA,
-            posB,
-            trainA,
-            trainB,
-            arcA,
-            arcB,
-            seg
-        );
+const distance = this._effectiveDistance(
+    posA,
+    posB,
+    trainA,
+    trainB,
+    arcA,
+    arcB,
+    seg
+);
 ```
 
 with:
 
 ```typescript
-        const distance = effectiveDistance(
-            posA,
-            posB,
-            trainA,
-            trainB,
-            arcA,
-            arcB,
-            seg
-        );
+const distance = effectiveDistance(posA, posB, trainA, trainB, arcA, arcB, seg);
 ```
 
 Then **delete** the now-unused private methods `_effectiveDistance`, `_tailArcOnSegment`, and `_closingSpeed` (currently at lines 271–419, ending just before `_checkCrossings`).
@@ -461,7 +456,8 @@ Expected: full suite passes.
 
 ```bash
 git add src/trains/collision-guard.ts
-git commit -m "$(cat <<'EOF'
+git commit -m "$(
+    cat << 'EOF'
 refactor(trains): collision-guard uses shared track-arc helpers
 
 Removes the now-duplicated _closingSpeed, _effectiveDistance, and
@@ -478,6 +474,7 @@ EOF
 ## Task 3: Build `CouplingApproachDetector` (TDD)
 
 **Files:**
+
 - Create: `src/trains/coupling-approach-detector.ts`
 - Test: `test/coupling-approach-detector.test.ts`
 
@@ -596,9 +593,7 @@ describe('CouplingApproachDetector', () => {
             headPosition: pos(1, 0.1, 'tangent', { x: 10, y: 0 }),
             bogiePositions: [pos(1, 0.1, 'tangent', { x: 10, y: 0 })],
             speed: 0,
-            occupiedSegments: [
-                { trackNumber: 1, inTrackDirection: 'tangent' },
-            ],
+            occupiedSegments: [{ trackNumber: 1, inTrackDirection: 'tangent' }],
         });
         const trainB = mockTrain({
             headPosition: pos(1, 0.18, 'reverseTangent', { x: 18, y: 0 }),
@@ -634,10 +629,10 @@ Create `src/trains/coupling-approach-detector.ts`:
 ```typescript
 import type { Train, TrainPosition } from './formation';
 import type { OccupancyRegistry } from './occupancy-registry';
-import type { TrackGraph } from './tracks/track';
-import type { PlacedTrainEntry } from './train-manager';
 import type { ProximityMatch } from './proximity-detector';
 import { closingSpeed } from './track-arc-utils';
+import type { TrackGraph } from './tracks/track';
+import type { PlacedTrainEntry } from './train-manager';
 
 /**
  * Maximum speed (world units / sec) at which a moving train can still be
@@ -762,7 +757,9 @@ export class CouplingApproachDetector {
                 ? movingPos
                 : movingBogies[movingBogies.length - 1];
         const movingLeadingPoint =
-            movingLeadingEnd === 'head' ? movingPos.point : movingBogies[movingBogies.length - 1].point;
+            movingLeadingEnd === 'head'
+                ? movingPos.point
+                : movingBogies[movingBogies.length - 1].point;
 
         const stoppedBogies = stopped.getBogiePositions();
         if (!stoppedBogies || stoppedBogies.length === 0) return;
@@ -1186,7 +1183,8 @@ Append to `test/coupling-approach-detector.test.ts`, inside the same `describe('
 bun test test/coupling-approach-detector.test.ts
 ```
 
-Expected: all tests PASS. If any fail (e.g. the trailing-end test logic), inspect the failure and fix the detector — *do not* loosen the test. Common gotchas:
+Expected: all tests PASS. If any fail (e.g. the trailing-end test logic), inspect the failure and fix the detector — _do not_ loosen the test. Common gotchas:
+
 - The trailing-end case may pass for the wrong reason (no candidate on segment); confirm by reading the failure.
 - Different-segment test: only triggers if `OccupancyRegistry.getColocatedPairs()` returns the pair. If that returns empty for joint-only colocation, the test passes trivially — that's fine, we want no exemption either way.
 
@@ -1194,7 +1192,8 @@ Expected: all tests PASS. If any fail (e.g. the trailing-end test logic), inspec
 
 ```bash
 git add src/trains/coupling-approach-detector.ts test/coupling-approach-detector.test.ts
-git commit -m "$(cat <<'EOF'
+git commit -m "$(
+    cat << 'EOF'
 feat(trains): add CouplingApproachDetector
 
 Per-frame classifier that flags train pairs where one is stopped and
@@ -1212,6 +1211,7 @@ EOF
 ## Task 4: Wire `CouplingApproachDetector` into `TrainRenderSystem`
 
 **Files:**
+
 - Modify: `src/trains/train-render-system.ts:405-466, 525-532`
 
 The detector lives next to `ProximityDetector`, ticks in the same place, and is exposed via getter so `init-app.ts` can pass it to `CollisionGuard`.
@@ -1243,9 +1243,7 @@ add:
 In the constructor body (around line 444, after `this._carImageRegistry = ...`), add:
 
 ```typescript
-        this._couplingApproachDetector = new CouplingApproachDetector(
-            trackGraph
-        );
+this._couplingApproachDetector = new CouplingApproachDetector(trackGraph);
 ```
 
 - [ ] **Step 4: Tick it in `update`**
@@ -1253,10 +1251,10 @@ In the constructor body (around line 444, after `this._carImageRegistry = ...`),
 In `update(deltaTime)` (around line 465, between the proximity update and the collision update):
 
 ```typescript
-        this._occupancyRegistry.updateFromTrains(placed);
-        this._proximityDetector.update(placed, this._occupancyRegistry);
-        this._couplingApproachDetector.update(placed, this._occupancyRegistry);
-        this._collisionGuard?.update(placed, this._occupancyRegistry);
+this._occupancyRegistry.updateFromTrains(placed);
+this._proximityDetector.update(placed, this._occupancyRegistry);
+this._couplingApproachDetector.update(placed, this._occupancyRegistry);
+this._collisionGuard?.update(placed, this._occupancyRegistry);
 ```
 
 - [ ] **Step 5: Expose getter**
@@ -1282,7 +1280,8 @@ Expected: all tests pass; no compile errors.
 
 ```bash
 git add src/trains/train-render-system.ts
-git commit -m "$(cat <<'EOF'
+git commit -m "$(
+    cat << 'EOF'
 feat(trains): wire CouplingApproachDetector into TrainRenderSystem
 
 Owned alongside ProximityDetector, ticked in the same update phase
@@ -1299,6 +1298,7 @@ EOF
 ## Task 5: Add exemption check in `CollisionGuard`
 
 **Files:**
+
 - Modify: `src/trains/collision-guard.ts`
 - Modify: `test/collision-guard.test.ts` (add regression coverage)
 
@@ -1323,9 +1323,7 @@ describe('CouplingApproachDetector exemption', () => {
             headPosition: makePosition(1, 0.04, 'tangent'),
             bogiePositions: [makePosition(1, 0.04, 'tangent')],
             speed: 1,
-            occupiedSegments: [
-                { trackNumber: 1, inTrackDirection: 'tangent' },
-            ],
+            occupiedSegments: [{ trackNumber: 1, inTrackDirection: 'tangent' }],
         });
         const trainB = mockTrain({
             headPosition: makePosition(1, 0.07, 'reverseTangent'),
@@ -1359,9 +1357,7 @@ describe('CouplingApproachDetector exemption', () => {
             headPosition: makePosition(1, 0.04, 'tangent'),
             bogiePositions: [makePosition(1, 0.04, 'tangent')],
             speed: 5,
-            occupiedSegments: [
-                { trackNumber: 1, inTrackDirection: 'tangent' },
-            ],
+            occupiedSegments: [{ trackNumber: 1, inTrackDirection: 'tangent' }],
         });
         const trainB = mockTrain({
             headPosition: makePosition(1, 0.07, 'reverseTangent'),
@@ -1422,7 +1418,7 @@ Add the setter (place it near the constructor, e.g. after the existing construct
     }
 ```
 
-In `_checkSameTrack` (around line 200), at the very top of the method body — *before* the `posA` / `posB` null-check — add:
+In `_checkSameTrack` (around line 200), at the very top of the method body — _before_ the `posA` / `posB` null-check — add:
 
 ```typescript
         if (
@@ -1444,7 +1440,8 @@ Expected: existing tests still pass; new exemption tests pass.
 
 ```bash
 git add src/trains/collision-guard.ts test/collision-guard.test.ts
-git commit -m "$(cat <<'EOF'
+git commit -m "$(
+    cat << 'EOF'
 feat(collision-guard): exempt coupling-approach pairs from intervention
 
 Adds a setCouplingApproachDetector() injection point and an early-return
@@ -1461,6 +1458,7 @@ EOF
 ## Task 6: Build `AutoCoupler` (TDD)
 
 **Files:**
+
 - Create: `src/trains/auto-coupler.ts`
 - Test: `test/auto-coupler.test.ts`
 
@@ -1685,10 +1683,7 @@ export class AutoCoupler {
 
         const merged: Set<number> = new Set();
         for (const match of matches) {
-            if (
-                merged.has(match.trainA.id) ||
-                merged.has(match.trainB.id)
-            ) {
+            if (merged.has(match.trainA.id) || merged.has(match.trainB.id)) {
                 continue;
             }
             const result = this._coupler.coupleTrains(match);
@@ -1717,7 +1712,8 @@ Expected: all 5 tests PASS.
 
 ```bash
 git add src/trains/auto-coupler.ts test/auto-coupler.test.ts
-git commit -m "$(cat <<'EOF'
+git commit -m "$(
+    cat << 'EOF'
 feat(trains): add AutoCoupler
 
 Closest-first orchestrator that drains in-range coupling matches each
@@ -1735,6 +1731,7 @@ EOF
 ## Task 7: Add `couplingAutoSuccess` i18n strings
 
 **Files:**
+
 - Modify: `src/i18n/locales/en.ts:385`
 - Modify: `src/i18n/locales/zh-TW.ts:366`
 - Modify: `src/i18n/locales/ja.ts:303`
@@ -1775,7 +1772,8 @@ Expected: full suite still passes (no test consumes these strings yet, but if th
 
 ```bash
 git add src/i18n/locales/en.ts src/i18n/locales/zh-TW.ts src/i18n/locales/ja.ts
-git commit -m "$(cat <<'EOF'
+git commit -m "$(
+    cat << 'EOF'
 i18n: add couplingAutoSuccess for auto-coupling toast
 
 Co-Authored-By: Claude Opus 4.7 <noreply@anthropic.com>
@@ -1788,6 +1786,7 @@ EOF
 ## Task 8: Wire it all together in `init-app.ts`
 
 **Files:**
+
 - Modify: `src/utils/init-app.ts:13-17` (imports), `:906-907` (collision wiring), `:1004-1018` (tick callback)
 
 - [ ] **Step 1: Add imports**
@@ -1805,9 +1804,9 @@ import { AutoCoupler } from '@/trains/auto-coupler';
 After the existing `trainRenderSystem.collisionGuard = collisionGuard;` (around line 907), add:
 
 ```typescript
-    collisionGuard.setCouplingApproachDetector(
-        trainRenderSystem.couplingApproachDetector
-    );
+collisionGuard.setCouplingApproachDetector(
+    trainRenderSystem.couplingApproachDetector
+);
 ```
 
 - [ ] **Step 3: Construct the `AutoCoupler`**
@@ -1815,20 +1814,20 @@ After the existing `trainRenderSystem.collisionGuard = collisionGuard;` (around 
 Immediately after the line added in Step 2, add:
 
 ```typescript
-    const autoCoupler = new AutoCoupler(
-        trainRenderSystem.couplingApproachDetector,
-        trainManager,
-        {
-            onSuccess: () => {
-                toast.success(i18n.t('couplingAutoSuccess'));
-            },
-            onFailure: reason => {
-                if (reason === 'depth_exceeded') {
-                    toast.warning(i18n.t('couplingDepthExceeded'));
-                }
-            },
-        }
-    );
+const autoCoupler = new AutoCoupler(
+    trainRenderSystem.couplingApproachDetector,
+    trainManager,
+    {
+        onSuccess: () => {
+            toast.success(i18n.t('couplingAutoSuccess'));
+        },
+        onFailure: reason => {
+            if (reason === 'depth_exceeded') {
+                toast.warning(i18n.t('couplingDepthExceeded'));
+            }
+        },
+    }
+);
 ```
 
 - [ ] **Step 4: Tick `AutoCoupler` after the render system update**
@@ -1836,25 +1835,25 @@ Immediately after the line added in Step 2, add:
 In the existing `timeManager.subscribe` callback (around line 1005-1017), add the autoCoupler.update() call immediately after `trainRenderSystem.update(deltaTime);`:
 
 ```typescript
-    const unsubTimeManager = timeManager.subscribe(
-        (currentTime: number, deltaTime: number) => {
-            // Timetable auto-drivers set throttle before physics update
-            timetableRef.current.update(currentTime, deltaTime);
-            trainRenderSystem.update(deltaTime);
-            // Run auto-coupler after physics + detectors + collision-guard.
-            // Order matters: detector and collision-guard run inside
-            // trainRenderSystem.update(); auto-coupler must run after both.
-            autoCoupler.update();
-            // Recompute signal aspects from fresh occupancy, then update visuals
-            signalStateEngine.update(
-                trainRenderSystem.occupancyRegistry,
-                trainManager.getPlacedTrains()
-            );
-            signalRenderSystem.update();
-            debugOverlayRenderSystem.updateFormationLabels();
-            debugOverlayRenderSystem.updateProximityLines();
-        }
-    );
+const unsubTimeManager = timeManager.subscribe(
+    (currentTime: number, deltaTime: number) => {
+        // Timetable auto-drivers set throttle before physics update
+        timetableRef.current.update(currentTime, deltaTime);
+        trainRenderSystem.update(deltaTime);
+        // Run auto-coupler after physics + detectors + collision-guard.
+        // Order matters: detector and collision-guard run inside
+        // trainRenderSystem.update(); auto-coupler must run after both.
+        autoCoupler.update();
+        // Recompute signal aspects from fresh occupancy, then update visuals
+        signalStateEngine.update(
+            trainRenderSystem.occupancyRegistry,
+            trainManager.getPlacedTrains()
+        );
+        signalRenderSystem.update();
+        debugOverlayRenderSystem.updateFormationLabels();
+        debugOverlayRenderSystem.updateProximityLines();
+    }
+);
 ```
 
 - [ ] **Step 5: Type-check + run all tests**
@@ -1877,7 +1876,8 @@ Expected: build completes without errors.
 
 ```bash
 git add src/utils/init-app.ts
-git commit -m "$(cat <<'EOF'
+git commit -m "$(
+    cat << 'EOF'
 feat(app): wire AutoCoupler and exempt coupling pairs from collision
 
 Constructs AutoCoupler at startup with success/failure toast callbacks
@@ -1914,6 +1914,7 @@ Verify baseline: no auto-couple toast, no collision intervention.
 - [ ] **Step 3: Drive one train at low throttle (≤ shunt speed ~2 units/s) toward the other, leading head first**
 
 Expected:
+
 - No emergency-brake intervention as it approaches.
 - On contact, the success toast `Trains coupled` appears.
 - The two formations merge into one selectable train.
@@ -1922,6 +1923,7 @@ Expected:
 - [ ] **Step 4: Place fresh trains and try the same approach at full throttle**
 
 Expected:
+
 - Tier 1 emergency brake engages well before contact, train slows.
 - If the train is still faster than shunt speed when it would otherwise enter coupling range, Tier 2 fires at ~5 units gap → emergency stop. No couple.
 - Wait one frame for lock to clear; the manual "Couple" button appears in the formation editor (existing behavior, unaffected).
@@ -1929,6 +1931,7 @@ Expected:
 - [ ] **Step 5: Decouple a long formation**
 
 Expected:
+
 - Decouple splits into two stopped trains touching at endpoints.
 - No auto-couple toast.
 - Manual "Couple" button is available (driven by existing `ProximityDetector`).
@@ -1938,6 +1941,7 @@ Expected:
 Drive in reverse so the trailing end approaches the stopped train.
 
 Expected:
+
 - No exemption applies (leading endpoint check fails).
 - Collision-guard intervenes normally → emergency stop short of contact. No couple.
 
@@ -1946,6 +1950,7 @@ Expected:
 You may need to construct this via the formation editor — couple several formations together first to push depth high.
 
 Expected:
+
 - Failure toast `Cannot couple: formation nesting too deep…` appears once.
 - Train continues briefly, collision-guard Tier 2 stops it ~5 units past the contact point.
 - No toast spam (toast does not refire on subsequent frames because the moving train is now stopped → rule 1 fails).
@@ -1953,6 +1958,7 @@ Expected:
 - [ ] **Step 8: (Optional) place 2+ stopped trains close together at a junction; drive into them**
 
 Expected:
+
 - Auto-couple fires for the closest match (distance-ascending order).
 - Single success toast.
 - Other potential match is skipped (target trains involved in the merge).
@@ -1973,7 +1979,8 @@ Add a regression test in the appropriate `test/*.test.ts` file, fix the underlyi
 
 ```bash
 git add -u
-git commit -m "$(cat <<'EOF'
+git commit -m "$(
+    cat << 'EOF'
 chore: format pass
 
 Co-Authored-By: Claude Opus 4.7 <noreply@anthropic.com>

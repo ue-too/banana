@@ -489,8 +489,9 @@ describe('CouplingApproachDetector', () => {
 
     it('sorts in-range matches by distance ascending', () => {
         // Moving train has two stopped neighbors in proximity.
-        // We construct the scenario carefully: moving at x=0 head, two stopped
-        // trains on the same segment with heads at x=4 and x=7 (both ≤ 8 threshold).
+        // Default coupler 3 each + tolerance 0.5 = threshold 6.5.
+        // Moving at x=0 head; two stopped trains on the same segment with
+        // heads at x=3 and x=6 (both ≤ 6.5 threshold).
         const trackGraph = mockTrackGraph(100);
         const detector = new CouplingApproachDetector(trackGraph);
 
@@ -501,16 +502,16 @@ describe('CouplingApproachDetector', () => {
             occupiedSegments: [{ trackNumber: 1, inTrackDirection: 'tangent' }],
         });
         const stoppedNear = mockTrain({
-            headPosition: pos(1, 0.04, 'reverseTangent', { x: 4, y: 0 }),
-            bogiePositions: [pos(1, 0.04, 'reverseTangent', { x: 4, y: 0 })],
+            headPosition: pos(1, 0.03, 'reverseTangent', { x: 3, y: 0 }),
+            bogiePositions: [pos(1, 0.03, 'reverseTangent', { x: 3, y: 0 })],
             speed: 0,
             occupiedSegments: [
                 { trackNumber: 1, inTrackDirection: 'reverseTangent' },
             ],
         });
         const stoppedFar = mockTrain({
-            headPosition: pos(1, 0.07, 'reverseTangent', { x: 7, y: 0 }),
-            bogiePositions: [pos(1, 0.07, 'reverseTangent', { x: 7, y: 0 })],
+            headPosition: pos(1, 0.06, 'reverseTangent', { x: 6, y: 0 }),
+            bogiePositions: [pos(1, 0.06, 'reverseTangent', { x: 6, y: 0 })],
             speed: 0,
             occupiedSegments: [
                 { trackNumber: 1, inTrackDirection: 'reverseTangent' },

@@ -27,17 +27,17 @@ We want shunting to feel natural: a player drives a train at low speed toward a 
 
 ## Decisions (from brainstorming)
 
-| # | Question | Choice |
-|---|----------|--------|
-| 1 | Speed regime | One stopped, one moving (v1). Designed so v2 (both moving, low relative speed) and v3 (any speed) extend the same components. |
-| 2 | Endpoint orientation | Strict — moving train's *leading* endpoint must be the one approaching. |
-| 3 | Post-couple motion | Stop on contact (existing `coupleTrains` already calls `resetMotionState`). |
-| 4 | Multiple candidates | Closest endpoint distance wins. |
-| 5 | User feedback | Always toast on success and on failure. |
-| 6 | Failed couple (depth exceeded) | Reject couple → toast → existing collision-guard handles the stop ~5 units later. No new force-stop code. |
-| Approach | Where logic lives | Approach 2 — separate `CouplingApproachDetector` alongside the existing `ProximityDetector`. |
-| Collision | How to allow approach | New "coupling approach" exemption in `CollisionGuard`. Exempt pairs skip Tier 1 + Tier 2 intervention. |
-| Exemption gate | When is exemption active | Alignment + low speed (≤ shunt threshold) + within 2× coupling-proximity envelope. |
+| #              | Question                       | Choice                                                                                                                        |
+| -------------- | ------------------------------ | ----------------------------------------------------------------------------------------------------------------------------- |
+| 1              | Speed regime                   | One stopped, one moving (v1). Designed so v2 (both moving, low relative speed) and v3 (any speed) extend the same components. |
+| 2              | Endpoint orientation           | Strict — moving train's _leading_ endpoint must be the one approaching.                                                       |
+| 3              | Post-couple motion             | Stop on contact (existing `coupleTrains` already calls `resetMotionState`).                                                   |
+| 4              | Multiple candidates            | Closest endpoint distance wins.                                                                                               |
+| 5              | User feedback                  | Always toast on success and on failure.                                                                                       |
+| 6              | Failed couple (depth exceeded) | Reject couple → toast → existing collision-guard handles the stop ~5 units later. No new force-stop code.                     |
+| Approach       | Where logic lives              | Approach 2 — separate `CouplingApproachDetector` alongside the existing `ProximityDetector`.                                  |
+| Collision      | How to allow approach          | New "coupling approach" exemption in `CollisionGuard`. Exempt pairs skip Tier 1 + Tier 2 intervention.                        |
+| Exemption gate | When is exemption active       | Alignment + low speed (≤ shunt threshold) + within 2× coupling-proximity envelope.                                            |
 
 ## Architecture
 
@@ -52,6 +52,7 @@ Per-frame classifier of colocated train pairs. Walks `OccupancyRegistry.getColoc
 - `null` — no exemption, no auto-couple.
 
 Public API:
+
 - `update(trains, occupancyRegistry)` — recompute classifications.
 - `getInRangeMatches(): readonly ProximityMatch[]` — sorted by `distance` ascending. Reuses existing `ProximityMatch` shape so `AutoCoupler` can hand matches directly to `trainManager.coupleTrains()` with no translation.
 - `isExempt(idA: number, idB: number): boolean` — true when the pair is `'in-range'` or `'aligned-approach'`. Used by `CollisionGuard`.
@@ -73,6 +74,7 @@ No change to crossing detection. The detector dependency is set via a setter to 
 Tiny orchestrator. Reads `couplingApproachDetector.getInRangeMatches()` each frame, iterates in distance-ascending order, and for each match calls `trainManager.coupleTrains(match)`. Tracks merged train IDs in a per-frame `Set<number>` so a second match involving an already-merged train is skipped (handles closest-wins among multiple simultaneous candidates).
 
 Per result:
+
 - `success: true` → toast `couplingAutoSuccess`.
 - `success: false, reason: 'depth_exceeded'` → toast `couplingDepthExceeded` (existing string).
 - `success: false, reason: 'invalid'` → no toast (this is a transient race-condition state, not a user-actionable failure).
@@ -103,7 +105,7 @@ Then in `init-app.ts` `timeManager.subscribe` callback, immediately after `train
 6. autoCoupler.update()                       [NEW]
 ```
 
-Auto-coupler runs *after* `collisionGuard` so we don't try to couple a pair that collision-guard has just emergency-stopped (in the unlikely event the exemption logic and collision logic ever disagree).
+Auto-coupler runs _after_ `collisionGuard` so we don't try to couple a pair that collision-guard has just emergency-stopped (in the unlikely event the exemption logic and collision logic ever disagree).
 
 ### Alignment rules
 
@@ -112,13 +114,14 @@ Auto-coupler runs *after* `collisionGuard` so we don't try to couple a pair that
 1. **Exactly one is moving.** `(speedA > 0) XOR (speedB > 0)`. Both moving or both stopped → `null`.
 2. **Moving train at or below shunt speed.** `movingTrain.speed <= SHUNT_SPEED_THRESHOLD` (default `2` world units / sec).
 3. **Leading endpoint determined by motion direction:**
-   - `position.direction === 'tangent'` → leading = head.
-   - `position.direction === 'reverseTangent'` → leading = tail.
+    - `position.direction === 'tangent'` → leading = head.
+    - `position.direction === 'reverseTangent'` → leading = tail.
 4. **Endpoint pairing.** For the moving train's leading endpoint, evaluate both the stopped train's head and tail endpoints. A pair qualifies only if both endpoints lie on the same `trackSegment`. If both qualify, pick the one with smaller endpoint distance.
 5. **Closing along the segment.** Reuse closing-speed helper from `track-arc-utils.ts`. The leading endpoint must be moving toward the chosen stopped endpoint along the segment's arc-length; closing speed must be `> 0`.
 6. **Within approach envelope.** Endpoint distance ≤ `2 × couplingProximityThreshold` (~16 world units with default couplers).
 
 Returns:
+
 - `'in-range'` if (1)–(6) hold AND distance ≤ coupling proximity threshold.
 - `'aligned-approach'` if (1)–(6) hold AND distance > coupling proximity threshold.
 - `null` otherwise.
@@ -128,7 +131,7 @@ Returns:
 In `coupling-approach-detector.ts` (kept local for tunability):
 
 ```ts
-const SHUNT_SPEED_THRESHOLD = 2;        // world units / sec
+const SHUNT_SPEED_THRESHOLD = 2; // world units / sec
 const APPROACH_ENVELOPE_MULTIPLIER = 2; // × coupling proximity threshold
 ```
 
@@ -140,7 +143,7 @@ Add to all four locale files (`en`, `zh-TW`, `ja`, `icon-handoff-en`):
 
 `couplingDepthExceeded` already exists and is reused.
 
-## What does *not* change
+## What does _not_ change
 
 - `Train.coupleTrains` / `TrainManager.coupleTrains` — existing path handles depth check, formation merge, motion reset, train removal. No edits.
 - `ProximityDetector` — continues to detect stopped-stopped pairs for the manual UI in `formation-editor.tsx`.
@@ -150,20 +153,21 @@ Add to all four locale files (`en`, `zh-TW`, `ja`, `icon-handoff-en`):
 
 ## Edge cases
 
-| Scenario | Behavior |
-|---|---|
-| Moving train above shunt speed approaches stopped train | Collision-guard runs normally — Tier 1 brake → Tier 2 stop. No couple. Once stopped (and aligned), next frame is "both stopped" → manual couple available; nothing auto-fires. |
-| Moving train approaches with trailing endpoint | Rule 4 fails (leading endpoint pointed elsewhere) → not exempt → collision-guard intervenes normally. |
-| Two stopped trains side by side after decouple | Rule 1 fails → no auto-couple. Manual button surfaces via existing `ProximityDetector`. |
-| Closest-wins among 2+ in-range matches | `getInRangeMatches()` returns sorted by distance; `AutoCoupler` skips matches involving already-merged trains. |
-| Auto-couple fails (depth exceeded) | Toast `couplingDepthExceeded`. Train continues briefly, collision-guard Tier 2 stops it ~5 units past contact. No toast spam: once stopped, rule 1 fails next frame → detector returns `null` → toast does not re-fire. |
-| Approach across a junction | Rule 3 (same track segment for both endpoints) fails until both are on the same segment. Exemption activates only inside the final segment. |
+| Scenario                                                | Behavior                                                                                                                                                                                                                |
+| ------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Moving train above shunt speed approaches stopped train | Collision-guard runs normally — Tier 1 brake → Tier 2 stop. No couple. Once stopped (and aligned), next frame is "both stopped" → manual couple available; nothing auto-fires.                                          |
+| Moving train approaches with trailing endpoint          | Rule 4 fails (leading endpoint pointed elsewhere) → not exempt → collision-guard intervenes normally.                                                                                                                   |
+| Two stopped trains side by side after decouple          | Rule 1 fails → no auto-couple. Manual button surfaces via existing `ProximityDetector`.                                                                                                                                 |
+| Closest-wins among 2+ in-range matches                  | `getInRangeMatches()` returns sorted by distance; `AutoCoupler` skips matches involving already-merged trains.                                                                                                          |
+| Auto-couple fails (depth exceeded)                      | Toast `couplingDepthExceeded`. Train continues briefly, collision-guard Tier 2 stops it ~5 units past contact. No toast spam: once stopped, rule 1 fails next frame → detector returns `null` → toast does not re-fire. |
+| Approach across a junction                              | Rule 3 (same track segment for both endpoints) fails until both are on the same segment. Exemption activates only inside the final segment.                                                                             |
 
 ## Testing
 
 ### Unit tests (Bun test runner)
 
 **`coupling-approach-detector.test.ts`** — pure classifier:
+
 - Two stopped trains in proximity → `null`.
 - Stopped + moving below shunt speed, leading end aligned, on same segment, within proximity threshold → `'in-range'`.
 - Same as above but distance just outside proximity threshold and within envelope → `'aligned-approach'`.
@@ -175,6 +179,7 @@ Add to all four locale files (`en`, `zh-TW`, `ja`, `icon-handoff-en`):
 - Different track segments (colocated only via shared joint) → `null`.
 
 **`auto-coupler.test.ts`** — orchestration with stub detector + stub `TrainManager`:
+
 - Single in-range match → `coupleTrains` called once, success toast.
 - Two in-range matches sharing a train → only the closest fires.
 - Match yielding `depth_exceeded` → failure toast, no further calls.
@@ -182,6 +187,7 @@ Add to all four locale files (`en`, `zh-TW`, `ja`, `icon-handoff-en`):
 - Empty match list → no calls.
 
 **`collision-guard.test.ts`** (existing — add cases):
+
 - Pair flagged exempt → no Tier 1 or Tier 2 intervention applied for that pair.
 - Pair not exempt → all existing behaviors unchanged (regression coverage).
 
@@ -206,6 +212,7 @@ Add to all four locale files (`en`, `zh-TW`, `ja`, `icon-handoff-en`):
 ## Files touched
 
 **New:**
+
 - `src/trains/coupling-approach-detector.ts`
 - `src/trains/auto-coupler.ts`
 - `src/trains/track-arc-utils.ts`
@@ -214,6 +221,7 @@ Add to all four locale files (`en`, `zh-TW`, `ja`, `icon-handoff-en`):
 - `src/trains/track-arc-utils.test.ts`
 
 **Modified:**
+
 - `src/trains/collision-guard.ts` — exemption check; geometry helpers extracted to `track-arc-utils.ts`.
 - `src/trains/train-render-system.ts` — own and update `CouplingApproachDetector`; expose getter.
 - `src/utils/init-app.ts` — construct and tick `AutoCoupler`.

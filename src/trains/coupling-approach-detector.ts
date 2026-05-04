@@ -21,9 +21,9 @@ const APPROACH_ENVELOPE_MULTIPLIER = 2;
  * Gap tolerance (world units) added on top of the two coupler lengths to
  * form the coupling proximity threshold. Mirrors the constant in
  * proximity-detector.ts so the two systems share the same physical
- * "endpoints touching" definition.
+ * "endpoints touching" definition. Keep in sync.
  */
-const COUPLING_GAP_TOLERANCE = 2;
+const COUPLING_GAP_TOLERANCE = 0.5;
 
 /**
  * Per-frame classifier of train pairs that are aligned for coupling.
