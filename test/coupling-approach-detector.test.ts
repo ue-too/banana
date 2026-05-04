@@ -160,20 +160,21 @@ describe('CouplingApproachDetector', () => {
         expect(detector.isExempt(1, 2)).toBe(true);
     });
 
-    it('returns an in-range match when moving train approaches with leading tail (reverseTangent)', () => {
-        // Moving train (id 1) in reverseTangent direction → leading endpoint = tail.
-        // Head at t=0.20 (point x=20), tail bogie at t=0.18 (point x=18).
-        // Stopped train (id 2) head at t=0.13 (point x=13), tangent direction.
-        // Endpoint Euclidean distance from moving tail (x=18) to stopped head (x=13) = 5.
-        // Default coupler 3+3+2 = 8. 5 <= 8 → in-range, with stopped end = head.
+    it('returns an in-range match for a reverseTangent moving train approaching head-to-head', () => {
+        // Mirrors the scene from a real test save: moving (id 1) at higher t
+        // with direction reverseTangent (so it moves toward lower t — head is
+        // the leading edge regardless of the direction's name). Stopped train
+        // (id 2) sits at lower t with direction tangent. Their heads face
+        // each other.
+        // Moving head x=10, stopped head x=5, distance = 5 ≤ 8 threshold → in-range.
         const trackGraph = mockTrackGraph(100);
         const detector = new CouplingApproachDetector(trackGraph);
 
         const moving = mockTrain({
-            headPosition: pos(1, 0.2, 'reverseTangent', { x: 20, y: 0 }),
+            headPosition: pos(1, 0.1, 'reverseTangent', { x: 10, y: 0 }),
             bogiePositions: [
-                pos(1, 0.2, 'reverseTangent', { x: 20, y: 0 }), // head
-                pos(1, 0.18, 'tangent', { x: 18, y: 0 }), // tail bogie carries walk-back direction
+                pos(1, 0.1, 'reverseTangent', { x: 10, y: 0 }), // head
+                pos(1, 0.12, 'tangent', { x: 12, y: 0 }), // tail bogie (walk-back direction)
             ],
             speed: 1,
             occupiedSegments: [
@@ -181,8 +182,8 @@ describe('CouplingApproachDetector', () => {
             ],
         });
         const stopped = mockTrain({
-            headPosition: pos(1, 0.13, 'tangent', { x: 13, y: 0 }),
-            bogiePositions: [pos(1, 0.13, 'tangent', { x: 13, y: 0 })],
+            headPosition: pos(1, 0.05, 'tangent', { x: 5, y: 0 }),
+            bogiePositions: [pos(1, 0.05, 'tangent', { x: 5, y: 0 })],
             speed: 0,
             occupiedSegments: [{ trackNumber: 1, inTrackDirection: 'tangent' }],
         });
@@ -194,7 +195,7 @@ describe('CouplingApproachDetector', () => {
         const matches = detector.getInRangeMatches();
         expect(matches).toHaveLength(1);
         expect(matches[0]).toMatchObject({
-            trainA: { id: 1, end: 'tail' },
+            trainA: { id: 1, end: 'head' },
             trainB: { id: 2, end: 'head' },
         });
         expect(detector.isExempt(1, 2)).toBe(true);

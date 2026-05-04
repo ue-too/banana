@@ -159,23 +159,14 @@ export class CouplingApproachDetector {
         const stoppedPos = stopped.position;
         if (!movingPos || !stoppedPos) return;
 
-        // Rule 3: leading endpoint determined by direction of travel.
-        const movingBogies = moving.getBogiePositions();
-        if (!movingBogies || movingBogies.length === 0) return;
-        const movingLeadingEnd: 'head' | 'tail' =
-            movingPos.direction === 'tangent' ? 'head' : 'tail';
-        const movingLeadingBase =
-            movingLeadingEnd === 'head'
-                ? movingPos
-                : movingBogies[movingBogies.length - 1];
-        // Bogies carry the walk-back direction in their `direction` field, not the
-        // train's travel direction. Override with movingPos.direction so closingSpeed
-        // computes the right kinematic relationship.
-        const movingLeadingPos: TrainPosition = {
-            ...movingLeadingBase,
-            direction: movingPos.direction,
-        };
-        const movingLeadingPoint = movingLeadingBase.point;
+        // Rule 3: leading endpoint is always the head. `position` is the head
+        // and is reassigned by `Train.switchDirection()` whenever a train
+        // changes facing — so the head always corresponds to the leading edge
+        // of motion, regardless of whether direction is tangent or
+        // reverseTangent. There is no path where a moving train approaches
+        // another with its tail.
+        const movingLeadingPos = movingPos;
+        const movingLeadingPoint = movingPos.point;
 
         const stoppedBogies = stopped.getBogiePositions();
         if (!stoppedBogies || stoppedBogies.length === 0) return;
@@ -245,9 +236,7 @@ export class CouplingApproachDetector {
 
         // Rule 6: within approach envelope.
         const couplingThreshold =
-            (movingLeadingEnd === 'head'
-                ? moving.formation.headCouplerLength
-                : moving.formation.tailCouplerLength) +
+            moving.formation.headCouplerLength +
             (best.stoppedEnd === 'head'
                 ? stopped.formation.headCouplerLength
                 : stopped.formation.tailCouplerLength) +
@@ -263,7 +252,7 @@ export class CouplingApproachDetector {
 
         if (best.distance <= couplingThreshold) {
             this._inRangeMatches.push({
-                trainA: { id: movingId, end: movingLeadingEnd },
+                trainA: { id: movingId, end: 'head' },
                 trainB: { id: stoppedId, end: best.stoppedEnd },
                 distance: best.distance,
             });
