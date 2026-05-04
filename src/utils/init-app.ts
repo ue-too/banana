@@ -9,6 +9,7 @@ import {
     baseInitApp,
 } from '@ue-too/board-pixi-integration';
 import { Point, PointCal } from '@ue-too/math';
+import { UPDATE_PRIORITY } from 'pixi.js';
 import { toast } from 'sonner';
 import Stats from 'stats.js';
 
@@ -504,26 +505,35 @@ export const initApp = async (
 
     const isFollowing = (): boolean => followPositionGetter !== null;
 
-    baseComponents.app.ticker.add((time: { deltaMS: number }) => {
-        for (const animation of animations) {
-            animation.animate(time.deltaMS);
-        }
-        focusAnimation.animate(time.deltaMS);
+    // HIGH priority so the camera-follow target is updated *before*
+    // board-pixi-integration's NORMAL-priority callback copies the camera
+    // transform onto the stage. TimeManager (also HIGH, registered earlier)
+    // moves trains first; this callback then reads the new train position
+    // and updates the camera; board-pixi syncs the stage transform last.
+    baseComponents.app.ticker.add(
+        (time: { deltaMS: number }) => {
+            for (const animation of animations) {
+                animation.animate(time.deltaMS);
+            }
+            focusAnimation.animate(time.deltaMS);
 
-        // While locked on, continuously update camera to follow the train.
-        if (followPositionGetter) {
-            const pos = followPositionGetter();
-            if (pos) {
-                const res = cameraMux.panStateMachine.happens(
-                    'lockedOnObjectPanToInput',
-                    { target: pos }
-                );
-                if (res.handled) {
-                    baseComponents.cameraRig.panToWorld(pos);
+            // While locked on, continuously update camera to follow the train.
+            if (followPositionGetter) {
+                const pos = followPositionGetter();
+                if (pos) {
+                    const res = cameraMux.panStateMachine.happens(
+                        'lockedOnObjectPanToInput',
+                        { target: pos }
+                    );
+                    if (res.handled) {
+                        baseComponents.cameraRig.panToWorld(pos);
+                    }
                 }
             }
-        }
-    });
+        },
+        undefined,
+        UPDATE_PRIORITY.HIGH
+    );
 
     const curveEngine = new CurveCreationEngine(
         baseComponents.canvasProxy,
