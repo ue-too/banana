@@ -975,6 +975,58 @@ describe('CollisionGuard — crossing detection', () => {
 });
 
 // ---------------------------------------------------------------------------
+// CollisionGuard + CouplingApproachDetector integration
+// ---------------------------------------------------------------------------
+
+describe('CollisionGuard + CouplingApproachDetector integration', () => {
+    let registry: OccupancyRegistry;
+    let crossingMap: CrossingMap;
+
+    beforeEach(() => {
+        registry = new OccupancyRegistry();
+        crossingMap = new CrossingMap();
+    });
+
+    it('does not intervene when the real detector flags an aligned approach', async () => {
+        const { CouplingApproachDetector } =
+            await import('../src/trains/coupling-approach-detector');
+        const trackGraph = mockTrackGraph(100);
+        const detector = new CouplingApproachDetector(trackGraph);
+        const guard = new CollisionGuard(trackGraph, crossingMap);
+        guard.setCouplingApproachDetector(detector);
+
+        // Geometry: moving (id 1) tangent at t=0.05, stopped (id 2) reverseTangent
+        // at t=0.10 — both on segment 1. Default formation 0+0+2=2 unit threshold;
+        // makePosition always yields point {x:0, y:0}, so Euclidean distance = 0 ≤ 2.
+        // closingSpeed: lowerArc=5 (tangent) + higherArc=10 (reverseTangent) → 1+0=1 > 0.
+        const trainA = mockTrain({
+            headPosition: makePosition(1, 0.05, 'tangent'),
+            bogiePositions: [makePosition(1, 0.05, 'tangent')],
+            speed: 1,
+            occupiedSegments: [{ trackNumber: 1, inTrackDirection: 'tangent' }],
+        });
+        const trainB = mockTrain({
+            headPosition: makePosition(1, 0.1, 'reverseTangent'),
+            bogiePositions: [makePosition(1, 0.1, 'reverseTangent')],
+            speed: 0,
+            occupiedSegments: [
+                { trackNumber: 1, inTrackDirection: 'reverseTangent' },
+            ],
+        });
+
+        const entries = [entry(1, trainA), entry(2, trainB)];
+        registry.updateFromTrains(entries);
+        detector.update(entries, registry);
+        guard.update(entries, registry);
+
+        // The detector should have flagged the pair as exempt; guard must skip.
+        expect(detector.isExempt(1, 2)).toBe(true);
+        expect(trainA.collisionLocked).toBe(false);
+        expect(trainA.throttleStep).toBe('N');
+    });
+});
+
+// ---------------------------------------------------------------------------
 // CollisionGuard — CouplingApproachDetector exemption tests
 // ---------------------------------------------------------------------------
 

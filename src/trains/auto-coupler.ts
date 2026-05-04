@@ -3,6 +3,7 @@ import type { CoupleResult } from './train-manager';
 
 interface MatchSource {
     getInRangeMatches(): readonly ProximityMatch[];
+    markRejected(idA: number, idB: number): void;
 }
 
 interface CouplerTarget {
@@ -67,6 +68,10 @@ export class AutoCoupler {
             } else if (result.reason === 'depth_exceeded') {
                 this._merged.add(match.trainA.id);
                 this._merged.add(match.trainB.id);
+                this._matchSource.markRejected(
+                    match.trainA.id,
+                    match.trainB.id
+                );
                 this._callbacks.onFailure('depth_exceeded');
             }
             // 'invalid' is a transient race state — leave the trains free

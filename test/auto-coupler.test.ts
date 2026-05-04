@@ -6,6 +6,7 @@ import type { CoupleResult } from '../src/trains/train-manager';
 
 type StubDetector = {
     getInRangeMatches: () => readonly ProximityMatch[];
+    markRejected: (idA: number, idB: number) => void;
 };
 type StubManager = {
     coupleTrains: (m: ProximityMatch) => CoupleResult;
@@ -27,7 +28,11 @@ function match(
 
 describe('AutoCoupler', () => {
     it('does nothing when there are no in-range matches', () => {
-        const detector: StubDetector = { getInRangeMatches: () => [] };
+        const markRejected = mock(() => {});
+        const detector: StubDetector = {
+            getInRangeMatches: () => [],
+            markRejected,
+        };
         const onSuccess = mock(() => {});
         const onFailure = mock(() => {});
         const manager: StubManager = {
@@ -50,7 +55,11 @@ describe('AutoCoupler', () => {
 
     it('calls coupleTrains and onSuccess for a single in-range match', () => {
         const m = match(1, 'head', 2, 'head', 4);
-        const detector: StubDetector = { getInRangeMatches: () => [m] };
+        const markRejected = mock(() => {});
+        const detector: StubDetector = {
+            getInRangeMatches: () => [m],
+            markRejected,
+        };
         const onSuccess = mock(() => {});
         const onFailure = mock(() => {});
         const manager: StubManager = {
@@ -75,8 +84,10 @@ describe('AutoCoupler', () => {
     it('skips a match that involves an already-merged train', () => {
         const closest = match(1, 'head', 2, 'head', 3);
         const further = match(2, 'tail', 3, 'head', 6); // shares train 2
+        const markRejected = mock(() => {});
         const detector: StubDetector = {
             getInRangeMatches: () => [closest, further],
+            markRejected,
         };
         const onSuccess = mock(() => {});
         const onFailure = mock(() => {});
@@ -100,7 +111,11 @@ describe('AutoCoupler', () => {
 
     it('calls onFailure for depth_exceeded result', () => {
         const m = match(1, 'head', 2, 'head', 4);
-        const detector: StubDetector = { getInRangeMatches: () => [m] };
+        const markRejected = mock(() => {});
+        const detector: StubDetector = {
+            getInRangeMatches: () => [m],
+            markRejected,
+        };
         const onSuccess = mock(() => {});
         const onFailure = mock(() => {});
         const manager: StubManager = {
@@ -120,11 +135,16 @@ describe('AutoCoupler', () => {
         expect(onFailure).toHaveBeenCalledTimes(1);
         expect(onFailure).toHaveBeenCalledWith('depth_exceeded');
         expect(onSuccess).not.toHaveBeenCalled();
+        expect(markRejected).toHaveBeenCalledWith(1, 2);
     });
 
     it('does not toast for the transient invalid result', () => {
         const m = match(1, 'head', 2, 'head', 4);
-        const detector: StubDetector = { getInRangeMatches: () => [m] };
+        const markRejected = mock(() => {});
+        const detector: StubDetector = {
+            getInRangeMatches: () => [m],
+            markRejected,
+        };
         const onSuccess = mock(() => {});
         const onFailure = mock(() => {});
         const manager: StubManager = {
@@ -147,8 +167,10 @@ describe('AutoCoupler', () => {
     it('skips a follow-up match that involves a depth-exceeded train (same frame)', () => {
         const failed = match(1, 'head', 2, 'head', 3);
         const followUp = match(2, 'tail', 3, 'head', 6); // shares train 2
+        const markRejected = mock(() => {});
         const detector: StubDetector = {
             getInRangeMatches: () => [failed, followUp],
+            markRejected,
         };
         const onSuccess = mock(() => {});
         const onFailure = mock(() => {});
@@ -170,5 +192,6 @@ describe('AutoCoupler', () => {
         expect(manager.coupleTrains).toHaveBeenCalledTimes(1);
         expect(manager.coupleTrains).toHaveBeenCalledWith(failed);
         expect(onFailure).toHaveBeenCalledTimes(1);
+        expect(markRejected).toHaveBeenCalledWith(1, 2);
     });
 });

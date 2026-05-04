@@ -39,6 +39,14 @@ export class CouplingApproachDetector {
     private _inRangeMatches: ProximityMatch[] = [];
     private _exemptPairs: Set<string> = new Set();
     private _trainMap: Map<number, PlacedTrainEntry> = new Map();
+    /**
+     * Pair keys (`${lo}:${hi}`) that returned depth_exceeded from a recent
+     * couple attempt. Such pairs are *not* exempted or in-range so that
+     * collision-guard takes over and stops the moving train. Cleared
+     * automatically once the pair stops being colocated (i.e., trains
+     * separate).
+     */
+    private _rejectedPairs: Set<string> = new Set();
     private _candidates: {
         stoppedEnd: 'head' | 'tail';
         stoppedEndPos: TrainPosition;
@@ -61,6 +69,16 @@ export class CouplingApproachDetector {
         this._exemptPairs.clear();
 
         const colocated = registry.getColocatedPairs();
+
+        // Drop rejected-pair memory for pairs that have separated.
+        if (this._rejectedPairs.size > 0) {
+            for (const key of this._rejectedPairs) {
+                if (!colocated.has(key)) {
+                    this._rejectedPairs.delete(key);
+                }
+            }
+        }
+
         if (colocated.size === 0) return;
 
         this._trainMap.clear();
@@ -100,12 +118,30 @@ export class CouplingApproachDetector {
         return this._exemptPairs.has(`${lo}:${hi}`);
     }
 
+    /**
+     * Mark a pair as rejected (e.g., depth_exceeded) so future frames
+     * do not classify it as exempt or in-range. The flag is cleared
+     * automatically when the pair is no longer colocated.
+     */
+    markRejected(idA: number, idB: number): void {
+        const lo = Math.min(idA, idB);
+        const hi = Math.max(idA, idB);
+        this._rejectedPairs.add(`${lo}:${hi}`);
+    }
+
     private _classifyPair(
         idA: number,
         trainA: Train,
         idB: number,
         trainB: Train
     ): void {
+        // If a previous frame's couple attempt failed (depth_exceeded),
+        // skip classification. Collision-guard will then handle stopping
+        // the moving train normally.
+        const lo = Math.min(idA, idB);
+        const hi = Math.max(idA, idB);
+        if (this._rejectedPairs.has(`${lo}:${hi}`)) return;
+
         // Rule 1: exactly one moving.
         const aMoving = trainA.speed > 0;
         const bMoving = trainB.speed > 0;
@@ -128,14 +164,18 @@ export class CouplingApproachDetector {
         if (!movingBogies || movingBogies.length === 0) return;
         const movingLeadingEnd: 'head' | 'tail' =
             movingPos.direction === 'tangent' ? 'head' : 'tail';
-        const movingLeadingPos =
+        const movingLeadingBase =
             movingLeadingEnd === 'head'
                 ? movingPos
                 : movingBogies[movingBogies.length - 1];
-        const movingLeadingPoint =
-            movingLeadingEnd === 'head'
-                ? movingPos.point
-                : movingBogies[movingBogies.length - 1].point;
+        // Bogies carry the walk-back direction in their `direction` field, not the
+        // train's travel direction. Override with movingPos.direction so closingSpeed
+        // computes the right kinematic relationship.
+        const movingLeadingPos: TrainPosition = {
+            ...movingLeadingBase,
+            direction: movingPos.direction,
+        };
+        const movingLeadingPoint = movingLeadingBase.point;
 
         const stoppedBogies = stopped.getBogiePositions();
         if (!stoppedBogies || stoppedBogies.length === 0) return;
@@ -217,9 +257,9 @@ export class CouplingApproachDetector {
         if (best.distance > envelope) return;
 
         // Pair qualifies for exemption.
-        const lo = Math.min(movingId, stoppedId);
-        const hi = Math.max(movingId, stoppedId);
-        this._exemptPairs.add(`${lo}:${hi}`);
+        const pairLo = Math.min(movingId, stoppedId);
+        const pairHi = Math.max(movingId, stoppedId);
+        this._exemptPairs.add(`${pairLo}:${pairHi}`);
 
         if (best.distance <= couplingThreshold) {
             this._inRangeMatches.push({

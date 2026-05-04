@@ -172,8 +172,8 @@ describe('CouplingApproachDetector', () => {
         const moving = mockTrain({
             headPosition: pos(1, 0.2, 'reverseTangent', { x: 20, y: 0 }),
             bogiePositions: [
-                pos(1, 0.2, 'reverseTangent', { x: 20, y: 0 }),
-                pos(1, 0.18, 'reverseTangent', { x: 18, y: 0 }),
+                pos(1, 0.2, 'reverseTangent', { x: 20, y: 0 }), // head
+                pos(1, 0.18, 'tangent', { x: 18, y: 0 }), // tail bogie carries walk-back direction
             ],
             speed: 1,
             occupiedSegments: [
@@ -399,6 +399,91 @@ describe('CouplingApproachDetector', () => {
 
         expect(detector.getInRangeMatches()).toHaveLength(0);
         expect(detector.isExempt(1, 2)).toBe(false);
+    });
+
+    it('classifies a rejected pair as null (no exemption, no in-range)', () => {
+        const trackGraph = mockTrackGraph(100);
+        const detector = new CouplingApproachDetector(trackGraph);
+
+        const moving = mockTrain({
+            headPosition: pos(1, 0.05, 'tangent', { x: 5, y: 0 }),
+            bogiePositions: [pos(1, 0.05, 'tangent', { x: 5, y: 0 })],
+            speed: 1,
+            occupiedSegments: [{ trackNumber: 1, inTrackDirection: 'tangent' }],
+        });
+        const stopped = mockTrain({
+            headPosition: pos(1, 0.1, 'reverseTangent', { x: 10, y: 0 }),
+            bogiePositions: [pos(1, 0.1, 'reverseTangent', { x: 10, y: 0 })],
+            speed: 0,
+            occupiedSegments: [
+                { trackNumber: 1, inTrackDirection: 'reverseTangent' },
+            ],
+        });
+
+        const entries = [entry(1, moving), entry(2, stopped)];
+        registry.updateFromTrains(entries);
+
+        // First frame: in-range as expected.
+        detector.update(entries, registry);
+        expect(detector.getInRangeMatches()).toHaveLength(1);
+        expect(detector.isExempt(1, 2)).toBe(true);
+
+        // Reject the pair (simulating AutoCoupler's depth_exceeded callback).
+        detector.markRejected(1, 2);
+
+        // Second frame: pair is no longer in-range or exempt.
+        detector.update(entries, registry);
+        expect(detector.getInRangeMatches()).toHaveLength(0);
+        expect(detector.isExempt(1, 2)).toBe(false);
+    });
+
+    it('clears rejected memory once the pair is no longer colocated', () => {
+        const trackGraph = mockTrackGraph(100);
+        const detector = new CouplingApproachDetector(trackGraph);
+
+        const moving = mockTrain({
+            headPosition: pos(1, 0.05, 'tangent', { x: 5, y: 0 }),
+            bogiePositions: [pos(1, 0.05, 'tangent', { x: 5, y: 0 })],
+            speed: 1,
+            occupiedSegments: [{ trackNumber: 1, inTrackDirection: 'tangent' }],
+        });
+        const stopped = mockTrain({
+            headPosition: pos(1, 0.1, 'reverseTangent', { x: 10, y: 0 }),
+            bogiePositions: [pos(1, 0.1, 'reverseTangent', { x: 10, y: 0 })],
+            speed: 0,
+            occupiedSegments: [
+                { trackNumber: 1, inTrackDirection: 'reverseTangent' },
+            ],
+        });
+
+        const entries = [entry(1, moving), entry(2, stopped)];
+        registry.updateFromTrains(entries);
+        detector.update(entries, registry);
+        detector.markRejected(1, 2);
+
+        // Frame 2: still colocated → still rejected.
+        detector.update(entries, registry);
+        expect(detector.getInRangeMatches()).toHaveLength(0);
+
+        // Move the stopped train away from the moving train's segment.
+        const movedAway = mockTrain({
+            headPosition: pos(2, 0.5, 'reverseTangent', { x: 50, y: 50 }),
+            bogiePositions: [pos(2, 0.5, 'reverseTangent', { x: 50, y: 50 })],
+            speed: 0,
+            occupiedSegments: [
+                { trackNumber: 2, inTrackDirection: 'reverseTangent' },
+            ],
+        });
+        const newEntries = [entry(1, moving), entry(2, movedAway)];
+        registry.updateFromTrains(newEntries);
+        detector.update(newEntries, registry);
+
+        // Pair is no longer colocated → rejection memory pruned.
+        // Bring them back to colocated and verify in-range works again.
+        registry.updateFromTrains(entries);
+        detector.update(entries, registry);
+        expect(detector.getInRangeMatches()).toHaveLength(1);
+        expect(detector.isExempt(1, 2)).toBe(true);
     });
 
     it('sorts in-range matches by distance ascending', () => {
