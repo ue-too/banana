@@ -4,7 +4,7 @@ import {
     SubscriptionOptions,
     SynchronousObservable,
 } from '@ue-too/board';
-import { Application } from 'pixi.js';
+import { Application, UPDATE_PRIORITY } from 'pixi.js';
 
 class TimeManager {
     private _currentTime: number = Date.now(); // the current time in epoch milliseconds
@@ -51,7 +51,17 @@ class TimeManager {
         this._tickerCallback = time => {
             this.update(time.deltaMS);
         };
-        pixixApp.ticker.add(this._tickerCallback);
+        // HIGH priority so train physics updates run *before*
+        // board-pixi-integration's NORMAL-priority callback copies the
+        // camera transform onto the stage. Otherwise the stage uses last
+        // frame's camera position while trains render at this frame's
+        // position — at high zoom the per-frame velocity step shows up
+        // as visible jitter.
+        pixixApp.ticker.add(
+            this._tickerCallback,
+            undefined,
+            UPDATE_PRIORITY.HIGH
+        );
     }
 
     get currentTime(): number {
