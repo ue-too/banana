@@ -160,6 +160,46 @@ describe('CouplingApproachDetector', () => {
         expect(detector.isExempt(1, 2)).toBe(true);
     });
 
+    it('returns an in-range match when moving train approaches with leading tail (reverseTangent)', () => {
+        // Moving train (id 1) in reverseTangent direction → leading endpoint = tail.
+        // Head at t=0.20 (point x=20), tail bogie at t=0.18 (point x=18).
+        // Stopped train (id 2) head at t=0.13 (point x=13), tangent direction.
+        // Endpoint Euclidean distance from moving tail (x=18) to stopped head (x=13) = 5.
+        // Default coupler 3+3+2 = 8. 5 <= 8 → in-range, with stopped end = head.
+        const trackGraph = mockTrackGraph(100);
+        const detector = new CouplingApproachDetector(trackGraph);
+
+        const moving = mockTrain({
+            headPosition: pos(1, 0.2, 'reverseTangent', { x: 20, y: 0 }),
+            bogiePositions: [
+                pos(1, 0.2, 'reverseTangent', { x: 20, y: 0 }),
+                pos(1, 0.18, 'reverseTangent', { x: 18, y: 0 }),
+            ],
+            speed: 1,
+            occupiedSegments: [
+                { trackNumber: 1, inTrackDirection: 'reverseTangent' },
+            ],
+        });
+        const stopped = mockTrain({
+            headPosition: pos(1, 0.13, 'tangent', { x: 13, y: 0 }),
+            bogiePositions: [pos(1, 0.13, 'tangent', { x: 13, y: 0 })],
+            speed: 0,
+            occupiedSegments: [{ trackNumber: 1, inTrackDirection: 'tangent' }],
+        });
+
+        const entries = [entry(1, moving), entry(2, stopped)];
+        registry.updateFromTrains(entries);
+        detector.update(entries, registry);
+
+        const matches = detector.getInRangeMatches();
+        expect(matches).toHaveLength(1);
+        expect(matches[0]).toMatchObject({
+            trainA: { id: 1, end: 'tail' },
+            trainB: { id: 2, end: 'head' },
+        });
+        expect(detector.isExempt(1, 2)).toBe(true);
+    });
+
     it('marks pair exempt but not in-range when distance exceeds coupling threshold but is within envelope', () => {
         // Endpoint distance = 12. Threshold = 8. Envelope = 16. 8 < 12 <= 16 → aligned-approach.
         const trackGraph = mockTrackGraph(100);
@@ -273,8 +313,10 @@ describe('CouplingApproachDetector', () => {
     it('returns no exemption when moving train approaches with its trailing end', () => {
         // Moving (tangent) → leading end is head at t=0.20.
         // Stopped train sits *behind* the moving train at t=0.10.
-        // Moving train's tail (last bogie at t=0.18) is closer to stopped, but
-        // tail is not the leading end → rule fails.
+        // Rule 4 finds a candidate (stopped head on same segment), but Rule 5
+        // (closing speed) returns 0: the moving head is at higher arc, the stopped
+        // head is at lower arc, both tangent → "following" with a stopped front
+        // train and a moving rear → closing speed = max(0, 0 - 1) = 0.
         const trackGraph = mockTrackGraph(100);
         const detector = new CouplingApproachDetector(trackGraph);
 
@@ -398,7 +440,7 @@ describe('CouplingApproachDetector', () => {
         detector.update(entries, registry);
 
         const matches = detector.getInRangeMatches();
-        expect(matches.length).toBeGreaterThanOrEqual(2);
+        expect(matches).toHaveLength(2);
         // Closer one first.
         expect(matches[0].distance).toBeLessThanOrEqual(matches[1].distance);
     });

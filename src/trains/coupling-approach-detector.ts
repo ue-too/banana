@@ -39,6 +39,11 @@ export class CouplingApproachDetector {
     private _inRangeMatches: ProximityMatch[] = [];
     private _exemptPairs: Set<string> = new Set();
     private _trainMap: Map<number, PlacedTrainEntry> = new Map();
+    private _candidates: {
+        stoppedEnd: 'head' | 'tail';
+        stoppedEndPos: TrainPosition;
+        stoppedEndPoint: { x: number; y: number };
+    }[] = [];
 
     constructor(trackGraph: TrackGraph) {
         this._trackGraph = trackGraph;
@@ -140,26 +145,22 @@ export class CouplingApproachDetector {
         const stoppedHeadPos = stoppedPos;
         const stoppedTailPos = stoppedBogies[stoppedBogies.length - 1];
 
-        const candidates: {
-            stoppedEnd: 'head' | 'tail';
-            stoppedEndPos: TrainPosition;
-            stoppedEndPoint: { x: number; y: number };
-        }[] = [];
+        this._candidates.length = 0;
         if (stoppedHeadPos.trackSegment === movingLeadingPos.trackSegment) {
-            candidates.push({
+            this._candidates.push({
                 stoppedEnd: 'head',
                 stoppedEndPos: stoppedHeadPos,
                 stoppedEndPoint: stoppedHeadPos.point,
             });
         }
         if (stoppedTailPos.trackSegment === movingLeadingPos.trackSegment) {
-            candidates.push({
+            this._candidates.push({
                 stoppedEnd: 'tail',
                 stoppedEndPos: stoppedTailPos,
                 stoppedEndPoint: stoppedTailPos.point,
             });
         }
-        if (candidates.length === 0) return;
+        if (this._candidates.length === 0) return;
 
         const seg = this._trackGraph.getTrackSegmentWithJoints(
             movingLeadingPos.trackSegment
@@ -174,7 +175,7 @@ export class CouplingApproachDetector {
             stoppedEndPos: TrainPosition;
             distance: number;
         } | null = null;
-        for (const c of candidates) {
+        for (const c of this._candidates) {
             const dx = movingLeadingPoint.x - c.stoppedEndPoint.x;
             const dy = movingLeadingPoint.y - c.stoppedEndPoint.y;
             const d = Math.sqrt(dx * dx + dy * dy);
