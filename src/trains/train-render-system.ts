@@ -405,6 +405,7 @@ export class TrainRenderSystem {
 
     private _occupancyRegistry: OccupancyRegistry = new OccupancyRegistry();
     private _proximityDetector: ProximityDetector = new ProximityDetector();
+    // Initialized in the constructor because it requires the trackGraph param.
     private _couplingApproachDetector: CouplingApproachDetector;
     private _collisionGuard: CollisionGuard | null = null;
     private _stationPresenceDetector: StationPresenceDetector | null = null;
@@ -467,6 +468,10 @@ export class TrainRenderSystem {
         this._getPreviewTrain().update(deltaTime);
 
         this._occupancyRegistry.updateFromTrains(placed);
+        // Order matters: couplingApproachDetector must run BEFORE collisionGuard
+        // so the guard can consult fresh exemption data this frame. Reordering
+        // breaks the auto-coupling approach corridor — see proximity-based
+        // coupling design doc.
         this._proximityDetector.update(placed, this._occupancyRegistry);
         this._couplingApproachDetector.update(placed, this._occupancyRegistry);
         this._collisionGuard?.update(placed, this._occupancyRegistry);
