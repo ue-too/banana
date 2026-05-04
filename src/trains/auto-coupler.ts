@@ -29,6 +29,8 @@ export class AutoCoupler {
     private _matchSource: MatchSource;
     private _coupler: CouplerTarget;
     private _callbacks: AutoCouplerCallbacks;
+    /** Reusable per-frame set of train ids already processed this update. */
+    private _merged: Set<number> = new Set();
 
     constructor(
         matchSource: MatchSource,
@@ -49,20 +51,26 @@ export class AutoCoupler {
         const matches = this._matchSource.getInRangeMatches();
         if (matches.length === 0) return;
 
-        const merged: Set<number> = new Set();
+        this._merged.clear();
         for (const match of matches) {
-            if (merged.has(match.trainA.id) || merged.has(match.trainB.id)) {
+            if (
+                this._merged.has(match.trainA.id) ||
+                this._merged.has(match.trainB.id)
+            ) {
                 continue;
             }
             const result = this._coupler.coupleTrains(match);
             if (result.success) {
-                merged.add(match.trainA.id);
-                merged.add(match.trainB.id);
+                this._merged.add(match.trainA.id);
+                this._merged.add(match.trainB.id);
                 this._callbacks.onSuccess();
             } else if (result.reason === 'depth_exceeded') {
+                this._merged.add(match.trainA.id);
+                this._merged.add(match.trainB.id);
                 this._callbacks.onFailure('depth_exceeded');
             }
-            // 'invalid' is a transient race state — ignore silently.
+            // 'invalid' is a transient race state — leave the trains free
+            // to be re-attempted later in the same frame.
         }
     }
 }

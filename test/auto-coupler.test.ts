@@ -143,4 +143,32 @@ describe('AutoCoupler', () => {
         expect(onSuccess).not.toHaveBeenCalled();
         expect(onFailure).not.toHaveBeenCalled();
     });
+
+    it('skips a follow-up match that involves a depth-exceeded train (same frame)', () => {
+        const failed = match(1, 'head', 2, 'head', 3);
+        const followUp = match(2, 'tail', 3, 'head', 6); // shares train 2
+        const detector: StubDetector = {
+            getInRangeMatches: () => [failed, followUp],
+        };
+        const onSuccess = mock(() => {});
+        const onFailure = mock(() => {});
+        const manager: StubManager = {
+            coupleTrains: mock(() => ({
+                success: false as const,
+                reason: 'depth_exceeded' as const,
+            })),
+        };
+
+        const coupler = new AutoCoupler(detector, manager, {
+            onSuccess,
+            onFailure,
+        });
+        coupler.update();
+
+        // Only the first (failed) match attempts to couple; the second is skipped
+        // because train 2 is already in the merged set after the depth_exceeded.
+        expect(manager.coupleTrains).toHaveBeenCalledTimes(1);
+        expect(manager.coupleTrains).toHaveBeenCalledWith(failed);
+        expect(onFailure).toHaveBeenCalledTimes(1);
+    });
 });
