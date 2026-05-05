@@ -113,6 +113,18 @@ function uploadJson(
     input.click();
 }
 
+const WEBP_QUALITY = 0.92;
+
+function encodeToWebP(img: HTMLImageElement): string {
+    const canvas = document.createElement('canvas');
+    canvas.width = img.naturalWidth;
+    canvas.height = img.naturalHeight;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return '';
+    ctx.drawImage(img, 0, 0);
+    return canvas.toDataURL('image/webp', WEBP_QUALITY);
+}
+
 function uploadImage(
     onLoad: (src: string, pxWidth: number, pxHeight: number) => void
 ): void {
@@ -127,7 +139,9 @@ function uploadImage(
             const dataUrl = reader.result as string;
             const img = new window.Image();
             img.onload = () => {
-                onLoad(dataUrl, img.width, img.height);
+                const webp = encodeToWebP(img);
+                const finalSrc = webp || dataUrl;
+                onLoad(finalSrc, img.width, img.height);
             };
             img.src = dataUrl;
         };

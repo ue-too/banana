@@ -253,7 +253,7 @@ export class ImageCropEngine {
     }
 }
 
-/** Default browser-side renderer using `<canvas>` + `toDataURL('image/png')`. */
+/** Default browser-side renderer using `<canvas>` + `toDataURL('image/webp')`. */
 export const createCanvasCropRenderer = (): CropRenderer => {
     return async ({ src, sx, sy, sw, sh }) => {
         const img = new Image();
@@ -265,6 +265,6 @@ export const createCanvasCropRenderer = (): CropRenderer => {
         const ctx = canvas.getContext('2d');
         if (!ctx) throw new Error('Failed to acquire 2D context');
         ctx.drawImage(img, sx, sy, sw, sh, 0, 0, sw, sh);
-        return canvas.toDataURL('image/png');
+        return canvas.toDataURL('image/webp', 0.92);
     };
 };
